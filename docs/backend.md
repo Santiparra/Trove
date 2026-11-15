@@ -14,34 +14,38 @@ El tamaño depende del contenido; no hay un servidor permanente asociado. Biblio
 
 - Usar Trove, registrar cambios, cerrar y desentenderse: sin exportaciones manuales cotidianas.
 - Experiencia portable preferida, con carpetas de salida de respaldos configurables.
-- Pocos archivos ligeros preparados por Trove para que un cliente de Drive/Dropbox los sincronice. No se pide integrar APIs de esos servicios.
+- Archivos ligeros preparados por Trove para que un cliente de Drive/Dropbox los sincronice. El número exacto no es prioritario. No se pide integrar APIs de esos servicios.
 - Respaldo de datos propios más exportación abierta de fallback, por ejemplo JSON.
-- Metadata externa y portadas fuera del resguardo sincronizado. Pueden permanecer locales y recuperarse después mediante referencias persistidas.
+- Datos propios y contenido liviano/textual en el resguardo. Portadas y otros recursos pesados permanecen locales, fuera del resguardo sincronizado, con referencias para recuperarlos. La metadata textual no se excluye por su procedencia externa; campos y límites exactos pendientes.
 - No es indispensable editar datos con LibreOffice.
 
 ## Contenido del resguardo
 
 Debe conservar los datos personales necesarios para reconstruir biblioteca y consumo: estados, puntajes, notas, progreso, fechas e historial dentro del alcance implementado; también la identidad y los vínculos necesarios para no perder su asociación con obras y ediciones.
 
-Las referencias a proveedores y de portadas son información de recuperación, aunque la metadata descriptiva esté excluida. Propuesta pendiente: conservar además un mínimo identificativo local —título, autor e identificadores de edición disponibles— para reconocer entradas y buscar alternativas si el proveedor desaparece. No confundir este mínimo con una copia completa de metadata.
+El título local y las referencias externas forman parte del registro propio confirmado. Autor e identificadores de edición son candidatos a completar ese mínimo identificativo; los campos exactos están pendientes. Las copias de metadata textual pueden incluirse en el resguardo sin convertirse por ello en datos propios ni en su fuente de verdad.
 
 Una referencia permite intentar recuperar una portada o metadata, pero no garantiza que sigan disponibles. Después de restaurar, los datos propios deben ser utilizables sin esperar esa recuperación; la metadata ausente puede volver a buscarse o vincularse manualmente.
 
 ## Mecanismo propuesto, pendiente de cerrar
 
 1. Mantener datos activos fuera del área sincronizada. La separación entre datos personales y caché puede ser física o lógica; aún no se elige esquema.
-2. Generar automáticamente un SQLite consistente solo con el contenido de resguardo y un fallback abierto restaurable, sin copiar indiscriminadamente la base activa si incluye metadata excluida.
+2. Generar automáticamente un SQLite consistente con el contenido de resguardo y un fallback abierto restaurable, excluyendo recursos pesados según las reglas acordadas.
 3. Preparar cada salida en un archivo temporal, validarlo y sustituir el anterior al terminar; asociar SQLite y fallback a una misma generación para detectar diferencias entre versiones sincronizadas.
 4. Actualizar tras cambios con una breve espera para agrupar escrituras y completar lo pendiente al cierre normal. Un fallo de resguardo no debe borrar la última copia válida y debe ser visible para el usuario. Frecuencia, reintentos y política de versiones por acordar.
-5. Restaurar desde esos archivos con comprobación de formato y compatibilidad, sin exigir conexión; recuperar metadata e imágenes posteriormente.
+5. Restaurar desde esos archivos con comprobación de formato y compatibilidad, sin exigir conexión; recuperar recursos ausentes o reconstruir metadata posteriormente, por medio o proveedor.
 
 Trove puede garantizar que prepara las salidas locales según el diseño acordado, pero la subida a la nube depende del cliente de sincronización y de la conectividad. El cierre forzado o apagado abrupto también debe contemplarse al concretar el intervalo de resguardo.
 
-## Número de archivos: decisión abierta
+## Datos internos y exportación: decisiones independientes
 
-El usuario sugirió como ejemplo un SQLite y un JSON por tipo de medio. No implica todavía decidir una base activa por medio.
+El usuario aclaró que el número de archivos es secundario. La necesidad real es especializar los medios y poder reconstruir metadata por sección/proveedor sin afectar otras secciones.
 
-Alternativas: un par global para todos los medios, o un par por medio. La primera reduce archivos y facilita relaciones entre medios; la segunda permite respaldar/restaurar secciones pero exige resolver dependencias compartidas y consistencia entre archivos. Ambas pueden excluir portadas y metadata. Consultar antes de elegir.
+Propuesta pendiente: una base SQLite activa con conceptos compartidos y tablas especializadas por medio, manteniendo claramente diferenciados datos propios y snapshots externos. Una base puede contener muchas tablas; no exige una estructura idéntica para libros, películas y series. Tablas concretas pendientes del modelado.
+
+La independencia de reconstrucción se consigue delimitando las operaciones: seleccionar medio/proveedor, actualizar sus snapshots y recursos, conservar datos propios y no modificar otros medios. Si un proveedor atiende varios medios, se necesita también acotar por medio y entradas seleccionadas; filtrar solo por proveedor no basta.
+
+La exportación puede ser global o por secciones independientemente de la organización interna. Reconstruir metadata por secciones no implica todavía aprobar restauración parcial de datos propios; esa funcionalidad y sus conflictos cruzados se definirían aparte.
 
 ## Responsabilidades futuras
 

@@ -16,7 +16,8 @@ El seguimiento de consumo está distribuido entre varios servicios. Trove busca 
 - Vincular obras con proveedores, con posibilidad de aprobación y corrección manual.
 - Conservar metadata local y actualizarla explícitamente mediante snapshots.
 - Facilitar el resguardo y la recuperación después de formatear la PC, con SQLite y exportación abierta de fallback, sin edición externa obligatoria.
-- Resguardo automático ligero en una carpeta configurable sincronizable con Drive/Dropbox, sin tareas manuales cotidianas. Excluir metadata externa y portadas; conservar referencias para recuperarlas.
+- Resguardo automático ligero en una carpeta configurable sincronizable con Drive/Dropbox, sin tareas manuales cotidianas. Incluir datos propios y contenido liviano/textual; excluir portadas y otros recursos pesados, conservando referencias para recuperarlos.
+- Separar datos locales propios de metadata externa. Cada medio tiene particularidades y debe permitir reconstruir metadata por sección o proveedor sin afectar a los demás.
 - Experiencia portable preferida; detalles de distribución por evaluar.
 - Exportar un listado de consumo reciente para copiarlo en una IA externa. No se solicita integración de IA dentro de Trove.
 - Generar un HTML estático de obras seleccionadas, con metadata, para compartir recomendaciones con amigos. Formato y portabilidad pendientes.
@@ -30,7 +31,7 @@ El seguimiento de consumo está distribuido entre varios servicios. Trove busca 
 | Trakt | Series de TV y películas |
 | IMDb | Puntajes de series y películas, sin listados personales |
 
-No existe una fuente actual para manhwa. Las películas tienen menor prioridad. El primer medio será libros, con The StoryGraph como primera fuente de importación: más de 250 ítems según el usuario.
+No existe una fuente actual dedicada a manhwa. Las películas tienen menor prioridad. El primer medio será libros, con The StoryGraph como primera fuente de importación. El gestor permitirá separar manualmente los medios mezclados en un archivo.
 
 ## Funcionalidades previstas para etapas posteriores
 

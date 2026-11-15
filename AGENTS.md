@@ -8,6 +8,9 @@
 - Distinguir requisitos confirmados por el usuario de recomendaciones y asuntos pendientes. Una recomendación no equivale a aprobación.
 - Registrar decisiones acordadas y sus consecuencias en los documentos pertinentes; evitar duplicar especificaciones en varios archivos.
 - Mantener la arquitectura proporcional a una aplicación personal local para una sola PC.
+- Mantener frontend centrado en presentación e interacción y lógica de negocio autoritativa en backend. Desacoplar núcleo de Wails, proveedores y SQLite mediante límites concretos; evitar abstracciones genéricas innecesarias y duplicación de reglas. Ver `docs/architecture.md`.
 - Los datos personales deben ser independientes de los proveedores. Importadores y proveedores de metadata son responsabilidades diferentes.
+- No incluir cantidades, estadísticas, títulos ni identificadores de bibliotecas personales en documentación pública. Describir formatos con ejemplos sintéticos; mantener exportaciones originales excluidas de Git.
 - No integrar IA para recomendaciones: el alcance pedido es exportar contexto para copiar y pegar en herramientas externas.
+- El usuario decide cuándo preparar una release. No incrementar versiones, crear notas versionadas, tags ni builds de release automáticamente al terminar una feature. Ver `docs/releases/README.md`.
 - Verificar cambios documentales mediante el diff y la coherencia de enlaces y decisiones; no requiere builds ni tests de aplicación.

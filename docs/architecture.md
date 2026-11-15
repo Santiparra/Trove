@@ -1,10 +1,14 @@
 # Arquitectura propuesta
 
-Estado: propuesta pendiente. No define todavía frameworks, estructura de carpetas ni contratos de código.
+Estado: arquitectura planteada aceptada por el usuario, con stack Wails v3 + Go + React/TypeScript + Vite + SQLite. Los contratos y la estructura concreta de paquetes se definirán al implementar.
 
 ## Restricciones confirmadas
 
 Aplicación local para una sola PC. El usuario abre la app y no administra servicios. La gestión personal funciona sin proveedores; las integraciones enriquecen y rescatan datos.
+
+Dos capas de datos confirmadas: registro local independiente (título, referencias, estado, notas, fechas, progreso) y metadata vinculada a proveedores. Son responsabilidades distintas, no necesariamente dos archivos ni dos bases. El tamaño y el formato, no solo la procedencia, determinan qué entra en el respaldo; ver [persistencia](backend.md).
+
+Los medios deben ser moderadamente independientes y admitir estructuras especializadas. Reconstruir metadata de libros no debe alterar series de TV, incluso si comparten proveedor. El alcance de cada operación debe identificar medio, proveedor y registros objetivo.
 
 ## Organización recomendada
 
@@ -14,6 +18,27 @@ Aplicación local para una sola PC. El usuario abre la app y no administra servi
 4. **Adaptadores:** persistencia, archivos, importadores y proveedores de metadata.
 
 Un único producto modular es suficiente. Separar frontend y backend conceptualmente no exige dos aplicaciones, un servidor web ni microservicios.
+
+## Principios confirmados y aplicación propuesta
+
+El usuario solicita convenciones consistentes, mínimo código duplicado, frontend ligero, lógica de negocio en backend y persistencia desacoplada. No exige DDD ni una metodología específica.
+
+- **Frontend React:** presentación, navegación, formularios, estado de interacción y validaciones para experiencia de uso. No contiene reglas autoritativas de consumo, importación, emparejamiento, resguardo o SQL. Tener frontend ligero no significa trasladar al backend detalles visuales.
+- **Backend Go:** casos de uso y validación autoritativa, reglas de consumo, orquestación de importaciones, metadata y resguardos. Recibir datos desde la UI no evita validarlos nuevamente en esta frontera.
+- **Puente Wails:** adaptador fino que transforma entradas/salidas y delega en casos de uso. El dominio no importa Wails.
+- **Persistencia:** contratos pequeños según necesidades de los casos de uso; implementación SQLite encapsula SQL, driver y detalles de esquema. El dominio no depende de `sql.DB`, filas SQL ni errores del driver. Los límites transaccionales se definen por operación de negocio, sin filtrar conexiones al núcleo.
+- **Integraciones:** tipos de respuesta de APIs y formatos de importación se traducen en los adaptadores; no se convierten en el modelo interno. Cada medio conserva sus reglas y estructura propias.
+- **Composición:** conectar implementaciones concretas en el arranque, no crearlas dentro de las reglas de negocio. Preferir composición explícita e idiomática de Go a un framework de inyección.
+- **Reutilización:** extraer lo que realmente es común; no forzar repositorios genéricos ni una superentidad multimedia para eliminar similitudes superficiales. Compartir mecanismos, especializar reglas.
+- **Convenciones propuestas:** nombres de código en inglés, documentación en español, formato estándar de Go, TypeScript estricto y límites de módulos claros. Aprobar convenciones específicas al iniciar el código.
+
+Dirección propuesta de dependencias: interfaz → adaptador Wails → casos de uso → dominio/contratos; SQLite y proveedores implementan contratos del núcleo. Las implementaciones externas dependen de esos contratos, no al revés.
+
+Migrar de SQLite seguiría requiriendo un nuevo adaptador, migración de datos y comprobaciones; el objetivo es evitar reescribir interfaz y reglas de negocio, no prometer sustitución gratuita de cualquier motor.
+
+## Comprobación arquitectónica al implementar
+
+Propuesta: probar reglas y casos de uso sin arrancar Wails ni consultar proveedores; comprobar persistencia y transacciones contra SQLite real en pruebas focalizadas; probar el mapeo de importaciones con archivos representativos. Mantener pruebas de round-trip de exportación/restauración cuando exista ese recorrido. No construir adaptadores alternativos ficticios ni un framework general para demostrar desacoplamiento.
 
 ## Límites importantes
 
@@ -26,4 +51,4 @@ Un único producto modular es suficiente. Separar frontend y backend conceptualm
 
 ## Decisiones pendientes
 
-Contenedor de escritorio, lenguaje del núcleo, persistencia, canal de comunicación UI/núcleo, distribución y ubicación de datos. Ver [stack](tech-stack.md) y [backend](backend.md).
+Esquema físico en SQLite, contratos concretos del puente Wails, detalles de distribución portable y ubicación de datos. Propuesta: núcleo común y tablas especializadas por medio dentro de una base, sin acoplar el formato de exportación al esquema interno. Ver [stack](tech-stack.md) y [backend](backend.md).

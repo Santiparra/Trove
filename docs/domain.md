@@ -10,6 +10,9 @@ Este documento describe conceptos, no tablas ni un esquema aprobado.
 - Una obra literaria puede tener varias ediciones. La lectura se registra sobre una edición.
 - Adaptaciones a otros medios son entradas independientes relacionadas.
 - La relectura debe aparecer como estado propio para el usuario.
+- Cada lectura/relectura y visualización/revisualización es un ciclo independiente, sin borrar los anteriores.
+- Se pueden crear obras y ediciones manualmente sin metadata externa y vincularlas posteriormente si aparece una coincidencia. La ausencia del proveedor no bloquea su uso.
+- El idioma español de la interfaz no determina el idioma del título. Se prevén títulos en inglés y título original como información complementaria; campos y prioridades precisos pendientes.
 
 ## Conceptos propuestos
 
@@ -19,18 +22,18 @@ Este documento describe conceptos, no tablas ni un esquema aprobado.
 | Serie / agrupación | Conjunto ordenado de ítems relacionados; no confundir con medio «serie de TV» |
 | Edición | Manifestación de una obra literaria: idioma, editorial, formato, etc. |
 | Registro personal | Pertenencia a biblioteca, puntaje, notas y estado |
-| Sesión o ciclo de consumo | Lectura/visualización concreta, con progreso y fechas; propuesta para conservar repeticiones |
+| Sesión o ciclo de consumo | Lectura/visualización concreta e independiente; progreso y fechas asociados según alcance por definir |
 | Relación | Secuela, precuela, adaptación, remake u otro vínculo tipado |
 | Vínculo externo | Asociación entre identidad local e identificador de un proveedor |
 | Snapshot | Copia persistente de metadata externa con procedencia y fecha |
 
 La representación exacta de estos conceptos se definirá con ejemplos antes de diseñar la base.
 
-## Relecturas: decisión de interfaz, modelado pendiente
+## Relecturas: ciclos confirmados, detalles pendientes
 
 El usuario quiere «releyendo» como estado distinto, junto con leyendo, pausado, por leer, sin terminar, etc. No se ha cerrado el catálogo de estados.
 
-Propuesta: mantener ese estado visible y, por debajo, conservar cada ciclo de lectura. Así una segunda lectura no borra la primera ni sus fechas. Falta acordar si el puntaje y las notas son generales o también por ciclo, y cómo se representa el final de una relectura.
+Acuerdo: mantener ese estado visible y, por debajo, conservar cada ciclo de lectura. Así una segunda lectura no borra la primera ni sus fechas. Falta acordar si el puntaje y las notas son generales o también por ciclo, y cómo se representa el final de una relectura.
 
 ## Progreso de serie
 
