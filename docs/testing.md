@@ -64,6 +64,8 @@ Para el portal se añaden pruebas de recuentos, últimos leídos ordenados por f
 
 El siguiente pulido añade pruebas de transiciones de lectura con reloj controlado, fechas manuales y desconocidas, propiedades personales, notas independientes y orden de serie. Se prueba la migración desde esquema 1 con copia previa legible. Las interacciones de ficha comprueban que marcar favorito no descarte notas sin guardar y que un fallo conserve el borrador. Las pruebas DOM no prueban el tamaño visual real de la ventana.
 
+Respaldo/restauración: pruebas de equivalencia SQLite/JSON, preservación de todas las ediciones/ciclos e identidades, fechas desconocidas, retención y no duplicación sin cambios, fallos de generación sin afectar el guardado local, carpetas incompletas, fuente modificada tras vista previa, preparación alterada, cancelación y rollback de reemplazo. Se comprueba el temporizador real con espera acotada y el cierre que espera escrituras aceptadas, rechaza nuevas y respalda lo pendiente. La interfaz exige confirmación y muestra copia previa o error sin afirmar un éxito inexistente. Los pickers nativos y la sincronización real de nube requieren prueba manual; los tests usan carpetas temporales y datos sintéticos.
+
 ## Reparto de responsabilidades propuesto
 
 El agente implementa y ejecuta las pruebas técnicas pertinentes y comunica qué pasó, qué no se ejecutó y qué queda por revisar. El usuario valida que el comportamiento y la experiencia cumplen su intención mediante modo desarrollo o build de prueba. Esa validación complementa, no sustituye, las comprobaciones técnicas.

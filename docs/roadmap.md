@@ -20,6 +20,8 @@ Aceptación: navegar por todas las secciones; crear un libro sin ISBN ni proveed
 
 ## Etapas posteriores y contexto
 
+Entrega de resguardo implementada: carpeta configurable por perfil, generaciones automáticas SQLite + JSON lógico, retención de dos copias completas y restauración validada con vista previa, copia local previa y recuperación ante fallos. Formato y límites en [backend](backend.md) y [formato de respaldo](backup-format.md). Pendiente de validación manual de los diálogos nativos/sincronizador en el entorno del usuario; las pruebas automáticas usan datos sintéticos.
+
 Antes de ampliar medios, completar y validar el [pulido de frontend](frontend.md#pulido-de-navegación-y-registro-personal) y las [reglas de consumo](domain.md#registro-personal-y-fechas). El bloque de navegación, favoritos/propiedad, A continuación y fechas automáticas está implementado; no incluye las tarjetas futuras de personalización.
 
 Progresión acordada tras ese corte: resguardo/restauración, soporte local mínimo conjunto de Libros/Novelas ligeras e importación StoryGraph para ambos, antes de enriquecer con metadata. La clasificación de destino (incluido ignorar) y la prioridad local/entrante son dos decisiones separadas del gestor. El resto de las etapas sigue siendo orientativo.

@@ -64,6 +64,10 @@ Fuente: conversación de planificación con el usuario, 2026-11-15. Este registr
 | D56 | Personalización futura: actividad mensual, mejor puntuados del año, favoritos y descubrimiento por autor | Requiere datos y proveedores aún no integrados; no fabricar estadísticas ni aprobar un cálculo de páginas/puntajes implícitamente |
 | D57 | «A continuación» es un estado manual; portal adaptable con referencia de escritorio 1920×1080 | No agregar automáticamente libros de una serie; reducir contenido de vista previa y ofrecer acceso al listado completo |
 | D58 | Fechas en acciones locales: primer inicio al entrar en leyendo; finalización al entrar en leído solo si hay inicio y falta finalización, sin depender del estado anterior | Conservar fechas existentes, respetar ediciones manuales y validar fin igual o posterior al inicio; no fabricar fechas históricas al importar/restaurar |
+| D59 | Resguardo automático aprobado: archivos de salida separados de la base activa, SQLite consistente y JSON lógico independiente del motor | Conservar identidades y relaciones, versión de formato propia y generación compartida; el JSON debe permitir implementar restauración sin SQLite en un motor futuro |
+| D60 | Conservar última generación válida y una anterior, con estado visible y carpeta configurable por perfil | Agrupar cambios, completar pendientes al cierre normal y no perder la última copia válida por fallos de generación/sincronización |
+| D61 | Una acción de restauración completa de perfil desde SQLite o JSON propios de Trove | Validación, preparación temporal, copia de seguridad previa y confirmación; no mezclar con el gestor de importación de servicios externos |
+| D62 | Implementación autorizada de la entrega de resguardo y restauración en Principal, en este chat | Sin importaciones externas, sin cambio de versión de release ni publicación; conservar cambios locales |
 
 ## Propuestas pendientes de aprobación
 
@@ -93,6 +97,6 @@ Fuente: conversación de planificación con el usuario, 2026-11-15. Este registr
 - ¿Cómo identificar coincidencias sin confundir obras o ediciones? Precisar mapeos, campos ausentes/vacíos y registros ausentes del archivo. La prioridad entre datos locales e importados ya se elige mediante D29. Ver [integraciones](integrations.md).
 - ¿Qué fechas existen, con qué precisión, y qué ocurre con fechas desconocidas?
 - ¿Qué contenido incluir por defecto en HTML compartido? ¿Portadas embebidas y funcionamiento sin Internet?
-- ¿Cuánto historial de backups conservar sin multiplicar innecesariamente archivos? El contenido de resguardo se delimita en [backend](backend.md).
+- Detalles técnicos de publicación de generaciones y diagnóstico de resguardo; retención y alcance de restauración ya acordados en D59–D61. Ver [backend](backend.md).
 - ¿Cómo registrar manga/manhwa y progreso por capítulos o volúmenes?
 - ¿Qué proveedores ofrecen la cobertura necesaria y qué limitaciones reales tienen sus APIs y exportaciones?

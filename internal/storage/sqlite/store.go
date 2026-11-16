@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Santiparra/Trove/internal/books"
@@ -21,7 +22,13 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db       *sql.DB
+	mu       sync.RWMutex
+	path     string
+	onChange func()
+	rename   func(string, string) error
+}
 
 func Open(path string) (*Store, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
@@ -32,7 +39,7 @@ func Open(path string) (*Store, error) {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
-	store := &Store{db: db}
+	store := &Store{db: db, path: path, rename: os.Rename}
 	if err = store.initialize(path); err != nil {
 		db.Close()
 		return nil, err
@@ -40,7 +47,13 @@ func Open(path string) (*Store, error) {
 	return store, nil
 }
 
-func (s *Store) Close() error { return s.db.Close() }
+func (s *Store) Close() error          { s.mu.Lock(); defer s.mu.Unlock(); return s.db.Close() }
+func (s *Store) SetOnChange(fn func()) { s.mu.Lock(); defer s.mu.Unlock(); s.onChange = fn }
+func (s *Store) changed() {
+	if s.onChange != nil {
+		s.onChange()
+	}
+}
 
 func (s *Store) initialize(path string) error {
 	if _, err := s.db.Exec("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;"); err != nil {
@@ -120,10 +133,14 @@ func scanBook(row scanner) (books.Book, error) {
 }
 
 func (s *Store) Get(ctx context.Context, id string) (books.Book, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return scanBook(s.db.QueryRowContext(ctx, selectBooks+" WHERE b.id=?", id))
 }
 
 func (s *Store) List(ctx context.Context, query string) ([]books.Book, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	rows, err := s.db.QueryContext(ctx, selectBooks+" ORDER BY b.title COLLATE NOCASE, b.id")
 	if err != nil {
 		return nil, err
@@ -145,6 +162,8 @@ func (s *Store) List(ctx context.Context, query string) ([]books.Book, error) {
 }
 
 func (s *Store) ListSeries(ctx context.Context) ([]books.Series, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	rows, err := s.db.QueryContext(ctx, "SELECT id,name FROM series WHERE id IN (SELECT series_id FROM books) ORDER BY name COLLATE NOCASE")
 	if err != nil {
 		return nil, err
@@ -162,6 +181,8 @@ func (s *Store) ListSeries(ctx context.Context) ([]books.Series, error) {
 }
 
 func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return b, err
@@ -206,10 +227,13 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	if err = tx.Commit(); err != nil {
 		return b, err
 	}
+	s.changed()
 	return b, nil
 }
 
 func (s *Store) UpdateCycle(ctx context.Context, bookID string, cycle books.Cycle) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	result, err := s.db.ExecContext(ctx, `UPDATE reading_cycles SET status=?,started_on=?,finished_on=? WHERE id=? AND edition_id IN (SELECT id FROM editions WHERE book_id=?)`, cycle.Status, cycle.StartedOn, cycle.FinishedOn, cycle.ID, bookID)
 	if err != nil {
 		return err
@@ -221,6 +245,7 @@ func (s *Store) UpdateCycle(ctx context.Context, bookID string, cycle books.Cycl
 	if n != 1 {
 		return books.ErrNotFound
 	}
+	s.changed()
 	return nil
 }
 
@@ -238,16 +263,36 @@ func requireUpdated(result sql.Result, err error) error {
 	return nil
 }
 func (s *Store) UpdateNotes(ctx context.Context, id, notes string) error {
-	return requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET notes=? WHERE id=?", notes, id))
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	err := requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET notes=? WHERE id=?", notes, id))
+	if err == nil {
+		s.changed()
+	}
+	return err
 }
 func (s *Store) UpdateFavorite(ctx context.Context, id string, value bool) error {
-	return requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET favorite=? WHERE id=?", value, id))
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	err := requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET favorite=? WHERE id=?", value, id))
+	if err == nil {
+		s.changed()
+	}
+	return err
 }
 func (s *Store) UpdateOwned(ctx context.Context, bookID, editionID string, value bool) error {
-	return requireUpdated(s.db.ExecContext(ctx, "UPDATE editions SET owned=? WHERE id=? AND book_id=?", value, editionID, bookID))
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	err := requireUpdated(s.db.ExecContext(ctx, "UPDATE editions SET owned=? WHERE id=? AND book_id=?", value, editionID, bookID))
+	if err == nil {
+		s.changed()
+	}
+	return err
 }
 
 func (s *Store) Delete(ctx context.Context, id string) error {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -270,5 +315,8 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	if n != 1 {
 		return books.ErrNotFound
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err == nil {
+		s.changed()
+	}
+	return err
 }

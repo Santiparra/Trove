@@ -12,7 +12,7 @@ Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimien
 - Importar archivos exportados desde servicios especializados.
 - Conservar datos mediante respaldos automáticos y formatos abiertos de recuperación.
 
-El primer medio es **libros**. El portal muestra estados y cantidades, lecturas actuales, últimos leídos con fecha registrada y distribución visual. Desde allí se accede a los listados, la búsqueda y fichas completas para crear, editar, cambiar rápidamente el estado o eliminar un libro con confirmación. Se conservan autoría, Serie y número de orden, edición mínima, notas y fechas. Las importaciones, proveedores, portadas reales, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
+El primer medio es **libros**. El portal muestra estados y cantidades, lecturas actuales, últimos leídos con fecha registrada y distribución visual. Desde allí se accede a los listados, la búsqueda y fichas completas para crear, editar, cambiar rápidamente el estado o eliminar un libro con confirmación. Se conservan autoría, Serie y número de orden, edición mínima, notas y fechas. Hay resguardo automático SQLite + JSON y restauración completa. Las importaciones externas, proveedores, portadas reales, puntajes y relecturas avanzadas todavía no están implementados. The StoryGraph será la primera fuente de importación.
 
 La navegación incluye páginas locales de serie, botones de estado y búsqueda desplegable sin abandonar el portal. Se pueden guardar notas directamente en la ficha, marcar favorito y propiedad y usar el estado manual **A continuación**. Las acciones de lectura registran el primer inicio y la finalización cuando existe inicio; las fechas manuales se respetan.
 
@@ -76,7 +76,7 @@ La build está en `bin/Trove-test.exe`. Se puede copiar a otra carpeta y ejecuta
 | Build de prueba | `data/test/` junto al ejecutable |
 | Habitual (solo selección explícita) | `data/habitual/` junto al ejecutable |
 
-El perfil y la ruta activa se pueden consultar en la etiqueta superior de la app. Esta entrega debe probarse con datos reemplazables: aún no hay backup/restauración automáticos.
+El perfil y la ruta activa se pueden consultar en la etiqueta superior de la app. La carpeta de respaldo se configura por perfil; las rutas de salida no se importan al restaurar una biblioteca. Validar primero el recorrido con datos sintéticos en un perfil de prueba.
 
 Opcionalmente se puede elegir una raíz de datos; el nombre del perfil siempre se añade para mantener aislamiento:
 
@@ -86,6 +86,27 @@ Opcionalmente se puede elegir una raíz de datos; el nombre del perfil siempre s
 
 El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuración WebView que gestione el runtime no son material para publicar en Git. La app crea el esquema al primer arranque y rechaza esquemas futuros que no pueda interpretar.
 
+### Respaldo y restauración
+
+En la barra superior, abrir **Respaldo y restauración**:
+
+1. **Elegir carpeta**: seleccionar una carpeta separada de los datos activos, por ejemplo una que sincronice Drive/Dropbox. Trove agrega la subcarpeta `test`, `development` o `habitual` según el perfil.
+2. Se genera una primera copia. Después, los cambios confirmados se agrupan durante dos segundos y se respaldan automáticamente. El cierre normal completa lo pendiente; el siguiente arranque detecta cambios que quedaron sin resguardar tras un cierre forzado.
+3. Se conservan dos generaciones completas: cada directorio `generation-<id>` contiene `trove.sqlite`, `trove.json` y un pequeño manifiesto `complete.json`. El JSON es lógico/versionado e independiente del motor. No se incluyen portadas, cachés, logs, rutas ni credenciales.
+4. El indicador distingue pendiente, guardando, al día y error. «Al día» significa archivos locales terminados, no subida a la nube. Un fallo del respaldo conserva los cambios en la biblioteca y se puede reintentar; no sustituye la última copia válida.
+
+Para recuperar: **Seleccionar respaldo para restaurar**, elegir el SQLite o JSON de Trove, revisar contenido/perfil de destino y confirmar el reemplazo completo. Una representación válida puede restaurarse sin la otra ni el manifiesto. No se mezclan registros y no se recalculan fechas históricas. Cerrar otras instancias antes de confirmar.
+
+Se conserva una copia local `before-restore-*.sqlite` de la biblioteca anterior y se intenta recuperarla si falla el reemplazo. El original elegido se lee, no se modifica. La preparación vence a los diez minutos; si expira o falla, seleccionar de nuevo el respaldo.
+
+Después de formatear basta ejecutar Trove en un perfil nuevo, restaurar el archivo y configurar otra vez la salida automática. Si una base dañada impide arrancar, se puede iniciar con una raíz nueva sin tocar la anterior:
+
+```powershell
+.\bin\Trove-test.exe --profile test --data-dir "C:\TroveRecuperacion"
+```
+
+Restaurar allí desde la interfaz. La copia nativa necesita soporte SQLite; el JSON documentado permite implementar recuperación sobre un motor futuro. No es importación de servicios externos. Más detalles en [persistencia](docs/backend.md) y [formato](docs/backup-format.md).
+
 ### Recorrido manual de aceptación
 
 1. Recorrer las secciones; solo Libros está funcional.
@@ -94,15 +115,17 @@ El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuraci�
 4. Buscar por título, editar estado, notas, edición y fechas conocidas; dejar las desconocidas vacías.
 5. Cerrar completamente y reabrir. Verificar datos y vínculos en el perfil de prueba.
 6. Confirmar que desarrollo y build de prueba no muestran la misma biblioteca por defecto.
-7. Comprobar cantidades y distribución del portal, entrar por estado y cambiarlo desde el selector rápido. Verificar que no se sobrescriben notas ni se fabrican fechas.
+7. Comprobar cantidades y distribución del portal, entrar por estado y cambiarlo desde el selector rápido. Verificar que no se sobrescriben notas y se respetan las reglas de fechas.
 8. Añadir fecha de finalización a una lectura terminada y comprobar su aparición entre los últimos leídos. Las portadas son marcadores locales provisionales.
 9. Abrir una ficha y su formulario a página completa. Cancelar la eliminación y luego probarla con un libro sintético prescindible; comprobar que otro libro de su serie se conserva.
 10. Abrir una serie desde su nombre y verificar orden numérico, con los libros sin posición al final. Cambiar de listado mediante los botones de estado.
 11. Escribir una búsqueda sin salir del portal; abrir una coincidencia o todos los resultados. Probar Escape y navegación de teclado.
 12. Guardar notas desde la ficha y marcar/desmarcar favorito y propiedad; comprobar que ninguna de esas acciones modifica el resto del registro.
 13. Con datos sintéticos: empezar, pausar y retomar sin perder inicio; completar con inicio conocido registra hoy, mientras marcar leído sin inicio no inventa finalización. Probar fechas manuales y rechazo de finalización anterior al inicio.
+14. Configurar una carpeta temporal de respaldo en el perfil de prueba, guardar cambios y esperar el indicador «al día». Comprobar los archivos generados y que no se duplican generaciones al respaldar sin cambios.
+15. Recuperar cada representación en un perfil vacío y comparar identidades, relaciones, fechas desconocidas, notas, favorito y propiedad. Probar cancelar antes del reemplazo y rechazar un archivo ajeno o inválido.
 
-Al abrir por primera vez una base del esquema anterior, se crea junto a ella una copia `before-schema-2-*.sqlite` antes de migrar favorito/propiedad. No se asigna una nueva versión pública de la app por ese cambio de esquema. El ejecutable anterior no puede abrir el esquema nuevo; una vuelta atrás requiere restaurar datos compatibles. Esta copia de seguridad local de migración no reemplaza el sistema de backups/exportación todavía pendiente.
+Al abrir por primera vez una base del esquema anterior, se crea junto a ella una copia `before-schema-2-*.sqlite` antes de migrar favorito/propiedad. No se asigna una nueva versión pública de la app por ese cambio de esquema. Un ejecutable que no admita ese esquema necesita datos compatibles para volver atrás. La copia de migración es distinta de las generaciones de respaldo de uso cotidiano.
 
 Las pruebas automáticas verifican persistencia/reapertura y errores de guardado. No sustituyen la validación visual del paquete; el arranque desde una instalación limpia y la interacción manual deben comprobarse antes de considerar el candidato aprobado.
 
@@ -161,7 +184,7 @@ La [guía del entorno](docs/development-environment.md) detalla las dependencias
 | Importaciones | [Análisis de exportaciones de ejemplo](docs/import-analysis.md) |
 | Entorno | [Preparación de desarrollo](docs/development-environment.md) |
 | Calidad | [Estrategia de pruebas](docs/testing.md) |
-| Operación | [Seguridad](docs/security.md) · [Durabilidad](docs/longevity.md) · [Releases](docs/releases/README.md) |
+| Operación | [Seguridad](docs/security.md) · [Formato de respaldo](docs/backup-format.md) · [Durabilidad](docs/longevity.md) · [Releases](docs/releases/README.md) |
 
 La documentación distingue decisiones confirmadas, propuestas y asuntos pendientes. Las exportaciones personales usadas para analizar formatos no forman parte de los datos públicos del repositorio.
 

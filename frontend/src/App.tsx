@@ -15,6 +15,7 @@ import BookEditor from "./books/BookEditor";
 import BookSearch from "./books/BookSearch";
 import DeleteDialog from "./books/DeleteDialog";
 import { errorMessage, labelFor } from "./books/presentation";
+import BackupControl from "./backup/BackupControl";
 
 const media: { key: string; label: string; icon: IconName }[] = [
   { key: "books", label: "Libros", icon: "books" },
@@ -338,27 +339,55 @@ export default function App() {
               </>
             )}
           </span>
-          <button
-            className="profile-tag"
-            onClick={() => setShowStorage(!showStorage)}
-            aria-expanded={showStorage}
-          >
-            <span className="connection-dot" />
-            {info?.profile === "habitual"
-              ? "Uso habitual"
-              : info?.profile === "test"
-                ? "PRUEBA · no publicado"
-                : "DESARROLLO"}
-            <span aria-hidden="true"> ⓘ</span>
-          </button>
+          <div className="topbar-actions">
+            <BackupControl
+              disabled={busy || !!deleteTarget}
+              canOpen={() => {
+                if (busy || deleteTarget || !canLeave()) return false;
+                if (dirty) {
+                  setDirty(false);
+                  setView("portal");
+                  setSelected(null);
+                }
+                return true;
+              }}
+              onRestored={() => {
+                setDirty(false);
+                setSelected(null);
+                setSelectedSeries(null);
+                setQuery("");
+                setSearchText("");
+                setStatus("");
+                setSection("books");
+                setView("portal");
+                setReturnTo("portal");
+                setActionError("");
+                setNotice("Biblioteca restaurada desde el respaldo.");
+                setRevision((value) => value + 1);
+              }}
+            />
+            <button
+              className="profile-tag"
+              onClick={() => setShowStorage(!showStorage)}
+              aria-expanded={showStorage}
+            >
+              <span className="connection-dot" />
+              {info?.profile === "habitual"
+                ? "Uso habitual"
+                : info?.profile === "test"
+                  ? "PRUEBA · no publicado"
+                  : "DESARROLLO"}
+              <span aria-hidden="true"> ⓘ</span>
+            </button>
+          </div>
         </header>
         {showStorage && (
           <div className="storage-panel">
             <strong>Almacenamiento local</strong>
             <code>{info?.dataDir ?? "Cargando…"}</code>
             <span>
-              Build: {info?.buildID ?? "…"} · SQLite · Sin respaldo automático
-              en esta entrega.
+              Build: {info?.buildID ?? "…"} · SQLite · Configuración de
+              resguardo en «Respaldo y restauración».
             </span>
           </div>
         )}

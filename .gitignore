@@ -14,3 +14,10 @@
 /.local/
 *.sqlite
 *.sqlite-*
+
+# Respaldos personales incluso si se configura una salida dentro del repo.
+**/generation-*/
+**/.pending-*/
+**/.restore-*/
+**/backup-settings.json
+**/.backup-settings-*.json

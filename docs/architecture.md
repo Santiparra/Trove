@@ -53,4 +53,6 @@ Propuesta: probar reglas y casos de uso sin arrancar Wails ni consultar proveedo
 
 Implementación inicial: `internal/books` contiene modelo y casos de uso; `internal/storage/sqlite` implementa el contrato de persistencia y migraciones; `internal/desktop` adapta Wails; `internal/config` separa perfiles; `main.go` compone dependencias. React y sus tests están en `frontend/src`, con bindings generados en `frontend/bindings`. El frontend no accede a SQLite ni a proveedores.
 
+`internal/backup` define formato lógico, validación y ciclo de generaciones/restauración mediante un contrato de backend sin importar SQLite. El adaptador de almacenamiento captura/prepara/instala las bases; `internal/desktop/Backups` adapta los diálogos y serializa el reemplazo frente a operaciones de biblioteca. Los guardados confirmados notifican cambios sin depender de que la salida de respaldo esté disponible. Configuración de rutas y credenciales quedan fuera del modelo exportado.
+
 Esquema físico en SQLite, contratos concretos del puente Wails, detalles de distribución portable y ubicación de datos. Propuesta: núcleo común y tablas especializadas por medio dentro de una base, sin acoplar el formato de exportación al esquema interno. Ver [stack](tech-stack.md) y [backend](backend.md).

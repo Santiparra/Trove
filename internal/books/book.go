@@ -18,6 +18,14 @@ func ValidStatus(status string) bool {
 	return false
 }
 
+func ValidFormat(format string) bool {
+	switch format {
+	case "", "paperback", "hardcover", "digital", "audio", "other":
+		return true
+	}
+	return false
+}
+
 type Series struct {
 	ID       string   `json:"id"`
 	Name     string   `json:"name"`
@@ -116,9 +124,7 @@ func (in Input) Normalize(today string) (Input, error) {
 	if !ValidStatus(in.Status) {
 		return in, errors.New("el estado de lectura no es válido")
 	}
-	switch in.Format {
-	case "", "paperback", "hardcover", "digital", "audio", "other":
-	default:
+	if !ValidFormat(in.Format) {
 		return in, errors.New("el formato de edición no es válido")
 	}
 	for _, value := range []string{in.AddedOn, in.StartedOn, in.FinishedOn} {
