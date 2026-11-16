@@ -1,4 +1,6 @@
-# Frontend en planificación
+# Frontend
+
+Estado inicial implementado: navegación por medios, biblioteca local de libros, búsqueda por título, detalle y formulario de edición con Serie y número. React se comunica con los casos de uso Go mediante bindings generados de Wails. Las restantes secciones muestran «En construcción».
 
 ## Dirección confirmada
 

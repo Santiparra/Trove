@@ -6,6 +6,7 @@ La primera entrega está acordada. Las etapas posteriores siguen siendo orientat
 
 - Ventana principal con secciones Libros, Novelas ligeras, Anime, Manga, Manhwa, Series de TV y Películas. Solo Libros funcional; el resto muestra «En construcción».
 - Biblioteca manual de libros: listado, creación, detalle, edición y búsqueda local por título.
+- Serie opcional compartida y número de orden dentro de ella para vincular libros serializados.
 - Campos iniciales propuestos y aceptados: título, autor/autores, edición mínima con idioma/formato/ISBN opcionales, estado, notas y fechas de agregado/inicio/finalización cuando se conozcan. Puntaje condicionado a acordar su escala antes de implementarlo; no elegirla silenciosamente.
 - Conexión real React → puente Wails → casos de uso Go → SQLite, con inicialización y esquema versionado. Guardado y errores visibles, sin fingir éxito ante fallos.
 - Diferenciar obra, edición y ciclo de consumo desde el modelo. La interfaz inicial trabaja con una edición por libro; no incluye gestión avanzada de ediciones o relecturas.

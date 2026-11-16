@@ -1,6 +1,6 @@
 # Instrucciones para trabajar en Trove
 
-- El proyecto está en planificación. El usuario autorizó crear y mantener documentación; no implementar código, instalar dependencias ni preparar infraestructura sin una nueva instrucción.
+- Primera entrega autorizada en Principal, en este chat: navegación por medios y biblioteca manual de libros con SQLite, búsqueda local, Serie y número de orden. Ver `docs/roadmap.md`. No ampliar el alcance sin acuerdo.
 - Escribir documentación en español. Trove es el nombre provisional.
 - Consultar `docs/decisions.md` antes de asumir decisiones de producto o tecnología.
 - Mantener todos los cambios locales. No crear commits, hacer push ni publicar; el usuario gestiona esas acciones. No alterar el staging del usuario.

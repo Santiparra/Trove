@@ -51,4 +51,6 @@ Propuesta: probar reglas y casos de uso sin arrancar Wails ni consultar proveedo
 
 ## Decisiones pendientes
 
+Implementación inicial: `internal/books` contiene modelo y casos de uso; `internal/storage/sqlite` implementa el contrato de persistencia y migraciones; `internal/desktop` adapta Wails; `internal/config` separa perfiles; `main.go` compone dependencias. React y sus tests están en `frontend/src`, con bindings generados en `frontend/bindings`. El frontend no accede a SQLite ni a proveedores.
+
 Esquema físico en SQLite, contratos concretos del puente Wails, detalles de distribución portable y ubicación de datos. Propuesta: núcleo común y tablas especializadas por medio dentro de una base, sin acoplar el formato de exportación al esquema interno. Ver [stack](tech-stack.md) y [backend](backend.md).

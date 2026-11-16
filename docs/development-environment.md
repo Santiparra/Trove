@@ -1,6 +1,6 @@
 # Entorno de desarrollo recomendado para Windows
 
-Estado: stack Wails v3 + Go + React/TypeScript + Vite + SQLite confirmado para Windows x64. Herramientas y diagnóstico comprobados; todavía no hay una aplicación ni dependencias de proyecto instaladas.
+Estado: stack Wails v3 + Go + React/TypeScript + Vite + SQLite confirmado para Windows x64. Proyecto y dependencias incorporados. Comandos de instalación, desarrollo y build de prueba en [README](../README.md).
 
 ## Herramientas a instalar
 
@@ -32,9 +32,9 @@ El asistente `wails3 setup` figura como experimental; se recomienda instalación
 
 ## Dependencias que no se instalan globalmente
 
-React, TypeScript y Vite serán dependencias versionadas del proyecto cuando se autorice implementar. SQLite se integrará mediante un driver Go, no como servidor o programa separado.
+React, TypeScript y Vite son dependencias versionadas del proyecto. SQLite se integra mediante un driver Go, no como servidor o programa separado.
 
-Propuesta de driver: `modernc.org/sqlite`, compatible con `database/sql` y sin CGo. Evita requerir compilador C por SQLite en este escenario; no se agregó al proyecto ni se fijó todavía versión. Sus costes de rendimiento y compatibilidad se evaluarán con el recorrido real; no equivale a garantizar el mismo rendimiento que SQLite compilado en C.
+Driver seleccionado: `modernc.org/sqlite`, compatible con `database/sql` y sin CGo. Evita requerir compilador C por SQLite en este escenario. La versión exacta y transitivas están en `go.mod` y `go.sum`; no equivale a garantizar el mismo rendimiento que SQLite compilado en C.
 
 Con Wails v3 en Windows y ese driver, la guía oficial no exige Visual Studio C++ Build Tools, GCC ni Rust como prerrequisitos básicos. Dependencias futuras podrían cambiarlo. No se necesita Docker, una base de datos servidor ni NSIS para comenzar; NSIS corresponde a ciertos instaladores, no al objetivo inicial portable.
 
@@ -68,4 +68,4 @@ Comandos de versión y `wails3 doctor` ejecutados desde el repo:
 
 No están instalados Android SDK, Docker, NSIS, MSIX Packaging Tool, MakeAppx ni SignTool; no bloquean el desarrollo inicial para Windows portable. Se evaluarían solo si se solicita una distribución que los necesite. La firma de ejecutables tampoco está configurada.
 
-Alcance comprobado: herramientas accesibles en PATH y prerrequisitos detectados por Wails. React/Vite/TypeScript y el driver SQLite todavía no están incorporados al repo, por lo que no se verificó una compilación integrada, ejecución de Trove, persistencia ni empaquetado. No se realizaron instalaciones ni benchmarks.
+Al diagnóstico inicial se añadió instalación de dependencias del proyecto, pruebas focalizadas de backend y frontend y compilación integrada del ejecutable de prueba. El arranque en desarrollo llegó a conexión con Vite y creación correcta del entorno WebView2; el proceso se detuvo después de la comprobación. No se hicieron benchmarks ni se comprobó una instalación limpia de Windows. La validación visual interactiva queda pendiente: el control del escritorio estaba desactivado.

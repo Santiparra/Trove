@@ -1,0 +1,41 @@
+version: '3'
+
+tasks:
+  bindings:
+    desc: Generar el puente TypeScript desde los servicios Go
+    cmds:
+      - wails3 generate bindings -clean=true -ts -d frontend/bindings
+  frontend:build:
+    dir: frontend
+    cmds:
+      - npm run build
+  build:dev:
+    cmds:
+      - task: bindings
+      - task: frontend:build
+      - go build -buildvcs=false -o bin/Trove-dev.exe .
+  build:
+    desc: Compilar una build portable de prueba, sin asignar versión pública
+    cmds:
+      - task: bindings
+      - task: frontend:build
+      - go build -tags production -trimpath -buildvcs=false -ldflags "-H windowsgui -X main.defaultProfile=test -X main.buildID=test-{{now | date "20060102-150405"}}" -o bin/Trove-test.exe .
+  frontend:dev:
+    dir: frontend
+    cmds:
+      - npm run dev
+  run:dev:
+    cmds:
+      - ./bin/Trove-dev.exe --profile development
+  dev:
+    desc: Ejecutar desarrollo con recarga y datos separados
+    cmds:
+      - wails3 dev -config ./build/config.yml -port 9245
+  test:
+    cmds:
+      - go test ./internal/...
+      - task: frontend:test
+  frontend:test:
+    dir: frontend
+    cmds:
+      - npm test

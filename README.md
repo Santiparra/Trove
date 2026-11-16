@@ -2,7 +2,7 @@
 
 Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimiento de libros, anime y otros medios, con datos locales independientes de los servicios externos.
 
-> **En planificación.** El repositorio contiene documentación de producto y arquitectura. Todavía no hay una aplicación ejecutable, comandos de arranque ni releases. Trove es un nombre provisional.
+> **Primera entrega local en desarrollo.** Navegación por medios y biblioteca manual de libros con SQLite. Las otras secciones están en construcción. No hay una release publicada ni versión pública asignada. Trove es un nombre provisional.
 
 ## Objetivo
 
@@ -12,7 +12,7 @@ Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimien
 - Importar archivos exportados desde servicios especializados.
 - Conservar datos mediante respaldos automáticos y formatos abiertos de recuperación.
 
-El primer medio será **libros**, con **The StoryGraph** como primera fuente de importación. Las funcionalidades descritas son objetivos de desarrollo, no características implementadas.
+El primer medio es **libros**. Ya se pueden crear, consultar, editar y buscar registros locales, con autoría, Serie y número de orden, edición mínima, estado, notas y fechas. Las importaciones, proveedores, portadas, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
 
 ## Stack
 
@@ -35,7 +35,65 @@ git clone https://github.com/Santiparra/Trove.git
 cd Trove
 ```
 
-En esta etapa, clonar permite consultar y trabajar sobre la documentación. Las instrucciones de instalación de dependencias del proyecto y ejecución se incorporarán cuando exista la aplicación.
+### Instalar dependencias del proyecto
+
+Desde la raíz, después de instalar las herramientas de la sección siguiente:
+
+```powershell
+go mod download
+npm --prefix frontend ci
+```
+
+No es necesario instalar SQLite: se integra mediante `modernc.org/sqlite`, sin CGo. No se requiere un compilador C por este driver.
+
+### Ejecutar en desarrollo
+
+```powershell
+wails3 task dev
+```
+
+Genera bindings, compila el backend y abre la ventana Wails con frontend Vite en `127.0.0.1:9245`. Los cambios del frontend se recargan; los de Go reinician el backend. Detener con `Ctrl+C` en esa terminal. El puerto debe estar disponible.
+
+### Comprobar y compilar una build de prueba
+
+```powershell
+wails3 task test
+wails3 task build
+.\bin\Trove-test.exe
+```
+
+`test` ejecuta las pruebas Go y frontend. `build` compila el frontend y el ejecutable con assets embebidos, marcado como **PRUEBA / no publicado**, sin asignar versión de release. No requiere dejar un servidor de desarrollo activo para usarlo. WebView2 Runtime debe estar disponible en Windows.
+
+La build está en `bin/Trove-test.exe`. Se puede copiar a otra carpeta y ejecutar; sus datos nuevos quedan junto al ejecutable bajo `data/test/`. Copiar solo el EXE no copia una biblioteca existente: para conservar datos de esta prueba, trasladar también esa carpeta con la app cerrada. La build no está firmada.
+
+### Datos separados
+
+| Perfil | Ubicación predeterminada |
+| --- | --- |
+| Desarrollo | `.local/development/` en el directorio desde el que se inicia |
+| Build de prueba | `data/test/` junto al ejecutable |
+| Habitual (solo selección explícita) | `data/habitual/` junto al ejecutable |
+
+El perfil y la ruta activa se pueden consultar en la etiqueta superior de la app. Esta entrega debe probarse con datos reemplazables: aún no hay backup/restauración automáticos.
+
+Opcionalmente se puede elegir una raíz de datos; el nombre del perfil siempre se añade para mantener aislamiento:
+
+```powershell
+.\bin\Trove-test.exe --profile test --data-dir "C:\TrovePruebas"
+```
+
+El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuración WebView que gestione el runtime no son material para publicar en Git. La app crea el esquema al primer arranque y rechaza esquemas futuros que no pueda interpretar.
+
+### Recorrido manual de aceptación
+
+1. Recorrer las secciones; solo Libros está funcional.
+2. Crear un libro sintético, con autoría, Serie y número, sin ISBN ni proveedor.
+3. Crear otro libro de la misma serie usando la sugerencia del formulario y otro número.
+4. Buscar por título, editar estado, notas, edición y fechas conocidas; dejar las desconocidas vacías.
+5. Cerrar completamente y reabrir. Verificar datos y vínculos en el perfil de prueba.
+6. Confirmar que desarrollo y build de prueba no muestran la misma biblioteca por defecto.
+
+Las pruebas automáticas verifican persistencia/reapertura y errores de guardado. No sustituyen la validación visual del paquete; el arranque desde una instalación limpia y la interacción manual deben comprobarse antes de considerar el candidato aprobado.
 
 ### Requisitos para Windows
 
@@ -63,7 +121,7 @@ git --version
 wails3 doctor
 ```
 
-React, TypeScript, Vite y el driver SQLite serán dependencias versionadas del proyecto; no requieren instalación global. SQLite se integra en la aplicación y no necesita un servidor separado.
+React, TypeScript, Vite y el driver SQLite son dependencias versionadas del proyecto; no requieren instalación global. Los lockfiles de npm y Go deben conservarse.
 
 ### Resolver problemas de PATH
 

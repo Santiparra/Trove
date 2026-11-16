@@ -1,3 +1,14 @@
 # Exportaciones personales para análisis local. No publicar datos reales.
 /samples/private/*
 !/samples/private/README.md
+
+# Dependencias, artefactos y datos locales.
+/bin/
+/.task/
+/frontend/node_modules/
+/frontend/dist/*
+!/frontend/dist/.gitkeep
+*.syso
+*.log
+/data/
+/.local/

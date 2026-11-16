@@ -54,6 +54,8 @@ Fuente: conversación de planificación con el usuario, 2026-11-15. Este registr
 | D46 | Workflow aprobado: desarrollo en vivo, build portable de prueba y release solo por indicación del usuario | Perfiles de datos de desarrollo/prueba/habitual separados; convención `0.MINOR.PATCH`; ver releases |
 | D47 | Estrategia de testing aprobada: automatización focalizada y validación manual complementaria | Priorizar integridad de datos, SQLite real temporal y fixtures sintéticos; comprobar proporcionalmente cada cambio; ver testing |
 | D48 | Primera entrega aprobada: navegación por medios y biblioteca manual de libros con búsqueda local y SQLite | Alcance y aceptación en roadmap; no incluye proveedores, importaciones ni backups automáticos; escala de puntaje pendiente antes de incluirla |
+| D49 | Serie y número de orden incluidos en la primera entrega de libros | Compartir identidad de serie entre libros y conservar su posición; no implementar aún tracking agregado avanzado |
+| D50 | Implementar en Principal, en este chat | Autorizadas preparación del proyecto, dependencias y comprobaciones de la primera entrega; sin commits ni publicación |
 
 ## Propuestas pendientes de aprobación
 

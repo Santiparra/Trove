@@ -4,11 +4,11 @@
 
 El usuario decide explícitamente cuándo crear una versión. Completar una feature no dispara automáticamente un cambio de versión, compilación de release, nota versionada, tag, commit ni publicación.
 
-Esta carpeta contiene documentación de releases, no ejecutables. No existe todavía una versión de Trove ni un proceso de empaquetado implementado.
+Esta carpeta contiene documentación de releases, no ejecutables. Existe un comando de build portable de prueba (`wails3 task build`), pero no se asignó una versión pública ni se preparó una release.
 
 ## Flujo acordado
 
-El usuario aprobó desarrollo en vivo → build local de prueba → candidato de versión → publicación bajo su control, con datos separados. No se crearon comandos, entornos ni artefactos. La estrategia técnica de comprobación está propuesta en [testing](../testing.md).
+El usuario aprobó desarrollo en vivo → build local de prueba → candidato de versión → publicación bajo su control, con datos separados. Los comandos de desarrollo y build están en el README. La estrategia técnica de comprobación aprobada está en [testing](../testing.md).
 
 ### 1. Implementación y revisión en vivo
 

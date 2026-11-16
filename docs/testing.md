@@ -1,6 +1,6 @@
 # Estrategia de pruebas
 
-Estado: estrategia aprobada. Pruebas automáticas focalizadas, prioridad a integridad de datos y validación manual de experiencia y paquete. No hay aplicación ni tests implementados todavía.
+Estado: estrategia aprobada y primeras pruebas implementadas. Pruebas automáticas focalizadas, prioridad a integridad de datos y validación manual de experiencia y paquete.
 
 ## Objetivo
 
@@ -56,7 +56,9 @@ Empezar por el backend y los recorridos de persistencia/importación, donde se c
 
 No fijar un porcentaje de cobertura obligatorio. Priorizar los comportamientos importantes y mantener pocos tests útiles, deterministas y mantenibles, en lugar de pruebas que solo replican la implementación.
 
-Los comandos concretos se documentarán al crear y ejecutar el proyecto. `go test ./...` es el comando estándar de Go, pero el repo aún no tiene un módulo sobre el que ejecutarlo. Vitest/React Testing Library serían dependencias de desarrollo del proyecto, no instalaciones globales ni requisitos del usuario final.
+Comandos implementados: `go test ./internal/...` para backend, `npm --prefix frontend test` para interfaz y `wails3 task test` para ambos. Vitest y React Testing Library son dependencias de desarrollo locales, no requisitos del usuario final.
+
+Las primeras pruebas cubren validación y fechas desconocidas, persistencia y reapertura SQLite, búsqueda con mayúsculas Unicode, identidad de edición/ciclo, series compartidas, rechazo de esquemas futuros, rollback transaccional y separación de perfiles. En React se comprueba envío del formulario y preservación de datos/mensaje ante rechazo del backend. El puente Wails está simulado en esos tests de React; no prueban por sí mismos el WebView real.
 
 ## Reparto de responsabilidades propuesto
 
