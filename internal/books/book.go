@@ -10,6 +10,14 @@ import (
 
 var ErrNotFound = errors.New("el libro ya no existe; actualizá el listado")
 
+func ValidStatus(status string) bool {
+	switch status {
+	case "to-read", "reading", "read", "paused", "did-not-finish":
+		return true
+	}
+	return false
+}
+
 type Series struct {
 	ID       string   `json:"id"`
 	Name     string   `json:"name"`
@@ -78,9 +86,7 @@ func (in Input) Normalize(today string) (Input, error) {
 	if in.AddedOn == "" {
 		in.AddedOn = today
 	}
-	switch in.Status {
-	case "to-read", "reading", "read", "paused", "did-not-finish":
-	default:
+	if !ValidStatus(in.Status) {
 		return in, errors.New("el estado de lectura no es válido")
 	}
 	switch in.Format {

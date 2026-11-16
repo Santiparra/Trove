@@ -35,14 +35,22 @@ func NewLibrary(service *books.Service, profile, dir, buildID string) *Library {
 }
 
 func (l *Library) Info() Info { return l.info }
-func (l *Library) ListBooks(query string) ([]books.Book, error) {
-	result, err := l.service.List(context.Background(), query)
+func (l *Library) ListBooks(query, status string) ([]books.Book, error) {
+	result, err := l.service.ListByStatus(context.Background(), query, status)
 	if err != nil {
 		log.Printf("listar libros: %v", err)
 		return nil, errors.New("no se pudo leer la biblioteca; intentá actualizar el listado")
 	}
 	return result, nil
 }
+
+func (l *Library) Dashboard() (books.Dashboard, error) {
+	return l.service.Dashboard(context.Background())
+}
+func (l *Library) ChangeBookStatus(id, status string) (books.Book, error) {
+	return l.service.ChangeStatus(context.Background(), id, status)
+}
+func (l *Library) DeleteBook(id string) error { return l.service.Delete(context.Background(), id) }
 func (l *Library) GetBook(id string) (books.Book, error) {
 	return l.service.Get(context.Background(), id)
 }

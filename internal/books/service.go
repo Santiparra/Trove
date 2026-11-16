@@ -3,6 +3,7 @@ package books
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"time"
 )
 
@@ -12,6 +13,8 @@ type Repository interface {
 	Get(context.Context, string) (Book, error)
 	Save(context.Context, Book) (Book, error)
 	ListSeries(context.Context) ([]Series, error)
+	Delete(context.Context, string) error
+	UpdateStatus(context.Context, string, string, string) error
 }
 
 type Service struct {
@@ -31,6 +34,43 @@ func (s *Service) Get(ctx context.Context, id string) (Book, error) { return s.r
 func (s *Service) ListSeries(ctx context.Context) ([]Series, error) {
 	return s.repository.ListSeries(ctx)
 }
+
+func (s *Service) ListByStatus(ctx context.Context, query, status string) ([]Book, error) {
+	if status != "" && !ValidStatus(status) {
+		return nil, errors.New("el estado de lectura no es válido")
+	}
+	items, err := s.repository.List(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	if status == "" {
+		return items, nil
+	}
+	result := make([]Book, 0)
+	for _, b := range items {
+		if b.Cycle.Status == status {
+			result = append(result, b)
+		}
+	}
+	return result, nil
+}
+
+func (s *Service) ChangeStatus(ctx context.Context, id, status string) (Book, error) {
+	if !ValidStatus(status) {
+		return Book{}, errors.New("el estado de lectura no es válido")
+	}
+	b, err := s.repository.Get(ctx, id)
+	if err != nil {
+		return Book{}, err
+	}
+	// A state change alone does not fabricate dates or replace any other field.
+	if err = s.repository.UpdateStatus(ctx, b.ID, b.Cycle.ID, status); err != nil {
+		return Book{}, err
+	}
+	return s.repository.Get(ctx, id)
+}
+
+func (s *Service) Delete(ctx context.Context, id string) error { return s.repository.Delete(ctx, id) }
 
 func (s *Service) Save(ctx context.Context, input Input) (Book, error) {
 	in, err := input.Normalize(s.today())

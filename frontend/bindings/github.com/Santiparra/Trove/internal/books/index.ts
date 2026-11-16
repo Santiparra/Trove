@@ -4,7 +4,9 @@
 export {
     Book,
     Cycle,
+    Dashboard,
     Edition,
     Input,
-    Series
+    Series,
+    StatusCount
 } from "./models.js";

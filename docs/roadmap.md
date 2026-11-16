@@ -6,6 +6,7 @@ La primera entrega está acordada. Las etapas posteriores siguen siendo orientat
 
 - Ventana principal con secciones Libros, Novelas ligeras, Anime, Manga, Manhwa, Series de TV y Películas. Solo Libros funcional; el resto muestra «En construcción».
 - Biblioteca manual de libros: listado, creación, detalle, edición y búsqueda local por título.
+- Pulido posterior solicitado: portal de libros con recuentos por estado, lectura actual, últimos leídos y barra proporcional; listados filtrados, ficha/formulario completos, cambio rápido de estado, eliminación confirmada e iconos SVG.
 - Serie opcional compartida y número de orden dentro de ella para vincular libros serializados.
 - Campos iniciales propuestos y aceptados: título, autor/autores, edición mínima con idioma/formato/ISBN opcionales, estado, notas y fechas de agregado/inicio/finalización cuando se conozcan. Puntaje condicionado a acordar su escala antes de implementarlo; no elegirla silenciosamente.
 - Conexión real React → puente Wails → casos de uso Go → SQLite, con inicialización y esquema versionado. Guardado y errores visibles, sin fingir éxito ante fallos.
@@ -13,7 +14,7 @@ La primera entrega está acordada. Las etapas posteriores siguen siendo orientat
 - Directorios de datos de desarrollo/prueba separados del uso habitual. Datos reemplazables para esta entrega.
 - Comprobaciones focalizadas de reglas y persistencia, más prueba del recorrido en paquete portable local. Esto no asigna una versión ni dispara una release.
 
-Fuera de esta entrega: importaciones, proveedores y búsqueda externa, vinculación, portadas/snapshots, gestión avanzada de series/ediciones, estadísticas, recomendaciones y sistema automático de backup/restauración. Este último se abordará antes de depender de Trove como único registro de información importante.
+Fuera de esta entrega: importaciones, proveedores y búsqueda externa, vinculación, portadas/snapshots, gestión avanzada de series/ediciones, estadísticas históricas avanzadas, recomendaciones y sistema automático de backup/restauración. Los recuentos y distribución por estado del portal sí están incluidos por el pedido de pulido. El resguardo se abordará antes de depender de Trove como único registro de información importante.
 
 Aceptación: navegar por todas las secciones; crear un libro sin ISBN ni proveedor; encontrarlo por título; editarlo; cerrar completamente la app y recuperar los cambios al reabrir. Comprobar también desde una build portable de prueba sin servidor de desarrollo.
 

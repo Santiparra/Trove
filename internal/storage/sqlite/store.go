@@ -198,3 +198,44 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	}
 	return b, nil
 }
+
+func (s *Store) UpdateStatus(ctx context.Context, bookID, cycleID, status string) error {
+	result, err := s.db.ExecContext(ctx, `UPDATE reading_cycles SET status=? WHERE id=? AND edition_id IN (SELECT id FROM editions WHERE book_id=?)`, status, cycleID, bookID)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return books.ErrNotFound
+	}
+	return nil
+}
+
+func (s *Store) Delete(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err = tx.ExecContext(ctx, `DELETE FROM reading_cycles WHERE edition_id IN (SELECT id FROM editions WHERE book_id=?)`, id); err != nil {
+		return err
+	}
+	if _, err = tx.ExecContext(ctx, "DELETE FROM editions WHERE book_id=?", id); err != nil {
+		return err
+	}
+	result, err := tx.ExecContext(ctx, "DELETE FROM books WHERE id=?", id)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return books.ErrNotFound
+	}
+	return tx.Commit()
+}

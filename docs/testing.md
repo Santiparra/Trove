@@ -60,6 +60,8 @@ Comandos implementados: `go test ./internal/...` para backend, `npm --prefix fro
 
 Las primeras pruebas cubren validación y fechas desconocidas, persistencia y reapertura SQLite, búsqueda con mayúsculas Unicode, identidad de edición/ciclo, series compartidas, rechazo de esquemas futuros, rollback transaccional y separación de perfiles. En React se comprueba envío del formulario y preservación de datos/mensaje ante rechazo del backend. El puente Wails está simulado en esos tests de React; no prueban por sí mismos el WebView real.
 
+Para el portal se añaden pruebas de recuentos, últimos leídos ordenados por finalización conocida, filtros combinados de título/estado y cambio rápido sin alterar otros campos. La eliminación se prueba contra SQLite real, incluyendo rollback ante fallos y conservación de libros de la misma serie. React verifica entrada por estado, búsqueda desde el portal, navegación a ficha/formulario completos, confirmación/cancelación del borrado y errores de cambio de estado o eliminación.
+
 ## Reparto de responsabilidades propuesto
 
 El agente implementa y ejecuta las pruebas técnicas pertinentes y comunica qué pasó, qué no se ejecutó y qué queda por revisar. El usuario valida que el comportamiento y la experiencia cumplen su intención mediante modo desarrollo o build de prueba. Esa validación complementa, no sustituye, las comprobaciones técnicas.

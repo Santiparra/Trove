@@ -5,39 +5,161 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import App from "./App";
 
 const api = vi.hoisted(() => ({
   Info: vi.fn(),
+  Dashboard: vi.fn(),
   ListBooks: vi.fn(),
   ListSeries: vi.fn(),
   SaveBook: vi.fn(),
   GetBook: vi.fn(),
+  ChangeBookStatus: vi.fn(),
+  DeleteBook: vi.fn(),
 }));
 vi.mock(
   "../bindings/github.com/Santiparra/Trove/internal/desktop/library",
   () => api,
 );
 
+const sample = {
+  id: "synthetic-book",
+  title: "Obra sintética",
+  authors: ["Autor A"],
+  series: null,
+  edition: { id: "edition", language: "", format: "", identifier: "" },
+  cycle: { id: "cycle", status: "reading", startedOn: "", finishedOn: "" },
+  notes: "Nota sintética",
+  addedOn: "2026-01-01",
+};
+const statuses = [
+  { value: "to-read", label: "Por leer" },
+  { value: "reading", label: "Leyendo" },
+  { value: "read", label: "Leído" },
+  { value: "paused", label: "Pausado" },
+  { value: "did-not-finish", label: "Sin terminar" },
+];
+function overview(withBook = false) {
+  return {
+    total: withBook ? 1 : 0,
+    counts: statuses.map((option) => ({
+      status: option.value,
+      count: withBook && option.value === "reading" ? 1 : 0,
+    })),
+    currentlyReading: withBook ? [sample] : [],
+    recentlyFinished: [],
+    readWithoutDate: 0,
+  };
+}
+
 beforeEach(() => {
+  vi.resetAllMocks();
   api.Info.mockResolvedValue({
     profile: "test",
     dataDir: "synthetic/test",
     buildID: "synthetic",
-    statuses: [{ value: "to-read", label: "Por leer" }],
+    statuses,
     formats: [{ value: "", label: "Sin especificar" }],
   });
+  api.Dashboard.mockResolvedValue(overview());
   api.ListBooks.mockResolvedValue([]);
   api.ListSeries.mockResolvedValue([]);
+  api.GetBook.mockResolvedValue(sample);
 });
 afterEach(cleanup);
+
+describe("portal y navegación de libros", () => {
+  it("abre el portal, no el listado, y el estado elegido define la consulta al backend", async () => {
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.ListBooks.mockResolvedValue([sample]);
+    render(<App />);
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
+    expect(api.ListBooks).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("region", { name: "Biblioteca de libros" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Leyendo: 1" }));
+    await waitFor(() =>
+      expect(api.ListBooks).toHaveBeenCalledWith("", "reading"),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Abrir Obra sintética" }),
+    );
+    expect(
+      await screen.findByRole("region", { name: "Detalle del libro" }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Editar libro" }));
+    expect(screen.getByRole("region", { name: "Editar libro" })).toBeTruthy();
+    expect(
+      screen.queryByRole("region", { name: "Detalle del libro" }),
+    ).toBeNull();
+  });
+
+  it("mantiene el estado confirmado si el cambio rápido falla y no utiliza guardado completo", async () => {
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.ChangeBookStatus.mockRejectedValue(
+      new Error("No se pudo cambiar el estado."),
+    );
+    render(<App />);
+    const select = await screen.findByLabelText("Estado de Obra sintética");
+    fireEvent.change(select, { target: { value: "read" } });
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "No se pudo cambiar el estado.",
+    );
+    expect(select).toHaveProperty("value", "reading");
+    expect(api.ChangeBookStatus).toHaveBeenCalledWith(sample.id, "read");
+    expect(api.SaveBook).not.toHaveBeenCalled();
+  });
+
+  it("refresca las cantidades y lecturas del portal después de cambiar un estado", async () => {
+    const updated = overview();
+    updated.total = 1;
+    updated.readWithoutDate = 1;
+    updated.counts = updated.counts.map((item) => ({
+      ...item,
+      count: item.status === "read" ? 1 : 0,
+    }));
+    api.Dashboard.mockResolvedValueOnce(overview(true)).mockResolvedValue(
+      updated,
+    );
+    api.ChangeBookStatus.mockResolvedValue({
+      ...sample,
+      cycle: { ...sample.cycle, status: "read" },
+    });
+    render(<App />);
+    fireEvent.change(await screen.findByLabelText("Estado de Obra sintética"), {
+      target: { value: "read" },
+    });
+    expect(
+      await screen.findByRole("button", { name: "Leído: 1" }),
+    ).toBeTruthy();
+    expect(screen.queryByLabelText("Estado de Obra sintética")).toBeNull();
+    expect(screen.getByRole("button", { name: "Leyendo: 0" })).toBeTruthy();
+  });
+
+  it("la búsqueda del portal abre un listado con la consulta por título", async () => {
+    render(<App />);
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "sintética" },
+    });
+    await waitFor(() =>
+      expect(api.ListBooks).toHaveBeenCalledWith("sintética", ""),
+    );
+    expect(
+      screen.getByRole("region", { name: "Biblioteca de libros" }),
+    ).toBeTruthy();
+  });
+});
 
 describe("guardar un libro manual", () => {
   it("conserva el formulario y muestra el error si el backend rechaza el guardado", async () => {
     api.SaveBook.mockRejectedValue(new Error("No se pudo guardar."));
     render(<App />);
-    await screen.findByText("Tu próxima historia empieza acá");
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
     fireEvent.click(screen.getByRole("button", { name: "Añadir libro" }));
     fireEvent.change(screen.getByLabelText(/Título/), {
       target: { value: "Obra sintética" },
@@ -56,19 +178,14 @@ describe("guardar un libro manual", () => {
     ).toBeNull();
   });
 
-  it("envía autoría y serie al backend y muestra el registro confirmado, no un ID inventado", async () => {
+  it("envía autoría y serie al backend y abre la ficha del registro confirmado", async () => {
     api.SaveBook.mockResolvedValue({
-      id: "confirmed-id",
-      title: "Obra sintética",
+      ...sample,
       authors: ["Autor A", "Autora B"],
-      series: { id: "confirmed-series", name: "Serie sintética", position: 2 },
-      edition: { id: "edition", language: "", format: "", identifier: "" },
-      cycle: { id: "cycle", status: "to-read", startedOn: "", finishedOn: "" },
-      notes: "",
-      addedOn: "2026-01-01",
+      series: { id: "series", name: "Serie sintética", position: 2 },
     });
     render(<App />);
-    await screen.findByText("Tu próxima historia empieza acá");
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
     fireEvent.click(screen.getByRole("button", { name: "Añadir libro" }));
     fireEvent.change(screen.getByLabelText(/Título/), {
       target: { value: "Obra sintética" },
@@ -94,5 +211,51 @@ describe("guardar un libro manual", () => {
       await screen.findByRole("heading", { name: "Obra sintética" }),
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Guardar libro" })).toBeNull();
+  });
+});
+
+describe("eliminar libros", () => {
+  async function openDetail() {
+    api.Dashboard.mockResolvedValue(overview(true));
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Abrir Obra sintética" }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar libro" }));
+    return screen.findByRole("dialog");
+  }
+  it("no elimina al cancelar; solo envía la eliminación después de confirmar", async () => {
+    api.DeleteBook.mockResolvedValue(undefined);
+    const dialog = await openDetail();
+    expect(api.DeleteBook).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(api.DeleteBook).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Eliminar libro" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Eliminar definitivamente",
+      }),
+    );
+    await waitFor(() => expect(api.DeleteBook).toHaveBeenCalledWith(sample.id));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(
+      screen.queryByRole("region", { name: "Detalle del libro" }),
+    ).toBeNull();
+  });
+  it("mantiene el detalle y la confirmación si el backend falla al eliminar", async () => {
+    api.DeleteBook.mockRejectedValue(new Error("Error de eliminación."));
+    const dialog = await openDetail();
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Eliminar definitivamente" }),
+    );
+    expect(await within(dialog).findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Error de eliminación.",
+    );
+    expect(
+      screen.getByRole("region", { name: "Detalle del libro" }),
+    ).toBeTruthy();
   });
 });

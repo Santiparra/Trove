@@ -56,6 +56,9 @@ Fuente: conversación de planificación con el usuario, 2026-11-15. Este registr
 | D48 | Primera entrega aprobada: navegación por medios y biblioteca manual de libros con búsqueda local y SQLite | Alcance y aceptación en roadmap; no incluye proveedores, importaciones ni backups automáticos; escala de puntaje pendiente antes de incluirla |
 | D49 | Serie y número de orden incluidos en la primera entrega de libros | Compartir identidad de serie entre libros y conservar su posición; no implementar aún tracking agregado avanzado |
 | D50 | Implementar en Principal, en este chat | Autorizadas preparación del proyecto, dependencias y comprobaciones de la primera entrega; sin commits ni publicación |
+| D51 | Libros abre un portal antes del listado: estados con cantidades, lectura actual, últimos leídos y barra de distribución | Acceso al listado al elegir estado, ver todos o buscar; resumen calculado por backend sobre datos locales |
+| D52 | Detalle y formulario de libros en páginas completas, conservando navegación lateral y superior | Sustituir panel lateral y renovar iconos de medios con SVG coherentes |
+| D53 | Incorporar eliminación de libro y cambio rápido de estado | Confirmar borrado local de libro y sus datos asociados sin afectar otros libros; cambio de estado no sustituye el resto de campos |
 
 ## Propuestas pendientes de aprobación
 

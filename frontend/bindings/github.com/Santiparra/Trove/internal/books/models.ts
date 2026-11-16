@@ -106,6 +106,55 @@ export class Cycle {
     }
 }
 
+export class Dashboard {
+    "total": number;
+    "counts": StatusCount[];
+    "currentlyReading": Book[];
+    "recentlyFinished": Book[];
+    "readWithoutDate": number;
+
+    /** Creates a new Dashboard instance. */
+    constructor($$source: Partial<Dashboard> = {}) {
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+        if (!("counts" in $$source)) {
+            this["counts"] = [];
+        }
+        if (!("currentlyReading" in $$source)) {
+            this["currentlyReading"] = [];
+        }
+        if (!("recentlyFinished" in $$source)) {
+            this["recentlyFinished"] = [];
+        }
+        if (!("readWithoutDate" in $$source)) {
+            this["readWithoutDate"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Dashboard instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Dashboard {
+        const $$createField1_0 = $$createType6;
+        const $$createField2_0 = $$createType8;
+        const $$createField3_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("counts" in $$parsedSource) {
+            $$parsedSource["counts"] = $$createField1_0($$parsedSource["counts"]);
+        }
+        if ("currentlyReading" in $$parsedSource) {
+            $$parsedSource["currentlyReading"] = $$createField2_0($$parsedSource["currentlyReading"]);
+        }
+        if ("recentlyFinished" in $$parsedSource) {
+            $$parsedSource["recentlyFinished"] = $$createField3_0($$parsedSource["recentlyFinished"]);
+        }
+        return new Dashboard($$parsedSource as Partial<Dashboard>);
+    }
+}
+
 export class Edition {
     "id": string;
     "language": string;
@@ -244,9 +293,38 @@ export class Series {
     }
 }
 
+export class StatusCount {
+    "status": string;
+    "count": number;
+
+    /** Creates a new StatusCount instance. */
+    constructor($$source: Partial<StatusCount> = {}) {
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("count" in $$source)) {
+            this["count"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new StatusCount instance from a string or object.
+     */
+    static createFrom($$source: any = {}): StatusCount {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new StatusCount($$parsedSource as Partial<StatusCount>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = $Create.Array($Create.Any);
 const $$createType1 = Series.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = Edition.createFrom;
 const $$createType4 = Cycle.createFrom;
+const $$createType5 = StatusCount.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = Book.createFrom;
+const $$createType8 = $Create.Array($$createType7);

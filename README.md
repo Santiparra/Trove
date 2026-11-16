@@ -12,7 +12,7 @@ Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimien
 - Importar archivos exportados desde servicios especializados.
 - Conservar datos mediante respaldos automáticos y formatos abiertos de recuperación.
 
-El primer medio es **libros**. Ya se pueden crear, consultar, editar y buscar registros locales, con autoría, Serie y número de orden, edición mínima, estado, notas y fechas. Las importaciones, proveedores, portadas, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
+El primer medio es **libros**. El portal muestra estados y cantidades, lecturas actuales, últimos leídos con fecha registrada y distribución visual. Desde allí se accede a los listados, la búsqueda y fichas completas para crear, editar, cambiar rápidamente el estado o eliminar un libro con confirmación. Se conservan autoría, Serie y número de orden, edición mínima, notas y fechas. Las importaciones, proveedores, portadas reales, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
 
 ## Stack
 
@@ -92,6 +92,9 @@ El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuraci�
 4. Buscar por título, editar estado, notas, edición y fechas conocidas; dejar las desconocidas vacías.
 5. Cerrar completamente y reabrir. Verificar datos y vínculos en el perfil de prueba.
 6. Confirmar que desarrollo y build de prueba no muestran la misma biblioteca por defecto.
+7. Comprobar cantidades y distribución del portal, entrar por estado y cambiarlo desde el selector rápido. Verificar que no se sobrescriben notas ni se fabrican fechas.
+8. Añadir fecha de finalización a una lectura terminada y comprobar su aparición entre los últimos leídos. Las portadas son marcadores locales provisionales.
+9. Abrir una ficha y su formulario a página completa. Cancelar la eliminación y luego probarla con un libro sintético prescindible; comprobar que otro libro de su serie se conserva.
 
 Las pruebas automáticas verifican persistencia/reapertura y errores de guardado. No sustituyen la validación visual del paquete; el arranque desde una instalación limpia y la interacción manual deben comprobarse antes de considerar el candidato aprobado.
 
