@@ -38,7 +38,7 @@ func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
 			}
 		}
 	}
-	for _, status := range []string{"reading", "read", "paused", "did-not-finish", "to-read"} {
+	for _, status := range []string{"reading", "up-next", "read", "paused", "did-not-finish", "to-read"} {
 		d.Counts = append(d.Counts, StatusCount{status, counts[status]})
 	}
 	sort.Slice(d.RecentlyFinished, func(i, j int) bool {

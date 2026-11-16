@@ -1,0 +1,493 @@
+/* Local reading navigation and compact portal. Small windows reflow instead of clipping content. */
+.portal-main .topbar {
+  height: 56px;
+}
+.portal-main .page-heading {
+  padding: 16px 0 12px;
+}
+.portal-main .page-heading h1 {
+  font-size: 28px;
+  line-height: 1.2;
+}
+.portal-main .page-heading .eyebrow {
+  margin-bottom: 6px;
+  font-size: 8px;
+}
+.portal-main .page-heading p:not(.eyebrow) {
+  display: none;
+}
+.portal-main .page-heading .primary {
+  padding: 9px 15px;
+  font-size: 12px;
+}
+.portal-main .library-toolbar {
+  margin-bottom: 14px;
+}
+.portal-main .search-box input {
+  height: 36px;
+}
+.portal-main .search-box > svg {
+  top: 9px;
+}
+.portal-main .page-footer {
+  padding: 12px 0 16px;
+}
+.portal-main .portal-grid {
+  height: min(680px, calc(100dvh - 220px));
+  grid-template-rows: minmax(280px, 1.2fr) minmax(210px, 0.9fr);
+  gap: 16px;
+}
+.portal-main .portal-card {
+  padding: 18px;
+}
+.portal-main .card-heading h2 {
+  font-size: 15px;
+}
+.portal-main .states-card .card-subtitle,
+.portal-main .distribution-card .card-subtitle {
+  display: none;
+}
+.portal-main .state-links {
+  gap: 0;
+  margin-top: 12px;
+}
+.portal-main .state-links button {
+  padding: 8px;
+  line-height: 16px;
+}
+.portal-main .all-books-link {
+  padding-top: 13px;
+  margin-top: 12px;
+}
+.portal-main .reading-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.reading-content {
+  margin-top: 16px;
+  flex: 1;
+  min-height: 0;
+}
+.portal-main .reading-grid {
+  margin-top: 0;
+  gap: 14px 16px;
+  align-content: start;
+}
+.portal-main .reading-book {
+  min-height: 110px;
+  align-items: flex-start;
+}
+.portal-main .reading-book .book-title-button {
+  -webkit-line-clamp: 2;
+}
+.portal-main .reading-book .series-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+.portal-main .reading-book p {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 4px 0 7px;
+}
+.reading-more {
+  flex-shrink: 0;
+  margin-top: 10px;
+  font-size: 9px;
+}
+.portal-main .card-empty {
+  flex: 1;
+  justify-content: center;
+  padding: 15px 6px;
+  gap: 8px;
+}
+.portal-main .recent-empty {
+  padding: 18px 8px;
+  gap: 8px;
+}
+.portal-main .recent-covers {
+  display: flex;
+  gap: clamp(8px, 1vw, 18px);
+  margin-top: 18px;
+}
+.portal-main .recent-covers .cover-button {
+  flex: 0 1 84px;
+  min-width: 0;
+  max-width: 84px;
+}
+.portal-main .recent-card .card-footnote {
+  margin-top: 12px;
+  font-size: 9px;
+}
+.portal-main .distribution-total {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 9px;
+  margin: 12px 0;
+}
+.portal-main .distribution-total strong {
+  font-size: 29px;
+  line-height: 1.2;
+}
+.portal-main .distribution-total > span {
+  font-size: 9px;
+}
+.portal-main .distribution-bar {
+  height: 10px;
+  margin: 12px 0 14px;
+}
+.portal-main .chart-legend {
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 13px;
+}
+.portal-main .chart-legend > span {
+  font-size: 9px;
+  gap: 6px;
+}
+.portal-main .chart-legend strong {
+  font-size: 9px;
+}
+.dot-up-next {
+  background: #78b8b2;
+}
+.quick-status.status-up-next {
+  border-color: #3a5b58;
+  background: #233c3a;
+  color: #a2d1cb;
+}
+.list-navigation {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+.list-navigation .list-back {
+  margin: 0;
+  flex-shrink: 0;
+}
+.status-tabs {
+  display: flex;
+  justify-content: center;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.status-tabs button {
+  font-size: 11px;
+  border: 1px solid #313e44;
+  border-radius: 6px;
+  padding: 7px 10px;
+  background: #1c252c;
+  color: #9fb0b3;
+  white-space: nowrap;
+}
+.status-tabs button:hover:not(:disabled) {
+  background: #293a36;
+  color: #d1dfd7;
+}
+.status-tabs button[aria-pressed="true"] {
+  border-color: #526c5d;
+  background: #2a4035;
+  color: #c0dfca;
+}
+.series-title {
+  display: block;
+  background: transparent;
+  padding: 0;
+  color: #b4c49d;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: left;
+  font-weight: 550;
+}
+.series-title:hover:not(:disabled) {
+  color: #d1dfbd;
+  text-decoration: underline;
+}
+.hero-series-title {
+  font-size: 25px;
+  letter-spacing: -0.5px;
+  margin: 0 0 7px;
+}
+.list-book-title {
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 550;
+  -webkit-line-clamp: 3;
+  max-width: 100%;
+}
+.book-cover-link {
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+}
+.personal-flags {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+.flag-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #38444c;
+  background: #1d282e;
+  color: #8ca2a9;
+  border-radius: 6px;
+  font-size: 11px;
+  padding: 7px 10px;
+}
+.flag-button.is-active {
+  border-color: #5a745c;
+  color: #c5deb5;
+  background: #2a3b2d;
+}
+.flag-button.is-active svg {
+  fill: #a3c88c22;
+}
+.small-save {
+  font-size: 11px;
+  color: #c5dfce;
+  background: #2a4034;
+  border: 1px solid #4b6855;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.inline-notes {
+  display: block;
+  margin-top: 16px;
+}
+.inline-notes textarea {
+  font-size: 13px;
+  line-height: 1.8;
+  min-height: 130px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.form-card .check-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 16px 0;
+  color: #b4c7ba;
+}
+.form-card .check-row input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #a9d6bc;
+}
+.search-root {
+  position: relative;
+  flex: 1;
+  max-width: 460px;
+  min-width: 140px;
+  z-index: 10;
+}
+.search-root .search-box {
+  display: block;
+  max-width: none;
+}
+.search-popover {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 0;
+  width: max(100%, 340px);
+  max-width: min(600px, calc(100vw - 260px));
+  background: #1c252d;
+  border: 1px solid #40534c;
+  border-radius: 9px;
+  box-shadow: 0 14px 35px #0008;
+  overflow: hidden;
+}
+.search-popover ul {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.search-popover li + li {
+  border-top: 1px solid #2c3a40;
+}
+.search-popover li button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  text-align: left;
+}
+.search-popover li button:hover {
+  background: #293b35;
+}
+.search-popover li button > svg:first-child {
+  color: #93b3a4;
+}
+.search-popover li button > svg:last-child {
+  margin-left: auto;
+  color: #839e91;
+}
+.search-popover li button > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.search-popover strong {
+  font-size: 12px;
+  color: #d6e1dc;
+  font-weight: 550;
+  overflow-wrap: anywhere;
+}
+.search-popover small {
+  font-size: 11px;
+  color: #b4c49d;
+}
+.search-popover span span {
+  font-size: 10px;
+  color: #8fa6ac;
+}
+.search-all {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 11px;
+  color: #bddcc8;
+  background: #23392f;
+  border-top: 1px solid #40534c;
+}
+.search-all:hover {
+  background: #2e473a;
+}
+.search-feedback {
+  padding: 15px;
+  color: #9eb1b5;
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-height: 850px) {
+  .portal-main .topbar {
+    height: 50px;
+  }
+  .portal-main .page-heading {
+    padding: 12px 0 10px;
+  }
+  .portal-main .page-heading .eyebrow {
+    display: none;
+  }
+  .portal-main .page-heading h1 {
+    font-size: 25px;
+  }
+  .portal-main .library-toolbar {
+    margin-bottom: 12px;
+  }
+  .portal-main .portal-grid {
+    height: calc(100dvh - 200px);
+  }
+  .portal-main .portal-card {
+    padding: 16px;
+  }
+  .portal-main .state-links {
+    margin-top: 10px;
+  }
+  .portal-main .state-links button {
+    padding: 6px 7px;
+  }
+  .portal-main .all-books-link {
+    margin-top: 9px;
+    padding-top: 10px;
+  }
+  .portal-main .card-subtitle {
+    display: none;
+  }
+  .portal-main .recent-covers {
+    margin-top: 15px;
+  }
+  .portal-main .recent-covers .cover-button {
+    max-width: 64px;
+  }
+  .portal-main .cover-title {
+    font-size: 9px;
+  }
+  .portal-main .chart-legend {
+    gap: 8px 10px;
+  }
+  .portal-main .distribution-total {
+    margin: 10px 0;
+  }
+  .portal-main .distribution-bar {
+    margin: 10px 0;
+  }
+  .portal-main .recent-empty {
+    padding: 16px 4px;
+  }
+  .portal-main .recent-empty span {
+    font-size: 10px;
+  }
+  .portal-main .card-footnote {
+    margin-top: 8px;
+  }
+}
+@media (max-width: 1150px) {
+  .status-tabs {
+    gap: 5px;
+  }
+  .status-tabs button {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+  .list-navigation {
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .hero-series-title {
+    font-size: 23px;
+  }
+  .portal-main .chart-legend {
+    grid-template-columns: 1fr 1fr;
+  }
+  .portal-main .chart-legend > span {
+    font-size: 8px;
+    gap: 4px;
+  }
+  .portal-main .chart-legend strong {
+    font-size: 8px;
+  }
+}
+@media (max-height: 730px) {
+  .portal-main .portal-grid {
+    height: auto;
+    grid-template-rows: auto auto;
+  }
+  .portal-main .reading-content {
+    height: 140px;
+    flex: none;
+  }
+  .portal-main .reading-card {
+    min-height: 260px;
+  }
+  .portal-main .recent-card {
+    min-height: 210px;
+  }
+}

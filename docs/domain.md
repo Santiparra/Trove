@@ -39,6 +39,24 @@ Acuerdo: mantener ese estado visible y, por debajo, conservar cada ciclo de lect
 
 Se desea seguimiento individual y del conjunto. Falta definir denominador, ítems opcionales, series en publicación y consumo parcial. La agrupación no debería crear dos registros del mismo hecho de consumo.
 
+## Registro personal y fechas
+
+- **Favorito:** indicador personal activable/desactivable, independiente del puntaje y del estado de lectura. Alimentará la selección de favoritos de todos los tiempos.
+- **En propiedad:** indicador activable/desactivable de la edición local. La interfaz actual trabaja con una edición por libro; gestión multiedición queda para después.
+- **A continuación** (`up-next`): estado manual para próximas lecturas, especialmente continuaciones de una serie en curso. «Por leer» se reserva en el uso previsto a nuevas series y obras independientes, mientras «Leyendo» representa consumo actual. No se agrega ni se cambia automáticamente el estado de otros libros de una serie; no se exige una serie local completa para usarlo.
+
+### Fechas al cambiar estados
+
+Reglas implementadas en Go para acciones locales (selector rápido y guardado de formulario):
+
+1. Al marcar una lectura como «Leyendo» por primera vez, registrar la fecha local actual si no tiene inicio. Pausar y retomar no cambia un inicio existente.
+2. Al entrar en «Leído» desde cualquier otro estado, registrar finalización actual si hay fecha de inicio y todavía no hay fecha de finalización. No reemplazar fechas ya conocidas. Guardar otra vez el mismo estado no regenera fechas.
+3. Marcar directamente como «Leído» un libro sin inicio no genera una fecha de finalización. Permite rescatar consumo antiguo sin atribuirlo al día del registro.
+4. Las fechas siguen siendo editables manualmente y pertenecen al ciclo, no a todos los consumos de la obra. La edición explícita debe prevalecer sobre automatismos.
+5. Importar un estado antiguo no es una transición de lectura en vivo: las fechas desconocidas de archivos siguen desconocidas. No aplicar estos automatismos a importaciones o restauraciones.
+
+Se permite empezar y terminar el mismo día, nunca una finalización anterior al inicio. La transición automática también se valida: un inicio futuro no puede generar una finalización de hoy que lo preceda. El formulario identifica qué fechas se editaron explícitamente, incluido borrarlas, para respetar esa elección al guardar. Estos automatismos no reconstruyen fechas en datos existentes al abrir/migrar la base.
+
 ## Ejemplos a concretar
 
 - Anime con cuatro temporadas, una película y un especial opcional.

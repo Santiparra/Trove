@@ -59,6 +59,11 @@ Fuente: conversación de planificación con el usuario, 2026-11-15. Este registr
 | D51 | Libros abre un portal antes del listado: estados con cantidades, lectura actual, últimos leídos y barra de distribución | Acceso al listado al elegir estado, ver todos o buscar; resumen calculado por backend sobre datos locales |
 | D52 | Detalle y formulario de libros en páginas completas, conservando navegación lateral y superior | Sustituir panel lateral y renovar iconos de medios con SVG coherentes |
 | D53 | Incorporar eliminación de libro y cambio rápido de estado | Confirmar borrado local de libro y sus datos asociados sin afectar otros libros; cambio de estado no sustituye el resto de campos |
+| D54 | Feedback de navegación confirmado: portal compacto, botones de estado, serie sobre título y página local de serie, búsqueda desplegable y notas editables en ficha | Bloque autorizado e implementado; tarjetas nuevas y autores externos siguen fuera del corte |
+| D55 | Favorito, propiedad, estado up-next y fechas automáticas de consumo futuro con edición manual | Reglas en dominio; no inventar fechas al importar ni al marcar leído sin inicio; no implementado todavía |
+| D56 | Personalización futura: actividad mensual, mejor puntuados del año, favoritos y descubrimiento por autor | Requiere datos y proveedores aún no integrados; no fabricar estadísticas ni aprobar un cálculo de páginas/puntajes implícitamente |
+| D57 | «A continuación» es un estado manual; portal adaptable con referencia de escritorio 1920×1080 | No agregar automáticamente libros de una serie; reducir contenido de vista previa y ofrecer acceso al listado completo |
+| D58 | Fechas en acciones locales: primer inicio al entrar en leyendo; finalización al entrar en leído solo si hay inicio y falta finalización, sin depender del estado anterior | Conservar fechas existentes, respetar ediciones manuales y validar fin igual o posterior al inicio; no fabricar fechas históricas al importar/restaurar |
 
 ## Propuestas pendientes de aprobación
 

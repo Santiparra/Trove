@@ -21,6 +21,8 @@ type Draft = {
   addedOn: string;
   startedOn: string;
   finishedOn: string;
+  favorite: boolean;
+  owned: boolean;
 };
 
 function initialDraft(book: Book | null): Draft {
@@ -39,6 +41,8 @@ function initialDraft(book: Book | null): Draft {
         addedOn: book.addedOn,
         startedOn: book.cycle.startedOn,
         finishedOn: book.cycle.finishedOn,
+        favorite: book.favorite,
+        owned: book.edition.owned,
       }
     : {
         id: "",
@@ -54,6 +58,8 @@ function initialDraft(book: Book | null): Draft {
         addedOn: "",
         startedOn: "",
         finishedOn: "",
+        favorite: false,
+        owned: false,
       };
 }
 
@@ -81,7 +87,7 @@ export default function BookEditor({
   useEffect(() => {
     onDirty(JSON.stringify(draft) !== initial);
   }, [draft, initial, onDirty]);
-  const change = (field: keyof Draft, value: string) =>
+  const change = <K extends keyof Draft>(field: K, value: Draft[K]) =>
     setDraft((current) => ({ ...current, [field]: value }));
   function save(event: FormEvent) {
     event.preventDefault();
@@ -92,6 +98,10 @@ export default function BookEditor({
         authors: draft.authors.split("\n"),
         seriesPosition:
           draft.seriesPosition === "" ? null : Number(draft.seriesPosition),
+        startedOnEdited:
+          draft.startedOn !== (JSON.parse(initial) as Draft).startedOn,
+        finishedOnEdited:
+          draft.finishedOn !== (JSON.parse(initial) as Draft).finishedOn,
       }),
     );
   }
@@ -211,6 +221,14 @@ export default function BookEditor({
               Esta edición es local. No hace falta encontrarla en un catálogo
               externo para registrarla.
             </p>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={draft.owned}
+                onChange={(event) => change("owned", event.target.checked)}
+              />{" "}
+              En propiedad
+            </label>
           </fieldset>
 
           <fieldset disabled={busy} className="form-card">
@@ -242,6 +260,7 @@ export default function BookEditor({
                 <input
                   type="date"
                   value={draft.finishedOn}
+                  min={draft.startedOn || undefined}
                   onChange={(e) => change("finishedOn", e.target.value)}
                 />
               </label>
@@ -263,6 +282,14 @@ export default function BookEditor({
 
           <fieldset disabled={busy} className="form-card">
             <legend>Notas personales</legend>
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={draft.favorite}
+                onChange={(event) => change("favorite", event.target.checked)}
+              />{" "}
+              Marcar como favorito
+            </label>
             <label className="notes-label">
               Tus impresiones
               <textarea

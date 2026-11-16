@@ -20,6 +20,10 @@ Aceptación: navegar por todas las secciones; crear un libro sin ISBN ni proveed
 
 ## Etapas posteriores y contexto
 
+Antes de ampliar medios, completar y validar el [pulido de frontend](frontend.md#pulido-de-navegación-y-registro-personal) y las [reglas de consumo](domain.md#registro-personal-y-fechas). El bloque de navegación, favoritos/propiedad, A continuación y fechas automáticas está implementado; no incluye las tarjetas futuras de personalización.
+
+Progresión acordada tras ese corte: resguardo/restauración, soporte local mínimo conjunto de Libros/Novelas ligeras e importación StoryGraph para ambos, antes de enriquecer con metadata. La clasificación de destino (incluido ignorar) y la prioridad local/entrante son dos decisiones separadas del gestor. El resto de las etapas sigue siendo orientativo.
+
 | Etapa | Resultado y condición de aceptación propuesta |
 | --- | --- |
 | 0. Definiciones iniciales | Libros/The StoryGraph y SQLite elegidos; concretar ejemplos reales, unidad de registro, estados, resguardo y stack |

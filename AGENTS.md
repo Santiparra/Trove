@@ -1,6 +1,6 @@
 # Instrucciones para trabajar en Trove
 
-- Primera entrega autorizada en Principal, en este chat: navegación por medios y biblioteca manual de libros con SQLite, búsqueda local, Serie y número de orden. Pulido solicitado: portal por estados, fichas/formularios completos, cambio rápido, eliminación confirmada e iconos. Ver `docs/roadmap.md`. No ampliar el alcance sin acuerdo.
+- Primera entrega autorizada en Principal, en este chat: navegación por medios y biblioteca manual de libros con SQLite, búsqueda local, Serie y número de orden. Pulido solicitado: portal compacto, fichas/formularios completos, cambio rápido, eliminación confirmada, iconos, navegación de serie, búsqueda desplegable, notas en ficha, favorito/propiedad, A continuación y fechas locales automáticas. Ver `docs/roadmap.md`. No ampliar el alcance sin acuerdo.
 - Escribir documentación en español. Trove es el nombre provisional.
 - Consultar `docs/decisions.md` antes de asumir decisiones de producto o tecnología.
 - Mantener todos los cambios locales. No crear commits, hacer push ni publicar; el usuario gestiona esas acciones. No alterar el staging del usuario.

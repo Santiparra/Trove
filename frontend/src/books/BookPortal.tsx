@@ -1,12 +1,14 @@
+import { useEffect, useRef, useState } from "react";
 import type {
   Book,
   Dashboard,
+  Series,
 } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Choice } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
 import BookCover from "./BookCover";
 import StatusSelect from "./StatusSelect";
-import { labelFor } from "./presentation";
+import { labelFor, seriesLabel } from "./presentation";
 
 export default function BookPortal({
   summary,
@@ -15,6 +17,7 @@ export default function BookPortal({
   onList,
   onBook,
   onStatus,
+  onSeries,
 }: {
   summary: Dashboard;
   statuses: Choice[];
@@ -22,7 +25,29 @@ export default function BookPortal({
   onList: (status: string) => void;
   onBook: (book: Book) => void;
   onStatus: (book: Book, status: string) => void;
+  onSeries: (series: Series) => void;
 }) {
+  const readingArea = useRef<HTMLDivElement>(null);
+  const [preview, setPreview] = useState({ limit: 2, columns: 1 });
+  useEffect(() => {
+    const target = readingArea.current;
+    if (!target || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(([entry]) => {
+      const columns = Math.max(
+        1,
+        Math.floor((entry.contentRect.width + 16) / 240),
+      );
+      const rows = Math.max(
+        1,
+        Math.floor((entry.contentRect.height + 14) / 124),
+      );
+      setPreview({ columns, limit: Math.min(6, columns * rows) });
+    });
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [summary.currentlyReading.length]);
+  const readingTotal =
+    summary.counts.find((item) => item.status === "reading")?.count || 0;
   return (
     <div className="portal-grid">
       <section className="portal-card states-card">
@@ -68,35 +93,53 @@ export default function BookPortal({
           </button>
         </div>
         {summary.currentlyReading.length ? (
-          <div className="reading-grid">
-            {summary.currentlyReading.map((book) => (
-              <article className="reading-book" key={book.id}>
-                <button
-                  className="cover-button"
-                  aria-label={`Abrir ${book.title}`}
-                  onClick={() => onBook(book)}
-                  disabled={busy}
-                >
-                  <BookCover book={book} compact />
-                </button>
-                <div>
+          <div className="reading-content" ref={readingArea}>
+            <div
+              className="reading-grid"
+              style={{
+                gridTemplateColumns: `repeat(${preview.columns}, minmax(0, 1fr))`,
+              }}
+            >
+              {summary.currentlyReading.slice(0, preview.limit).map((book) => (
+                <article className="reading-book" key={book.id}>
                   <button
-                    className="book-title-button"
+                    className="cover-button"
+                    aria-label={`Abrir ${book.title}`}
                     onClick={() => onBook(book)}
                     disabled={busy}
                   >
-                    {book.title}
+                    <BookCover book={book} compact />
                   </button>
-                  <p>{book.authors.join(" · ") || "Autoría sin especificar"}</p>
-                  <StatusSelect
-                    book={book}
-                    options={statuses}
-                    disabled={busy}
-                    onChange={onStatus}
-                  />
-                </div>
-              </article>
-            ))}
+                  <div>
+                    {book.series && (
+                      <button
+                        className="series-title"
+                        disabled={busy}
+                        onClick={() => onSeries(book.series!)}
+                      >
+                        {seriesLabel(book)}
+                      </button>
+                    )}
+                    <button
+                      className="book-title-button"
+                      onClick={() => onBook(book)}
+                      disabled={busy}
+                    >
+                      {book.title}
+                    </button>
+                    <p>
+                      {book.authors.join(" · ") || "Autoría sin especificar"}
+                    </p>
+                    <StatusSelect
+                      book={book}
+                      options={statuses}
+                      disabled={busy}
+                      onChange={onStatus}
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="card-empty">
@@ -107,6 +150,13 @@ export default function BookPortal({
               Ver por leer <Icon name="chevron" size={14} />
             </button>
           </div>
+        )}
+        {readingTotal >
+          Math.min(preview.limit, summary.currentlyReading.length) && (
+          <p className="card-footnote reading-more">
+            Mostrando {Math.min(preview.limit, summary.currentlyReading.length)}{" "}
+            de {readingTotal}. El resto está en «Ver listado».
+          </p>
         )}
       </section>
 

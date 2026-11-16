@@ -12,3 +12,5 @@
 *.log
 /data/
 /.local/
+*.sqlite
+*.sqlite-*

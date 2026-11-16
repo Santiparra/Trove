@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"sort"
 	"time"
 )
 
@@ -14,7 +15,10 @@ type Repository interface {
 	Save(context.Context, Book) (Book, error)
 	ListSeries(context.Context) ([]Series, error)
 	Delete(context.Context, string) error
-	UpdateStatus(context.Context, string, string, string) error
+	UpdateCycle(context.Context, string, Cycle) error
+	UpdateNotes(context.Context, string, string) error
+	UpdateFavorite(context.Context, string, bool) error
+	UpdateOwned(context.Context, string, string, bool) error
 }
 
 type Service struct {
@@ -63,14 +67,83 @@ func (s *Service) ChangeStatus(ctx context.Context, id, status string) (Book, er
 	if err != nil {
 		return Book{}, err
 	}
-	// A state change alone does not fabricate dates or replace any other field.
-	if err = s.repository.UpdateStatus(ctx, b.ID, b.Cycle.ID, status); err != nil {
+	cycle, err := b.Cycle.Transition(status, s.today(), false, false)
+	if err != nil {
+		return Book{}, err
+	}
+	if err = s.repository.UpdateCycle(ctx, b.ID, cycle); err != nil {
 		return Book{}, err
 	}
 	return s.repository.Get(ctx, id)
 }
 
 func (s *Service) Delete(ctx context.Context, id string) error { return s.repository.Delete(ctx, id) }
+
+func (s *Service) SaveNotes(ctx context.Context, id, notes string) (Book, error) {
+	if err := s.repository.UpdateNotes(ctx, id, notes); err != nil {
+		return Book{}, err
+	}
+	return s.repository.Get(ctx, id)
+}
+
+func (s *Service) SetFavorite(ctx context.Context, id string, value bool) (Book, error) {
+	if err := s.repository.UpdateFavorite(ctx, id, value); err != nil {
+		return Book{}, err
+	}
+	return s.repository.Get(ctx, id)
+}
+
+func (s *Service) SetOwned(ctx context.Context, id string, value bool) (Book, error) {
+	b, err := s.repository.Get(ctx, id)
+	if err != nil {
+		return Book{}, err
+	}
+	if err = s.repository.UpdateOwned(ctx, id, b.Edition.ID, value); err != nil {
+		return Book{}, err
+	}
+	return s.repository.Get(ctx, id)
+}
+
+func (s *Service) SeriesBooks(ctx context.Context, id string) ([]Book, error) {
+	items, err := s.repository.List(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	result := make([]Book, 0)
+	for _, b := range items {
+		if b.Series != nil && b.Series.ID == id {
+			result = append(result, b)
+		}
+	}
+	sort.SliceStable(result, func(i, j int) bool {
+		a, b := result[i].Series.Position, result[j].Series.Position
+		if a == nil {
+			return false
+		}
+		if b == nil {
+			return true
+		}
+		return *a < *b
+	})
+	return result, nil
+}
+
+type SearchResults struct {
+	Matches []Book `json:"matches"`
+	Total   int    `json:"total"`
+}
+
+func (s *Service) Search(ctx context.Context, query string) (SearchResults, error) {
+	items, err := s.repository.List(ctx, query)
+	if err != nil {
+		return SearchResults{}, err
+	}
+	result := SearchResults{Matches: items, Total: len(items)}
+	if len(result.Matches) > 6 {
+		result.Matches = result.Matches[:6]
+	}
+	return result, nil
+}
 
 func (s *Service) Save(ctx context.Context, input Input) (Book, error) {
 	in, err := input.Normalize(s.today())
@@ -85,8 +158,13 @@ func (s *Service) Save(ctx context.Context, input Input) (Book, error) {
 		}
 	}
 	book.Title, book.Authors, book.AddedOn, book.Notes = in.Title, in.Authors, in.AddedOn, in.Notes
+	book.Favorite, book.Edition.Owned = in.Favorite, in.Owned
 	book.Edition.Language, book.Edition.Format, book.Edition.Identifier = in.Language, in.Format, in.Identifier
-	book.Cycle.Status, book.Cycle.StartedOn, book.Cycle.FinishedOn = in.Status, in.StartedOn, in.FinishedOn
+	book.Cycle.StartedOn, book.Cycle.FinishedOn = in.StartedOn, in.FinishedOn
+	book.Cycle, err = book.Cycle.Transition(in.Status, s.today(), in.StartedOnEdited, in.FinishedOnEdited)
+	if err != nil {
+		return Book{}, err
+	}
 	book.Series = nil
 	if in.SeriesName != "" {
 		book.Series = &Series{Name: in.SeriesName, Position: in.SeriesPosition}

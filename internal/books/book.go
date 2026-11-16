@@ -12,7 +12,7 @@ var ErrNotFound = errors.New("el libro ya no existe; actualizá el listado")
 
 func ValidStatus(status string) bool {
 	switch status {
-	case "to-read", "reading", "read", "paused", "did-not-finish":
+	case "to-read", "up-next", "reading", "read", "paused", "did-not-finish":
 		return true
 	}
 	return false
@@ -29,6 +29,7 @@ type Edition struct {
 	Language   string `json:"language"`
 	Format     string `json:"format"`
 	Identifier string `json:"identifier"`
+	Owned      bool   `json:"owned"`
 }
 
 // Cycle is a single reading. A future rereading will create a new cycle, not reset this one.
@@ -40,31 +41,57 @@ type Cycle struct {
 }
 
 type Book struct {
-	ID      string   `json:"id"`
-	Title   string   `json:"title"`
-	Authors []string `json:"authors"`
-	Series  *Series  `json:"series"`
-	Edition Edition  `json:"edition"`
-	Cycle   Cycle    `json:"cycle"`
-	Notes   string   `json:"notes"`
-	AddedOn string   `json:"addedOn"`
+	ID       string   `json:"id"`
+	Title    string   `json:"title"`
+	Authors  []string `json:"authors"`
+	Series   *Series  `json:"series"`
+	Edition  Edition  `json:"edition"`
+	Cycle    Cycle    `json:"cycle"`
+	Notes    string   `json:"notes"`
+	AddedOn  string   `json:"addedOn"`
+	Favorite bool     `json:"favorite"`
 }
 
 // Input intentionally excludes database, edition and cycle identifiers.
 type Input struct {
-	ID             string   `json:"id"`
-	Title          string   `json:"title"`
-	Authors        []string `json:"authors"`
-	SeriesName     string   `json:"seriesName"`
-	SeriesPosition *float64 `json:"seriesPosition"`
-	Language       string   `json:"language"`
-	Format         string   `json:"format"`
-	Identifier     string   `json:"identifier"`
-	Status         string   `json:"status"`
-	Notes          string   `json:"notes"`
-	AddedOn        string   `json:"addedOn"`
-	StartedOn      string   `json:"startedOn"`
-	FinishedOn     string   `json:"finishedOn"`
+	ID               string   `json:"id"`
+	Title            string   `json:"title"`
+	Authors          []string `json:"authors"`
+	SeriesName       string   `json:"seriesName"`
+	SeriesPosition   *float64 `json:"seriesPosition"`
+	Language         string   `json:"language"`
+	Format           string   `json:"format"`
+	Identifier       string   `json:"identifier"`
+	Status           string   `json:"status"`
+	Notes            string   `json:"notes"`
+	AddedOn          string   `json:"addedOn"`
+	StartedOn        string   `json:"startedOn"`
+	FinishedOn       string   `json:"finishedOn"`
+	Favorite         bool     `json:"favorite"`
+	Owned            bool     `json:"owned"`
+	StartedOnEdited  bool     `json:"startedOnEdited"`
+	FinishedOnEdited bool     `json:"finishedOnEdited"`
+}
+
+// Transition is for live local actions only, not imported/restored historical states.
+// Explicit date edits take precedence, including deliberately clearing a date.
+func (c Cycle) Transition(next, today string, editStart, editFinish bool) (Cycle, error) {
+	if !ValidStatus(next) {
+		return c, errors.New("el estado de lectura no es válido")
+	}
+	if c.Status != next {
+		if next == "reading" && c.StartedOn == "" && !editStart {
+			c.StartedOn = today
+		}
+		if next == "read" && c.StartedOn != "" && c.FinishedOn == "" && !editFinish {
+			c.FinishedOn = today
+		}
+	}
+	c.Status = next
+	if c.StartedOn != "" && c.FinishedOn != "" && c.FinishedOn < c.StartedOn {
+		return c, errors.New("la fecha de finalización no puede ser anterior al inicio")
+	}
+	return c, nil
 }
 
 func (in Input) Normalize(today string) (Input, error) {

@@ -7,6 +7,7 @@ export {
     Dashboard,
     Edition,
     Input,
+    SearchResults,
     Series,
     StatusCount
 } from "./models.js";

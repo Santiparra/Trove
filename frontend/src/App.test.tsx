@@ -18,6 +18,11 @@ const api = vi.hoisted(() => ({
   GetBook: vi.fn(),
   ChangeBookStatus: vi.fn(),
   DeleteBook: vi.fn(),
+  SaveBookNotes: vi.fn(),
+  SetBookFavorite: vi.fn(),
+  SetBookOwned: vi.fn(),
+  ListSeriesBooks: vi.fn(),
+  SearchBooks: vi.fn(),
 }));
 vi.mock(
   "../bindings/github.com/Santiparra/Trove/internal/desktop/library",
@@ -26,15 +31,23 @@ vi.mock(
 
 const sample = {
   id: "synthetic-book",
+  favorite: false,
   title: "Obra sintética",
   authors: ["Autor A"],
   series: null,
-  edition: { id: "edition", language: "", format: "", identifier: "" },
+  edition: {
+    id: "edition",
+    language: "",
+    format: "",
+    identifier: "",
+    owned: false,
+  },
   cycle: { id: "cycle", status: "reading", startedOn: "", finishedOn: "" },
   notes: "Nota sintética",
   addedOn: "2026-01-01",
 };
 const statuses = [
+  { value: "up-next", label: "A continuación" },
   { value: "to-read", label: "Por leer" },
   { value: "reading", label: "Leyendo" },
   { value: "read", label: "Leído" },
@@ -66,9 +79,14 @@ beforeEach(() => {
   api.Dashboard.mockResolvedValue(overview());
   api.ListBooks.mockResolvedValue([]);
   api.ListSeries.mockResolvedValue([]);
+  api.ListSeriesBooks.mockResolvedValue([]);
+  api.SearchBooks.mockResolvedValue({ matches: [], total: 0 });
   api.GetBook.mockResolvedValue(sample);
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 describe("portal y navegación de libros", () => {
   it("abre el portal, no el listado, y el estado elegido define la consulta al backend", async () => {
@@ -140,18 +158,158 @@ describe("portal y navegación de libros", () => {
     expect(screen.getByRole("button", { name: "Leyendo: 0" })).toBeTruthy();
   });
 
-  it("la búsqueda del portal abre un listado con la consulta por título", async () => {
+  it("la búsqueda conserva el portal hasta elegir todos los resultados", async () => {
     render(<App />);
     await screen.findByRole("heading", { name: "Tu biblioteca" });
     fireEvent.change(screen.getByRole("searchbox"), {
       target: { value: "sintética" },
     });
     await waitFor(() =>
+      expect(api.SearchBooks).toHaveBeenCalledWith("sintética"),
+    );
+    expect(api.ListBooks).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "Tu biblioteca" })).toBeTruthy();
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Ver todos los resultados (0)",
+      }),
+    );
+    await waitFor(() =>
       expect(api.ListBooks).toHaveBeenCalledWith("sintética", ""),
     );
     expect(
       screen.getByRole("region", { name: "Biblioteca de libros" }),
     ).toBeTruthy();
+  });
+});
+
+describe("navegación y datos personales", () => {
+  it("cambia el listado mediante botones de estado, incluido A continuación", async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: "Leyendo: 0" }));
+    const tabs = await screen.findByRole("navigation", {
+      name: "Estados de lectura",
+    });
+    fireEvent.click(
+      within(tabs).getByRole("button", { name: "A continuación" }),
+    );
+    await waitFor(() =>
+      expect(api.ListBooks).toHaveBeenCalledWith("", "up-next"),
+    );
+    expect(screen.queryByLabelText("Filtrar por estado")).toBeNull();
+  });
+  it("cierra sugerencias con Escape y abre una coincidencia sin pasar por el listado", async () => {
+    api.SearchBooks.mockResolvedValue({ matches: [sample], total: 1 });
+    render(<App />);
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
+    const input = screen.getByRole("searchbox");
+    fireEvent.change(input, { target: { value: "Obra" } });
+    const result = await screen.findByRole("button", {
+      name: "Abrir resultado Obra sintética",
+    });
+    fireEvent.keyDown(result, { key: "Escape" });
+    expect(
+      screen.queryByRole("region", { name: "Resultados de búsqueda" }),
+    ).toBeNull();
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Abrir resultado Obra sintética",
+      }),
+    );
+    expect(
+      await screen.findByRole("region", { name: "Detalle del libro" }),
+    ).toBeTruthy();
+    expect(api.ListBooks).not.toHaveBeenCalled();
+  });
+  async function detail() {
+    api.Dashboard.mockResolvedValue(overview(true));
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Abrir Obra sintética" }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+  }
+  it("abre una página local de serie usando su identidad y conserva controles de lectura", async () => {
+    const series = {
+      id: "synthetic-series",
+      name: "Serie sintética",
+      position: 1,
+    };
+    const book = { ...sample, series };
+    api.Dashboard.mockResolvedValue({
+      ...overview(true),
+      currentlyReading: [book],
+    });
+    api.ListSeriesBooks.mockResolvedValue([book]);
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Serie sintética · #1" }),
+    );
+    await waitFor(() =>
+      expect(api.ListSeriesBooks).toHaveBeenCalledWith(series.id),
+    );
+    expect(
+      await screen.findByLabelText("Estado de Obra sintética"),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: /Serie sintética/ }),
+    ).toBeTruthy();
+  });
+  it("guarda notas desde la ficha sin reenviar el formulario completo", async () => {
+    api.SaveBookNotes.mockResolvedValue({ ...sample, notes: "Nueva nota" });
+    await detail();
+    fireEvent.change(screen.getByLabelText("Notas personales del libro"), {
+      target: { value: "Nueva nota" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar notas" }));
+    await waitFor(() =>
+      expect(api.SaveBookNotes).toHaveBeenCalledWith(sample.id, "Nueva nota"),
+    );
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "Notas guardadas.",
+    );
+    expect(api.SaveBook).not.toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "Editar libro" })).toBeNull();
+  });
+  it("conserva el borrador de notas al marcar favorito y ante errores de guardado", async () => {
+    api.SetBookFavorite.mockResolvedValue({ ...sample, favorite: true });
+    api.SaveBookNotes.mockRejectedValue(new Error("Fallo sintético de notas."));
+    await detail();
+    const notes = screen.getByLabelText("Notas personales del libro");
+    fireEvent.change(notes, { target: { value: "Borrador sin guardar" } });
+    fireEvent.click(screen.getByRole("button", { name: "Favorito" }));
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole("button", { name: "Favorito" })
+          .getAttribute("aria-pressed"),
+      ).toBe("true"),
+    );
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+    fireEvent.click(screen.getByRole("button", { name: "Guardar notas" }));
+    expect(await screen.findByRole("alert")).toHaveProperty(
+      "textContent",
+      "Fallo sintético de notas.",
+    );
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+  });
+  it("marca propiedad mediante una operación específica", async () => {
+    api.SetBookOwned.mockResolvedValue({
+      ...sample,
+      edition: { ...sample.edition, owned: true },
+    });
+    await detail();
+    fireEvent.click(screen.getByRole("button", { name: "En propiedad" }));
+    await waitFor(() =>
+      expect(api.SetBookOwned).toHaveBeenCalledWith(sample.id, true),
+    );
+    expect(
+      screen
+        .getByRole("button", { name: "En propiedad" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(api.SaveBook).not.toHaveBeenCalled();
   });
 });
 

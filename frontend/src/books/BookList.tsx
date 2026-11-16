@@ -1,4 +1,7 @@
-import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
+import type {
+  Book,
+  Series,
+} from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Choice } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
 import StatusSelect from "./StatusSelect";
@@ -12,6 +15,7 @@ export default function BookList({
   onStatus,
   onDelete,
   onCreate,
+  onSeries,
 }: {
   books: Book[];
   statuses: Choice[];
@@ -21,6 +25,7 @@ export default function BookList({
   onStatus: (book: Book, status: string) => void;
   onDelete: (book: Book) => void;
   onCreate: () => void;
+  onSeries: (series: Series) => void;
 }) {
   return (
     <section
@@ -48,29 +53,40 @@ export default function BookList({
           {books.map((book) => (
             <article className="book-row" key={book.id}>
               <button
-                className="book-open"
-                aria-label={`Abrir ${book.title}`}
+                className="book-cover-link"
+                aria-label={`Ver ficha de ${book.title}`}
                 onClick={() => onBook(book)}
                 disabled={busy}
               >
                 <span className="book-spine" aria-hidden="true">
                   {book.title.slice(0, 1).toUpperCase()}
                 </span>
-                <span className="book-text">
-                  <strong>{book.title}</strong>
-                  <span>
-                    {book.authors.join(" · ") || "Autoría sin especificar"}
-                  </span>
-                  {book.series && (
-                    <small>
-                      {book.series.name}
-                      {book.series.position !== null
-                        ? ` · #${book.series.position}`
-                        : ""}
-                    </small>
-                  )}
-                </span>
               </button>
+              <div className="book-text">
+                {book.series && (
+                  <button
+                    className="series-title"
+                    onClick={() => onSeries(book.series!)}
+                    disabled={busy}
+                  >
+                    {book.series.name}
+                    {book.series.position !== null
+                      ? ` · #${book.series.position}`
+                      : ""}
+                  </button>
+                )}
+                <button
+                  className="book-title-button list-book-title"
+                  aria-label={`Abrir ${book.title}`}
+                  onClick={() => onBook(book)}
+                  disabled={busy}
+                >
+                  {book.title}
+                </button>
+                <span>
+                  {book.authors.join(" · ") || "Autoría sin especificar"}
+                </span>
+              </div>
               <StatusSelect
                 book={book}
                 options={statuses}

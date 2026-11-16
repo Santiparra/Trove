@@ -60,7 +60,9 @@ Comandos implementados: `go test ./internal/...` para backend, `npm --prefix fro
 
 Las primeras pruebas cubren validación y fechas desconocidas, persistencia y reapertura SQLite, búsqueda con mayúsculas Unicode, identidad de edición/ciclo, series compartidas, rechazo de esquemas futuros, rollback transaccional y separación de perfiles. En React se comprueba envío del formulario y preservación de datos/mensaje ante rechazo del backend. El puente Wails está simulado en esos tests de React; no prueban por sí mismos el WebView real.
 
-Para el portal se añaden pruebas de recuentos, últimos leídos ordenados por finalización conocida, filtros combinados de título/estado y cambio rápido sin alterar otros campos. La eliminación se prueba contra SQLite real, incluyendo rollback ante fallos y conservación de libros de la misma serie. React verifica entrada por estado, búsqueda desde el portal, navegación a ficha/formulario completos, confirmación/cancelación del borrado y errores de cambio de estado o eliminación.
+Para el portal se añaden pruebas de recuentos, últimos leídos ordenados por finalización conocida, filtros combinados de título/estado y cambio rápido sin alterar otros datos personales fuera de las fechas previstas. La eliminación se prueba contra SQLite real, incluyendo rollback ante fallos y conservación de libros de la misma serie. React verifica entrada por estado, búsqueda desplegable, navegación a ficha/formulario completos, confirmación/cancelación del borrado y errores de cambio de estado o eliminación.
+
+El siguiente pulido añade pruebas de transiciones de lectura con reloj controlado, fechas manuales y desconocidas, propiedades personales, notas independientes y orden de serie. Se prueba la migración desde esquema 1 con copia previa legible. Las interacciones de ficha comprueban que marcar favorito no descarte notas sin guardar y que un fallo conserve el borrador. Las pruebas DOM no prueban el tamaño visual real de la ventana.
 
 ## Reparto de responsabilidades propuesto
 

@@ -1,0 +1,175 @@
+import { useEffect, useId, useRef, useState } from "react";
+import type {
+  Book,
+  SearchResults,
+} from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
+import * as Library from "../../bindings/github.com/Santiparra/Trove/internal/desktop/library";
+import Icon from "../components/Icon";
+import { errorMessage, seriesLabel } from "./presentation";
+
+export default function BookSearch({
+  value,
+  disabled,
+  onChange,
+  onBook,
+  onAll,
+}: {
+  value: string;
+  disabled: boolean;
+  onChange: (query: string) => void;
+  onBook: (book: Book) => void;
+  onAll: (query: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [results, setResults] = useState<SearchResults | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const root = useRef<HTMLDivElement>(null);
+  const panelID = useId();
+  useEffect(() => {
+    if (!open || !value.trim()) {
+      setResults(null);
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
+    setError("");
+    setResults(null);
+    const timer = setTimeout(() => {
+      Library.SearchBooks(value.trim())
+        .then((items) => {
+          if (active) setResults(items);
+        })
+        .catch((reason) => {
+          if (active) setError(errorMessage(reason));
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }, 140);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [open, value]);
+  useEffect(() => {
+    function outside(event: PointerEvent) {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", outside);
+    return () => document.removeEventListener("pointerdown", outside);
+  }, []);
+  function all() {
+    setOpen(false);
+    onAll(value.trim());
+  }
+  return (
+    <div
+      className="search-root"
+      ref={root}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+          setOpen(false);
+      }}
+    >
+      <label className="search-box">
+        <Icon name="search" size={18} />
+        <input
+          type="search"
+          value={value}
+          disabled={disabled}
+          aria-label="Buscar por título"
+          aria-controls={panelID}
+          aria-expanded={open && !!value.trim()}
+          placeholder="Buscar por título en tu biblioteca…"
+          onFocus={() => setOpen(true)}
+          onChange={(event) => {
+            onChange(event.target.value);
+            setOpen(true);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+            }
+            if (event.key === "Enter" && value.trim()) {
+              event.preventDefault();
+              all();
+            }
+            if (event.key === "ArrowDown") {
+              event.preventDefault();
+              setOpen(true);
+              root.current
+                ?.querySelector<HTMLButtonElement>(".search-popover button")
+                ?.focus();
+            }
+          }}
+        />
+      </label>
+      {open && value.trim() && (
+        <div
+          className="search-popover"
+          id={panelID}
+          role="region"
+          aria-label="Resultados de búsqueda"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              root.current?.querySelector("input")?.focus();
+              setOpen(false);
+            }
+          }}
+        >
+          {loading && (
+            <p className="search-feedback" role="status">
+              Buscando en tu biblioteca…
+            </p>
+          )}
+          {error && (
+            <p className="search-feedback" role="alert">
+              {error}
+            </p>
+          )}
+          {results && (
+            <>
+              <ul>
+                {results.matches.map((book) => (
+                  <li key={book.id}>
+                    <button
+                      disabled={disabled}
+                      onClick={() => {
+                        setOpen(false);
+                        onBook(book);
+                      }}
+                      aria-label={`Abrir resultado ${book.title}`}
+                    >
+                      <Icon name="books" size={18} />
+                      <span>
+                        {book.series && <small>{seriesLabel(book)}</small>}
+                        <strong>{book.title}</strong>
+                        <span>
+                          {book.authors.join(" · ") ||
+                            "Autoría sin especificar"}
+                        </span>
+                      </span>
+                      <Icon name="chevron" size={15} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {!results.total && (
+                <p className="search-feedback">
+                  No hay coincidencias en la biblioteca local.
+                </p>
+              )}
+              <button className="search-all" onClick={all} disabled={disabled}>
+                Ver todos los resultados ({results.total}){" "}
+                <Icon name="chevron" size={15} />
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

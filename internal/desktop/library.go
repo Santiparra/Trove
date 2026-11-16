@@ -29,7 +29,7 @@ type Library struct {
 func NewLibrary(service *books.Service, profile, dir, buildID string) *Library {
 	return &Library{service: service, info: Info{
 		Profile: profile, DataDir: dir, BuildID: buildID,
-		Statuses: []Choice{{"to-read", "Por leer"}, {"reading", "Leyendo"}, {"read", "Leído"}, {"paused", "Pausado"}, {"did-not-finish", "Sin terminar"}},
+		Statuses: []Choice{{"to-read", "Por leer"}, {"up-next", "A continuación"}, {"reading", "Leyendo"}, {"read", "Leído"}, {"paused", "Pausado"}, {"did-not-finish", "Sin terminar"}},
 		Formats:  []Choice{{"", "Sin especificar"}, {"paperback", "Tapa blanda"}, {"hardcover", "Tapa dura"}, {"digital", "Digital"}, {"audio", "Audiolibro"}, {"other", "Otro"}},
 	}}
 }
@@ -59,4 +59,20 @@ func (l *Library) ListSeries() ([]books.Series, error) {
 }
 func (l *Library) SaveBook(input books.Input) (books.Book, error) {
 	return l.service.Save(context.Background(), input)
+}
+
+func (l *Library) SaveBookNotes(id, notes string) (books.Book, error) {
+	return l.service.SaveNotes(context.Background(), id, notes)
+}
+func (l *Library) SetBookFavorite(id string, value bool) (books.Book, error) {
+	return l.service.SetFavorite(context.Background(), id, value)
+}
+func (l *Library) SetBookOwned(id string, value bool) (books.Book, error) {
+	return l.service.SetOwned(context.Background(), id, value)
+}
+func (l *Library) ListSeriesBooks(id string) ([]books.Book, error) {
+	return l.service.SeriesBooks(context.Background(), id)
+}
+func (l *Library) SearchBooks(query string) (books.SearchResults, error) {
+	return l.service.Search(context.Background(), query)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/Santiparra/Trove/internal/books"
 )
@@ -26,8 +27,8 @@ func TestQuickStatusChangesOnlyStatusAndUpdatesDashboard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if changed.Cycle.Status != "read" || changed.Notes != b.Notes || changed.Edition != b.Edition || changed.Series.ID != b.Series.ID || changed.Cycle.ID != b.Cycle.ID || changed.Cycle.StartedOn != b.Cycle.StartedOn || changed.Cycle.FinishedOn != "" {
-		t.Fatal("cambiar estado alteró otros datos o inventó fechas")
+	if changed.Cycle.Status != "read" || changed.Notes != b.Notes || changed.Edition != b.Edition || changed.Series.ID != b.Series.ID || changed.Cycle.ID != b.Cycle.ID || changed.Cycle.StartedOn != b.Cycle.StartedOn || changed.Cycle.FinishedOn != time.Now().Format("2006-01-02") {
+		t.Fatal("cambiar estado alteró otros datos o no completó las fechas")
 	}
 	if _, err = service.ChangeStatus(ctx, b.ID, "invalid"); err == nil {
 		t.Fatal("estado inválido aceptado")
@@ -39,7 +40,7 @@ func TestQuickStatusChangesOnlyStatusAndUpdatesDashboard(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.Total != 1 || d.ReadWithoutDate != 1 || len(d.RecentlyFinished) != 0 || len(d.CurrentlyReading) != 0 {
+	if d.Total != 1 || d.ReadWithoutDate != 0 || len(d.RecentlyFinished) != 1 || len(d.CurrentlyReading) != 0 {
 		t.Fatalf("portal inconsistente: %+v", d)
 	}
 	list, err := service.ListByStatus(ctx, "sintética", "read")

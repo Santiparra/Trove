@@ -14,6 +14,8 @@ Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimien
 
 El primer medio es **libros**. El portal muestra estados y cantidades, lecturas actuales, últimos leídos con fecha registrada y distribución visual. Desde allí se accede a los listados, la búsqueda y fichas completas para crear, editar, cambiar rápidamente el estado o eliminar un libro con confirmación. Se conservan autoría, Serie y número de orden, edición mínima, notas y fechas. Las importaciones, proveedores, portadas reales, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
 
+La navegación incluye páginas locales de serie, botones de estado y búsqueda desplegable sin abandonar el portal. Se pueden guardar notas directamente en la ficha, marcar favorito y propiedad y usar el estado manual **A continuación**. Las acciones de lectura registran el primer inicio y la finalización cuando existe inicio; las fechas manuales se respetan.
+
 ## Stack
 
 | Área | Tecnología |
@@ -95,6 +97,12 @@ El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuraci�
 7. Comprobar cantidades y distribución del portal, entrar por estado y cambiarlo desde el selector rápido. Verificar que no se sobrescriben notas ni se fabrican fechas.
 8. Añadir fecha de finalización a una lectura terminada y comprobar su aparición entre los últimos leídos. Las portadas son marcadores locales provisionales.
 9. Abrir una ficha y su formulario a página completa. Cancelar la eliminación y luego probarla con un libro sintético prescindible; comprobar que otro libro de su serie se conserva.
+10. Abrir una serie desde su nombre y verificar orden numérico, con los libros sin posición al final. Cambiar de listado mediante los botones de estado.
+11. Escribir una búsqueda sin salir del portal; abrir una coincidencia o todos los resultados. Probar Escape y navegación de teclado.
+12. Guardar notas desde la ficha y marcar/desmarcar favorito y propiedad; comprobar que ninguna de esas acciones modifica el resto del registro.
+13. Con datos sintéticos: empezar, pausar y retomar sin perder inicio; completar con inicio conocido registra hoy, mientras marcar leído sin inicio no inventa finalización. Probar fechas manuales y rechazo de finalización anterior al inicio.
+
+Al abrir por primera vez una base del esquema anterior, se crea junto a ella una copia `before-schema-2-*.sqlite` antes de migrar favorito/propiedad. No se asigna una nueva versión pública de la app por ese cambio de esquema. El ejecutable anterior no puede abrir el esquema nuevo; una vuelta atrás requiere restaurar datos compatibles. Esta copia de seguridad local de migración no reemplaza el sistema de backups/exportación todavía pendiente.
 
 Las pruebas automáticas verifican persistencia/reapertura y errores de guardado. No sustituyen la validación visual del paquete; el arranque desde una instalación limpia y la interacción manual deben comprobarse antes de considerar el candidato aprobado.
 

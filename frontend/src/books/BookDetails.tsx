@@ -1,4 +1,8 @@
-import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
+import { useEffect, useState } from "react";
+import type {
+  Book,
+  Series,
+} from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
 import BookCover from "./BookCover";
@@ -13,6 +17,11 @@ export default function BookDetails({
   onEdit,
   onDelete,
   onStatus,
+  onSeries,
+  onFavorite,
+  onOwned,
+  onNotes,
+  onDirty,
 }: {
   book: Book;
   info: Info;
@@ -21,7 +30,19 @@ export default function BookDetails({
   onEdit: () => void;
   onDelete: (book: Book) => void;
   onStatus: (book: Book, status: string) => void;
+  onSeries: (series: Series) => void;
+  onFavorite: (book: Book, value: boolean) => void;
+  onOwned: (book: Book, value: boolean) => void;
+  onNotes: (book: Book, notes: string) => Promise<void>;
+  onDirty: (value: boolean) => void;
 }) {
+  const [notes, setNotes] = useState(book.notes);
+  useEffect(() => {
+    setNotes(book.notes);
+  }, [book.id, book.notes]);
+  useEffect(() => {
+    onDirty(notes !== book.notes);
+  }, [notes, book.notes, onDirty]);
   return (
     <section className="book-page" aria-label="Detalle del libro">
       <button className="back-link" onClick={onBack} disabled={busy}>
@@ -33,11 +54,37 @@ export default function BookDetails({
         </div>
         <div className="book-hero-text">
           <p className="eyebrow">EN TU BIBLIOTECA · REGISTRO LOCAL</p>
+          {book.series && (
+            <button
+              className="series-title hero-series-title"
+              onClick={() => onSeries(book.series!)}
+              disabled={busy}
+            >
+              {seriesLabel(book)}
+            </button>
+          )}
           <h1>{book.title}</h1>
           <p className="hero-author">
             {book.authors.join(" · ") || "Autoría sin especificar"}
           </p>
-          {book.series && <p className="hero-series">{seriesLabel(book)}</p>}
+          <div className="personal-flags">
+            <button
+              className={`flag-button ${book.favorite ? "is-active" : ""}`}
+              aria-pressed={book.favorite}
+              disabled={busy}
+              onClick={() => onFavorite(book, !book.favorite)}
+            >
+              <Icon name="star" size={16} /> Favorito
+            </button>
+            <button
+              className={`flag-button ${book.edition.owned ? "is-active" : ""}`}
+              aria-pressed={book.edition.owned}
+              disabled={busy}
+              onClick={() => onOwned(book, !book.edition.owned)}
+            >
+              <Icon name="check" size={16} /> En propiedad
+            </button>
+          </div>
           <div className="book-actions">
             <StatusSelect
               book={book}
@@ -57,8 +104,8 @@ export default function BookDetails({
             </button>
           </div>
           <p className="local-hint">
-            Podés cambiar el estado directamente. Las fechas se completan desde
-            Editar.
+            Al empezar se registra el inicio; al completar, el fin solo si hay
+            inicio. Podés editar ambas fechas.
           </p>
         </div>
       </div>
@@ -84,22 +131,52 @@ export default function BookDetails({
           </div>
           <dl className="book-facts">
             <dt>Serie</dt>
-            <dd>{seriesLabel(book)}</dd>
+            <dd>
+              {book.series ? (
+                <button
+                  className="series-title"
+                  onClick={() => onSeries(book.series!)}
+                  disabled={busy}
+                >
+                  {seriesLabel(book)}
+                </button>
+              ) : (
+                "Sin serie"
+              )}
+            </dd>
             <dt>Idioma</dt>
             <dd>{book.edition.language || "Sin especificar"}</dd>
             <dt>Formato</dt>
             <dd>{labelFor(info.formats, book.edition.format)}</dd>
             <dt>ISBN / ID</dt>
             <dd>{book.edition.identifier || "Sin especificar"}</dd>
+            <dt>Propiedad</dt>
+            <dd>
+              {book.edition.owned ? "En propiedad" : "No marcado en propiedad"}
+            </dd>
           </dl>
         </section>
         <section className="portal-card full-width-card">
           <div className="card-heading">
             <h2>Notas personales</h2>
+            <button
+              className="small-save"
+              disabled={busy || notes === book.notes}
+              onClick={() => void onNotes(book, notes)}
+            >
+              Guardar notas
+            </button>
           </div>
-          <p className="personal-notes">
-            {book.notes || "Todavía no agregaste notas para este libro."}
-          </p>
+          <label className="inline-notes">
+            <span className="sr-only">Notas personales del libro</span>
+            <textarea
+              value={notes}
+              disabled={busy}
+              rows={5}
+              placeholder="Tus impresiones, ideas o recordatorios…"
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </label>
         </section>
       </div>
     </section>

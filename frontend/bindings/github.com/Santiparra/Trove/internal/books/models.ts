@@ -14,6 +14,7 @@ export class Book {
     "cycle": Cycle;
     "notes": string;
     "addedOn": string;
+    "favorite": boolean;
 
     /** Creates a new Book instance. */
     constructor($$source: Partial<Book> = {}) {
@@ -40,6 +41,9 @@ export class Book {
         }
         if (!("addedOn" in $$source)) {
             this["addedOn"] = "";
+        }
+        if (!("favorite" in $$source)) {
+            this["favorite"] = false;
         }
 
         Object.assign(this, $$source);
@@ -160,6 +164,7 @@ export class Edition {
     "language": string;
     "format": string;
     "identifier": string;
+    "owned": boolean;
 
     /** Creates a new Edition instance. */
     constructor($$source: Partial<Edition> = {}) {
@@ -174,6 +179,9 @@ export class Edition {
         }
         if (!("identifier" in $$source)) {
             this["identifier"] = "";
+        }
+        if (!("owned" in $$source)) {
+            this["owned"] = false;
         }
 
         Object.assign(this, $$source);
@@ -205,6 +213,10 @@ export class Input {
     "addedOn": string;
     "startedOn": string;
     "finishedOn": string;
+    "favorite": boolean;
+    "owned": boolean;
+    "startedOnEdited": boolean;
+    "finishedOnEdited": boolean;
 
     /** Creates a new Input instance. */
     constructor($$source: Partial<Input> = {}) {
@@ -247,6 +259,18 @@ export class Input {
         if (!("finishedOn" in $$source)) {
             this["finishedOn"] = "";
         }
+        if (!("favorite" in $$source)) {
+            this["favorite"] = false;
+        }
+        if (!("owned" in $$source)) {
+            this["owned"] = false;
+        }
+        if (!("startedOnEdited" in $$source)) {
+            this["startedOnEdited"] = false;
+        }
+        if (!("finishedOnEdited" in $$source)) {
+            this["finishedOnEdited"] = false;
+        }
 
         Object.assign(this, $$source);
     }
@@ -261,6 +285,35 @@ export class Input {
             $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
         }
         return new Input($$parsedSource as Partial<Input>);
+    }
+}
+
+export class SearchResults {
+    "matches": Book[];
+    "total": number;
+
+    /** Creates a new SearchResults instance. */
+    constructor($$source: Partial<SearchResults> = {}) {
+        if (!("matches" in $$source)) {
+            this["matches"] = [];
+        }
+        if (!("total" in $$source)) {
+            this["total"] = 0;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new SearchResults instance from a string or object.
+     */
+    static createFrom($$source: any = {}): SearchResults {
+        const $$createField0_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("matches" in $$parsedSource) {
+            $$parsedSource["matches"] = $$createField0_0($$parsedSource["matches"]);
+        }
+        return new SearchResults($$parsedSource as Partial<SearchResults>);
     }
 }
 

@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/Santiparra/Trove/internal/books"
 	_ "modernc.org/sqlite"
@@ -32,7 +33,7 @@ func Open(path string) (*Store, error) {
 	}
 	db.SetMaxOpenConns(1)
 	store := &Store{db: db}
-	if err = store.initialize(); err != nil {
+	if err = store.initialize(path); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func Open(path string) (*Store, error) {
 
 func (s *Store) Close() error { return s.db.Close() }
 
-func (s *Store) initialize() error {
+func (s *Store) initialize(path string) error {
 	if _, err := s.db.Exec("PRAGMA foreign_keys = ON; PRAGMA busy_timeout = 5000;"); err != nil {
 		return err
 	}
@@ -49,33 +50,42 @@ func (s *Store) initialize() error {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	if version > 1 {
+	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql"}
+	if version > len(files) {
 		return errors.New("la base pertenece a una versión más nueva de Trove")
 	}
-	if version == 1 {
+	if version == len(files) {
 		return nil
 	}
-	ddl, err := migrations.ReadFile("migrations/001_books.sql")
-	if err != nil {
-		return err
+	if version > 0 {
+		backup := filepath.Join(filepath.Dir(path), fmt.Sprintf("before-schema-%d-%s.sqlite", len(files), time.Now().Format("20060102-150405.000000000")))
+		if _, err := s.db.Exec("VACUUM INTO ?", backup); err != nil {
+			return fmt.Errorf("no se pudo crear la copia previa a la migración: %w", err)
+		}
 	}
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err = tx.Exec(string(ddl)); err != nil {
-		return err
-	}
-	if _, err = tx.Exec("PRAGMA user_version = 1"); err != nil {
-		return err
+	for i := version; i < len(files); i++ {
+		ddl, err := migrations.ReadFile(files[i])
+		if err != nil {
+			return err
+		}
+		if _, err = tx.Exec(string(ddl)); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", i+1)); err != nil {
+			return err
+		}
 	}
 	return tx.Commit()
 }
 
 const selectBooks = `SELECT b.id, b.title, b.authors_json, b.notes, b.added_on,
- s.id, s.name, b.series_position,
- e.id, e.language, e.format, e.identifier, c.id, c.status, c.started_on, c.finished_on
+ s.id, s.name, b.series_position, b.favorite,
+ e.id, e.language, e.format, e.identifier, e.owned, c.id, c.status, c.started_on, c.finished_on
  FROM books b
  LEFT JOIN series s ON s.id=b.series_id
  JOIN editions e ON e.book_id=b.id
@@ -88,8 +98,8 @@ func scanBook(row scanner) (books.Book, error) {
 	var authors string
 	var sid, name sql.NullString
 	var pos sql.NullFloat64
-	err := row.Scan(&b.ID, &b.Title, &authors, &b.Notes, &b.AddedOn, &sid, &name, &pos,
-		&b.Edition.ID, &b.Edition.Language, &b.Edition.Format, &b.Edition.Identifier,
+	err := row.Scan(&b.ID, &b.Title, &authors, &b.Notes, &b.AddedOn, &sid, &name, &pos, &b.Favorite,
+		&b.Edition.ID, &b.Edition.Language, &b.Edition.Format, &b.Edition.Identifier, &b.Edition.Owned,
 		&b.Cycle.ID, &b.Cycle.Status, &b.Cycle.StartedOn, &b.Cycle.FinishedOn)
 	if errors.Is(err, sql.ErrNoRows) {
 		return b, books.ErrNotFound
@@ -177,14 +187,14 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	if b.Series != nil && b.Series.Position != nil {
 		position = *b.Series.Position
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position) VALUES(?,?,?,?,?,?,?)
- ON CONFLICT(id) DO UPDATE SET title=excluded.title,authors_json=excluded.authors_json,notes=excluded.notes,added_on=excluded.added_on,series_id=excluded.series_id,series_position=excluded.series_position`,
-		b.ID, b.Title, string(authors), b.Notes, b.AddedOn, seriesID, position)
+	_, err = tx.ExecContext(ctx, `INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite) VALUES(?,?,?,?,?,?,?,?)
+ ON CONFLICT(id) DO UPDATE SET title=excluded.title,authors_json=excluded.authors_json,notes=excluded.notes,added_on=excluded.added_on,series_id=excluded.series_id,series_position=excluded.series_position,favorite=excluded.favorite`,
+		b.ID, b.Title, string(authors), b.Notes, b.AddedOn, seriesID, position, b.Favorite)
 	if err != nil {
 		return b, fmt.Errorf("guardar libro: %w", err)
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO editions(id,book_id,language,format,identifier) VALUES(?,?,?,?,?)
- ON CONFLICT(id) DO UPDATE SET language=excluded.language,format=excluded.format,identifier=excluded.identifier`, b.Edition.ID, b.ID, b.Edition.Language, b.Edition.Format, b.Edition.Identifier)
+	_, err = tx.ExecContext(ctx, `INSERT INTO editions(id,book_id,language,format,identifier,owned) VALUES(?,?,?,?,?,?)
+ ON CONFLICT(id) DO UPDATE SET language=excluded.language,format=excluded.format,identifier=excluded.identifier,owned=excluded.owned`, b.Edition.ID, b.ID, b.Edition.Language, b.Edition.Format, b.Edition.Identifier, b.Edition.Owned)
 	if err != nil {
 		return b, err
 	}
@@ -199,8 +209,8 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	return b, nil
 }
 
-func (s *Store) UpdateStatus(ctx context.Context, bookID, cycleID, status string) error {
-	result, err := s.db.ExecContext(ctx, `UPDATE reading_cycles SET status=? WHERE id=? AND edition_id IN (SELECT id FROM editions WHERE book_id=?)`, status, cycleID, bookID)
+func (s *Store) UpdateCycle(ctx context.Context, bookID string, cycle books.Cycle) error {
+	result, err := s.db.ExecContext(ctx, `UPDATE reading_cycles SET status=?,started_on=?,finished_on=? WHERE id=? AND edition_id IN (SELECT id FROM editions WHERE book_id=?)`, cycle.Status, cycle.StartedOn, cycle.FinishedOn, cycle.ID, bookID)
 	if err != nil {
 		return err
 	}
@@ -212,6 +222,29 @@ func (s *Store) UpdateStatus(ctx context.Context, bookID, cycleID, status string
 		return books.ErrNotFound
 	}
 	return nil
+}
+
+func requireUpdated(result sql.Result, err error) error {
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return books.ErrNotFound
+	}
+	return nil
+}
+func (s *Store) UpdateNotes(ctx context.Context, id, notes string) error {
+	return requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET notes=? WHERE id=?", notes, id))
+}
+func (s *Store) UpdateFavorite(ctx context.Context, id string, value bool) error {
+	return requireUpdated(s.db.ExecContext(ctx, "UPDATE books SET favorite=? WHERE id=?", value, id))
+}
+func (s *Store) UpdateOwned(ctx context.Context, bookID, editionID string, value bool) error {
+	return requireUpdated(s.db.ExecContext(ctx, "UPDATE editions SET owned=? WHERE id=? AND book_id=?", value, editionID, bookID))
 }
 
 func (s *Store) Delete(ctx context.Context, id string) error {

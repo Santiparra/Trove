@@ -12,6 +12,7 @@ import BookPortal from "./books/BookPortal";
 import BookList from "./books/BookList";
 import BookDetails from "./books/BookDetails";
 import BookEditor from "./books/BookEditor";
+import BookSearch from "./books/BookSearch";
 import DeleteDialog from "./books/DeleteDialog";
 import { errorMessage, labelFor } from "./books/presentation";
 
@@ -24,17 +25,21 @@ const media: { key: string; label: string; icon: IconName }[] = [
   { key: "tv", label: "Series de TV", icon: "tv" },
   { key: "movies", label: "Películas", icon: "movies" },
 ];
-type View = "portal" | "list" | "detail" | "create" | "edit";
+type View = "portal" | "list" | "series" | "detail" | "create" | "edit";
 
 export default function App() {
   const [section, setSection] = useState("books");
   const [view, setView] = useState<View>("portal");
-  const [returnTo, setReturnTo] = useState<"portal" | "list">("portal");
+  const [returnTo, setReturnTo] = useState<"portal" | "list" | "series">(
+    "portal",
+  );
   const [info, setInfo] = useState<Info | null>(null);
   const [summary, setSummary] = useState<Dashboard | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [series, setSeries] = useState<Series[]>([]);
   const [query, setQuery] = useState("");
+  const [searchText, setSearchText] = useState("");
+  const [selectedSeries, setSelectedSeries] = useState<Series | null>(null);
   const [status, setStatus] = useState("");
   const [revision, setRevision] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -73,12 +78,15 @@ export default function App() {
   }, [revision]);
 
   useEffect(() => {
-    if (view !== "list") return;
+    if (view !== "list" && view !== "series") return;
     let active = true;
     setListLoading(true);
     setListError("");
     const timer = setTimeout(() => {
-      Library.ListBooks(query, status)
+      (view === "series" && selectedSeries
+        ? Library.ListSeriesBooks(selectedSeries.id)
+        : Library.ListBooks(query, status)
+      )
         .then((items) => {
           if (active) {
             setBooks(items);
@@ -99,7 +107,7 @@ export default function App() {
       active = false;
       clearTimeout(timer);
     };
-  }, [view, query, status, revision]);
+  }, [view, query, status, revision, selectedSeries]);
 
   const canLeave = () =>
     !dirty ||
@@ -114,26 +122,35 @@ export default function App() {
     setView("portal");
     setSelected(null);
     setQuery("");
+    setSearchText("");
+    setSelectedSeries(null);
     setStatus("");
     setDirty(false);
     clearMessages();
   }
   function openList(value: string) {
+    if (busy || !canLeave()) return;
     setStatus(value);
     setQuery("");
+    setSearchText("");
+    setSelectedSeries(null);
+    setDirty(false);
     setView("list");
     setReturnTo("list");
     setSelected(null);
     clearMessages();
   }
   async function openBook(book: Book) {
-    if (busy) return;
+    if (busy || !canLeave()) return;
     setBusy(true);
     clearMessages();
     try {
       const current = await Library.GetBook(book.id);
       setSelected(current);
-      setReturnTo(view === "list" ? "list" : "portal");
+      setReturnTo(
+        view === "series" ? "series" : view === "list" ? "list" : "portal",
+      );
+      setDirty(false);
       setView("detail");
     } catch (error) {
       setActionError(errorMessage(error));
@@ -143,7 +160,10 @@ export default function App() {
   }
   function openEditor(book: Book | null) {
     if (busy || !canLeave()) return;
-    if (!book) setReturnTo(view === "list" ? "list" : "portal");
+    if (!book)
+      setReturnTo(
+        view === "series" ? "series" : view === "list" ? "list" : "portal",
+      );
     setSelected(book);
     setDirty(false);
     setView(book ? "edit" : "create");
@@ -179,11 +199,7 @@ export default function App() {
       const result = await Library.ChangeBookStatus(book.id, value);
       if (selected?.id === result.id) setSelected(result);
       setRevision((current) => current + 1);
-      setNotice(
-        value === "read" && !result.cycle.finishedOn
-          ? "Estado actualizado. Registrá la fecha de finalización en Editar para incluirlo entre los últimos leídos."
-          : "Estado de lectura actualizado.",
-      );
+      setNotice("Estado de lectura actualizado.");
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -194,6 +210,46 @@ export default function App() {
     clearMessages();
     setDeleteTarget(book);
   }
+  function openSeries(value: Series) {
+    if (busy || !canLeave()) return;
+    setSelectedSeries(value);
+    setSelected(null);
+    setView("series");
+    setReturnTo("series");
+    setDirty(false);
+    setQuery("");
+    setSearchText("");
+    clearMessages();
+  }
+  function allSearchResults(value: string) {
+    if (busy || !canLeave()) return;
+    setQuery(value);
+    setSearchText(value);
+    setStatus("");
+    setSelectedSeries(null);
+    setView("list");
+    setReturnTo("list");
+    setDirty(false);
+    clearMessages();
+  }
+  async function updatePersonal(
+    operation: () => PromiseLike<Book>,
+    message: string,
+  ) {
+    if (busy) return;
+    setBusy(true);
+    clearMessages();
+    try {
+      const result = await operation();
+      setSelected((current) => (current?.id === result.id ? result : current));
+      setRevision((value) => value + 1);
+      setNotice(message);
+    } catch (error) {
+      setActionError(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
   async function confirmDelete() {
     if (!deleteTarget || busy) return;
     setBusy(true);
@@ -203,6 +259,7 @@ export default function App() {
       if (selected?.id === deleteTarget.id) {
         setSelected(null);
         setView(returnTo);
+        setDirty(false);
       }
       setDeleteTarget(null);
       setRevision((value) => value + 1);
@@ -215,11 +272,13 @@ export default function App() {
   }
   const activeLabel = media.find((item) => item.key === section)?.label;
   const title =
-    view === "list"
-      ? status && info
-        ? labelFor(info.statuses, status)
-        : "Todos los libros"
-      : "Libros";
+    view === "series"
+      ? selectedSeries?.name || "Serie"
+      : view === "list"
+        ? status && info
+          ? labelFor(info.statuses, status)
+          : "Todos los libros"
+        : "Libros";
 
   return (
     <div className="app-shell">
@@ -251,7 +310,9 @@ export default function App() {
           Todo queda en tu PC<small>Sin cuentas. Sin proveedores.</small>
         </div>
       </aside>
-      <main className="main-area">
+      <main
+        className={`main-area ${section === "books" && view === "portal" ? "portal-main" : ""}`}
+      >
         <header className="topbar">
           <span>
             Biblioteca <span className="breadcrumb">/</span>
@@ -344,15 +405,41 @@ export default function App() {
           </section>
         ) : (
           <>
-            {(view === "portal" || view === "list") && (
+            {(view === "portal" || view === "list" || view === "series") && (
               <>
-                {view === "list" && (
-                  <button
-                    className="back-link list-back"
-                    onClick={() => navigate("books")}
-                  >
-                    <Icon name="arrow" size={17} /> Volver al portal
-                  </button>
+                {(view === "list" || view === "series") && (
+                  <div className="list-navigation">
+                    <button
+                      className="back-link list-back"
+                      onClick={() => navigate("books")}
+                    >
+                      <Icon name="arrow" size={17} /> Volver al portal
+                    </button>
+                    {view === "list" && (
+                      <nav
+                        className="status-tabs"
+                        aria-label="Estados de lectura"
+                      >
+                        <button
+                          aria-pressed={status === ""}
+                          onClick={() => setStatus("")}
+                          disabled={busy}
+                        >
+                          Todos
+                        </button>
+                        {info?.statuses.map((option) => (
+                          <button
+                            key={option.value}
+                            aria-pressed={status === option.value}
+                            onClick={() => setStatus(option.value)}
+                            disabled={busy}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </nav>
+                    )}
+                  </div>
                 )}
                 <section className="page-heading">
                   <div>
@@ -380,37 +467,16 @@ export default function App() {
                   </button>
                 </section>
                 <div className="library-toolbar">
-                  <label className="search-box">
-                    <Icon name="search" size={18} />
-                    <input
-                      type="search"
-                      value={query}
-                      onChange={(event) => {
-                        setQuery(event.target.value);
-                        if (view === "portal") {
-                          setView("list");
-                          setStatus("");
-                        }
-                      }}
-                      placeholder="Buscar por título en tu biblioteca…"
-                      aria-label="Buscar por título"
-                    />
-                  </label>
-                  {view === "list" && (
-                    <select
-                      className="list-status-filter"
-                      aria-label="Filtrar por estado"
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value)}
-                    >
-                      <option value="">Todos los estados</option>
-                      {info?.statuses.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  <BookSearch
+                    value={searchText}
+                    disabled={busy}
+                    onChange={(value) => {
+                      setSearchText(value);
+                      if (!value.trim() && view === "list") setQuery("");
+                    }}
+                    onBook={openBook}
+                    onAll={allSearchResults}
+                  />
                   <button
                     className="quiet refresh-button"
                     onClick={() => setRevision((value) => value + 1)}
@@ -419,7 +485,7 @@ export default function App() {
                     <Icon name="refresh" size={16} /> Actualizar
                   </button>
                   <span className="library-count">
-                    {view === "list"
+                    {view === "list" || view === "series"
                       ? listLoading
                         ? "Cargando…"
                         : `${books.length} resultados`
@@ -438,6 +504,7 @@ export default function App() {
                 onList={openList}
                 onBook={openBook}
                 onStatus={changeStatus}
+                onSeries={openSeries}
               />
             )}
             {view === "portal" && !summary && !loadError && (
@@ -445,7 +512,7 @@ export default function App() {
                 Cargando tu biblioteca…
               </p>
             )}
-            {view === "list" && (
+            {(view === "list" || view === "series") && (
               <>
                 {listError && (
                   <div className="error-banner" role="alert">
@@ -465,6 +532,7 @@ export default function App() {
                     onStatus={changeStatus}
                     onDelete={requestDelete}
                     onCreate={() => openEditor(null)}
+                    onSeries={openSeries}
                   />
                 )}
               </>
@@ -475,12 +543,34 @@ export default function App() {
                 info={info}
                 busy={busy}
                 onBack={() => {
+                  if (busy || !canLeave()) return;
                   setView(returnTo);
+                  setDirty(false);
                   clearMessages();
                 }}
                 onEdit={() => openEditor(selected)}
                 onDelete={requestDelete}
                 onStatus={changeStatus}
+                onSeries={openSeries}
+                onFavorite={(book, value) =>
+                  void updatePersonal(
+                    () => Library.SetBookFavorite(book.id, value),
+                    "Favorito actualizado.",
+                  )
+                }
+                onOwned={(book, value) =>
+                  void updatePersonal(
+                    () => Library.SetBookOwned(book.id, value),
+                    "Propiedad actualizada.",
+                  )
+                }
+                onNotes={(book, notes) =>
+                  updatePersonal(
+                    () => Library.SaveBookNotes(book.id, notes),
+                    "Notas guardadas.",
+                  )
+                }
+                onDirty={setDirty}
               />
             )}
             {editing && info && (

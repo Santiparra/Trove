@@ -53,8 +53,38 @@ export function ListSeries(): $CancellablePromise<books$0.Series[]> {
     });
 }
 
+export function ListSeriesBooks(id: string): $CancellablePromise<books$0.Book[]> {
+    return $Call.ByID(152299271, id).then(($result: any) => {
+        return $$createType3($result);
+    });
+}
+
 export function SaveBook(input: books$0.Input): $CancellablePromise<books$0.Book> {
     return $Call.ByID(1589590406, input).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function SaveBookNotes(id: string, notes: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(3460747587, id, notes).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function SearchBooks(query: string): $CancellablePromise<books$0.SearchResults> {
+    return $Call.ByID(4091989264, query).then(($result: any) => {
+        return $$createType6($result);
+    });
+}
+
+export function SetBookFavorite(id: string, value: boolean): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(4096650963, id, value).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function SetBookOwned(id: string, value: boolean): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(588332708, id, value).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -66,3 +96,4 @@ const $$createType2 = $models.Info.createFrom;
 const $$createType3 = $Create.Array($$createType0);
 const $$createType4 = books$0.Series.createFrom;
 const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = books$0.SearchResults.createFrom;
