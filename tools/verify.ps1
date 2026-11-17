@@ -28,7 +28,12 @@ try {
         Invoke-Checked 'wails3' @('generate', 'bindings', '-clean=true', '-ts', '-d', 'frontend/bindings')
         $changes = & git status --porcelain -- frontend/bindings
         if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar el contrato generado.' }
-        if ($changes) { throw 'Los bindings no corresponden al backend: regenerar y versionar frontend/bindings.' }
+        if ($changes) {
+            $changes
+            & git diff -- frontend/bindings
+            & git ls-files --eol frontend/bindings
+            throw 'Los bindings no corresponden al backend: regenerar y versionar frontend/bindings.'
+        }
     }
 }
 finally { Pop-Location }

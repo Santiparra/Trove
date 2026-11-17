@@ -1,6 +1,6 @@
 # Formato de respaldo de Trove
 
-Implementación inicial, sin asignar versión pública de la aplicación. La versión **1 del formato de respaldo** es independiente del esquema SQLite (actualmente 2) y de una futura versión de release.
+La versión **1 del formato de respaldo** es independiente del esquema SQLite (actualmente 2) y de la versión pública de la aplicación.
 
 ## Organización de archivos
 
