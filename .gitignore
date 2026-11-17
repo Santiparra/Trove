@@ -1,6 +1,5 @@
 # Exportaciones personales para análisis local. No publicar datos reales.
-/samples/private/*
-!/samples/private/README.md
+/samples/private/
 
 # Dependencias, artefactos y datos locales.
 /bin/
@@ -21,3 +20,8 @@
 **/.restore-*/
 **/backup-settings.json
 **/.backup-settings-*.json
+
+# Preferencias y planificación personales; se conservan solo en esta copia.
+/AGENTS.md
+/.local-docs/
+/artifacts/

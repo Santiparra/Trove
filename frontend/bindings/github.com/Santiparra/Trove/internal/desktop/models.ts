@@ -31,6 +31,8 @@ export class Choice {
 }
 
 export class Info {
+    "version": string;
+    "revision": string;
     "profile": string;
     "dataDir": string;
     "buildID": string;
@@ -39,6 +41,12 @@ export class Info {
 
     /** Creates a new Info instance. */
     constructor($$source: Partial<Info> = {}) {
+        if (!("version" in $$source)) {
+            this["version"] = "";
+        }
+        if (!("revision" in $$source)) {
+            this["revision"] = "";
+        }
         if (!("profile" in $$source)) {
             this["profile"] = "";
         }
@@ -62,14 +70,14 @@ export class Info {
      * Creates a new Info instance from a string or object.
      */
     static createFrom($$source: any = {}): Info {
-        const $$createField3_0 = $$createType1;
-        const $$createField4_0 = $$createType1;
+        const $$createField5_0 = $$createType1;
+        const $$createField6_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("statuses" in $$parsedSource) {
-            $$parsedSource["statuses"] = $$createField3_0($$parsedSource["statuses"]);
+            $$parsedSource["statuses"] = $$createField5_0($$parsedSource["statuses"]);
         }
         if ("formats" in $$parsedSource) {
-            $$parsedSource["formats"] = $$createField4_0($$parsedSource["formats"]);
+            $$parsedSource["formats"] = $$createField6_0($$parsedSource["formats"]);
         }
         return new Info($$parsedSource as Partial<Info>);
     }

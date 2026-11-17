@@ -386,8 +386,10 @@ export default function App() {
             <strong>Almacenamiento local</strong>
             <code>{info?.dataDir ?? "Cargando…"}</code>
             <span>
-              Build: {info?.buildID ?? "…"} · SQLite · Configuración de
-              resguardo en «Respaldo y restauración».
+              Versión: {info?.version ?? "…"} · Revisión:{" "}
+              {info?.revision?.slice(0, 12) ?? "…"} · Build:{" "}
+              {info?.buildID ?? "…"} · SQLite · Configuración de resguardo en
+              «Respaldo y restauración».
             </span>
           </div>
         )}

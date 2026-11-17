@@ -15,6 +15,8 @@ type Choice struct {
 	Label string `json:"label"`
 }
 type Info struct {
+	Version  string   `json:"version"`
+	Revision string   `json:"revision"`
 	Profile  string   `json:"profile"`
 	DataDir  string   `json:"dataDir"`
 	BuildID  string   `json:"buildID"`
@@ -29,8 +31,18 @@ type Library struct {
 	info    Info
 }
 
-func NewLibrary(service *books.Service, profile, dir, buildID string) *Library {
+type BuildInfo struct {
+	Version  string
+	Revision string
+}
+
+func NewLibrary(service *books.Service, profile, dir, buildID string, identity ...BuildInfo) *Library {
+	meta := BuildInfo{Version: "development", Revision: "unknown"}
+	if len(identity) > 0 {
+		meta = identity[0]
+	}
 	return &Library{service: service, info: Info{
+		Version: meta.Version, Revision: meta.Revision,
 		Profile: profile, DataDir: dir, BuildID: buildID,
 		Statuses: []Choice{{"to-read", "Por leer"}, {"up-next", "A continuación"}, {"reading", "Leyendo"}, {"read", "Leído"}, {"paused", "Pausado"}, {"did-not-finish", "Sin terminar"}},
 		Formats:  []Choice{{"", "Sin especificar"}, {"paperback", "Tapa blanda"}, {"hardcover", "Tapa dura"}, {"digital", "Digital"}, {"audio", "Audiolibro"}, {"other", "Otro"}},
