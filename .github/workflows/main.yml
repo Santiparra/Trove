@@ -18,6 +18,9 @@ jobs:
     name: Windows x64
     runs-on: windows-latest
     timeout-minutes: 25
+    env:
+      CGO_ENABLED: '0'
+      GOTOOLCHAIN: local
     outputs:
       version: ${{ steps.identity.outputs.version }}
     steps:

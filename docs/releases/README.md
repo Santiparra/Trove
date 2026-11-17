@@ -10,6 +10,8 @@
 
 El merge a `main` constituye aprobación de publicación. Los checks obligatorios de la rama impiden integrar si falla el contrato requerido. El primer artefacto de PR debe probarse antes de aprobar la primera publicación.
 
+La integración usa merge commits para conservar la relación entre las ramas persistentes; no elimina `dev` después del merge. Antes de iniciar el siguiente bloque de trabajo conviene actualizar `dev` desde `main` para mantener los checks sobre una base actualizada.
+
 Actualizar `dev` cuando participa en un PR abierto a `main` vuelve a validar ese PR mediante su evento `pull_request`. No existe un workflow de push a `dev` ni se publica por esa actualización.
 
 ## Descargar una prueba de PR

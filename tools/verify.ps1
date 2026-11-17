@@ -3,6 +3,7 @@ param([switch]$CheckBindings)
 . (Join-Path $PSScriptRoot 'common.ps1')
 $root = Split-Path $PSScriptRoot -Parent
 Set-ProjectTemp $root
+$env:CGO_ENABLED = '0'
 Push-Location $root
 try {
     foreach ($script in Get-ChildItem -LiteralPath (Join-Path $root 'tools') -Filter '*.ps1') {
