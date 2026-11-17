@@ -1,10 +1,38 @@
 package backup
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+func TestLegacyDocumentKeepsOriginalContentHash(t *testing.T) {
+	// Exact compact encoding of the version-1 catalog, before Series had a medium field.
+	data := `{"series":[{"id":"s","name":"Saga"}],"works":[{"id":"w","medium":"books","title":"Example","authors":[],"seriesId":"s","notes":"","addedOn":"","favorite":false}],"editions":[{"id":"e","workId":"w","language":"","format":"","identifier":"","owned":false}],"cycles":[{"id":"c","editionId":"e","status":"read","startedOn":"","finishedOn":""}]}`
+	d := Document{Format: Format, Version: 1, Generation: "legacy", CreatedAt: "2020-01-01T00:00:00Z"}
+	if err := json.Unmarshal([]byte(data), &d.Catalog); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256([]byte(data))
+	if d.ContentHash() != hex.EncodeToString(sum[:]) || d.Version != 1 || d.Catalog.Series[0].Medium != "" {
+		t.Fatal("la validación cambió el hash de una generación anterior")
+	}
+}
+
+func TestCrossMediumSeriesCannotBeRestored(t *testing.T) {
+	d := validDocument()
+	d.Catalog.Series = []Series{{ID: "foreign-series", Name: "Saga", Medium: "light-novels"}}
+	d.Catalog.Works[0].SeriesID = "foreign-series"
+	if err := d.Validate(); err == nil {
+		t.Fatal("una obra de Libros aceptó una serie de Novelas ligeras")
+	}
+}
 
 func validDocument() Document {
 	return Document{Format: Format, Version: Version, Generation: "synthetic", CreatedAt: "2026-01-01T00:00:00Z", Catalog: Catalog{

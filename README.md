@@ -4,13 +4,13 @@ Biblioteca y bitácora multimedia local para **Windows x64**. Los datos personal
 
 ## Funciones disponibles
 
-- Biblioteca manual de libros con autoría, serie y orden, edición, estado y fechas.
+- Bibliotecas manuales separadas de Libros y Novelas ligeras, con autoría, serie y orden, edición, estado y fechas. Cada volumen de novela ligera es una entrada.
 - Portal de lectura, búsqueda local y navegación por series.
 - Notas, favoritos, propiedad y cambios rápidos de estado.
 - Respaldo automático SQLite + JSON y restauración completa con validación y copia previa.
 - Perfiles separados de desarrollo, prueba y uso habitual.
 
-Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos, proveedores de metadata, portadas reales ni puntajes.
+Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos, proveedores de metadata, portadas reales ni puntajes. Listados, búsquedas, series y operaciones se acotan al medio seleccionado.
 
 ## Descargar y ejecutar
 

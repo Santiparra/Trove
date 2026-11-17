@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -52,6 +53,7 @@ vi.mock(
 
 const sample = {
   id: "synthetic-book",
+  medium: "books",
   favorite: false,
   title: "Obra sintética",
   authors: ["Autor A"],
@@ -77,6 +79,7 @@ const statuses = [
 ];
 function overview(withBook = false) {
   return {
+    medium: "books",
     total: withBook ? 1 : 0,
     counts: statuses.map((option) => ({
       status: option.value,
@@ -118,6 +121,116 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("Novelas ligeras locales", () => {
+  const novel = {
+    ...sample,
+    id: "synthetic-volume",
+    medium: "light-novels",
+    title: "Volumen sintético",
+  };
+  const novelSummary = () => ({
+    ...overview(true),
+    medium: "light-novels",
+    currentlyReading: [novel],
+  });
+  async function openNovels() {
+    api.Dashboard.mockImplementation((medium: string) =>
+      Promise.resolve(
+        medium === "light-novels" ? novelSummary() : overview(true),
+      ),
+    );
+    render(<App />);
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Ver todos los volúmenes" });
+  }
+  it("crea un volumen en su medio usando el formulario común y abre su ficha", async () => {
+    const saved = {
+      ...novel,
+      id: "saved-volume",
+      title: "Volumen nuevo",
+      cycle: { ...novel.cycle, status: "to-read" },
+    };
+    api.SaveBook.mockResolvedValue(saved);
+    await openNovels();
+    expect(
+      screen.queryByRole("button", { name: "Abrir Obra sintética" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Añadir volumen" }));
+    fireEvent.change(screen.getByLabelText(/Título/), {
+      target: { value: "Volumen nuevo" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar volumen" }));
+    await waitFor(() => expect(api.SaveBook).toHaveBeenCalledOnce());
+    expect(api.SaveBook.mock.calls[0][0]).toMatchObject({
+      medium: "light-novels",
+      title: "Volumen nuevo",
+    });
+    expect(
+      await screen.findByRole("region", { name: "Detalle del volumen" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Editar volumen" })).toBeTruthy();
+  });
+  it("busca, lista y cambia estados con el contexto explícito de novelas ligeras", async () => {
+    api.SearchBooks.mockResolvedValue({ matches: [novel], total: 1 });
+    api.ListBooks.mockResolvedValue([novel]);
+    const updated = { ...novel, cycle: { ...novel.cycle, status: "up-next" } };
+    api.ChangeBookStatus.mockResolvedValue(updated);
+    await openNovels();
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Volumen" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Ver todos los resultados (1)",
+      }),
+    );
+    await waitFor(() =>
+      expect(api.SearchBooks).toHaveBeenCalledWith("Volumen", "light-novels"),
+    );
+    await waitFor(() =>
+      expect(api.ListBooks).toHaveBeenCalledWith("Volumen", "", "light-novels"),
+    );
+    const list = screen.getByRole("region", {
+      name: "Biblioteca de novelas ligeras",
+    });
+    const select = await within(list).findByLabelText(
+      "Estado de Volumen sintético",
+    );
+    api.ListBooks.mockResolvedValue([updated]);
+    fireEvent.change(select, { target: { value: "up-next" } });
+    await waitFor(() =>
+      expect(api.ChangeBookStatus).toHaveBeenCalledWith(
+        novel.id,
+        "up-next",
+        "light-novels",
+      ),
+    );
+    await waitFor(() => expect(select).toHaveProperty("value", "up-next"));
+  });
+  it("ignora una respuesta tardía de Libros después de cambiar de sección", async () => {
+    let finishBooks!: (value: ReturnType<typeof overview>) => void;
+    const delayed = new Promise<ReturnType<typeof overview>>((resolve) => {
+      finishBooks = resolve;
+    });
+    api.Dashboard.mockImplementation((medium: string) =>
+      medium === "books" ? delayed : Promise.resolve(novelSummary()),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Abrir Volumen sintético" });
+    await act(async () => {
+      finishBooks(overview(true));
+    });
+    expect(
+      screen.queryByRole("button", { name: "Abrir Obra sintética" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Abrir Volumen sintético" }),
+    ).toBeTruthy();
+  });
+});
+
 describe("portal y navegación de libros", () => {
   it("abre el portal, no el listado, y el estado elegido define la consulta al backend", async () => {
     api.Dashboard.mockResolvedValue(overview(true));
@@ -130,7 +243,7 @@ describe("portal y navegación de libros", () => {
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Leyendo: 1" }));
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("", "reading"),
+      expect(api.ListBooks).toHaveBeenCalledWith("", "reading", "books"),
     );
     fireEvent.click(
       await screen.findByRole("button", { name: "Abrir Obra sintética" }),
@@ -158,7 +271,11 @@ describe("portal y navegación de libros", () => {
       "No se pudo cambiar el estado.",
     );
     expect(select).toHaveProperty("value", "reading");
-    expect(api.ChangeBookStatus).toHaveBeenCalledWith(sample.id, "read");
+    expect(api.ChangeBookStatus).toHaveBeenCalledWith(
+      sample.id,
+      "read",
+      "books",
+    );
     expect(api.SaveBook).not.toHaveBeenCalled();
   });
 
@@ -195,7 +312,7 @@ describe("portal y navegación de libros", () => {
       target: { value: "sintética" },
     });
     await waitFor(() =>
-      expect(api.SearchBooks).toHaveBeenCalledWith("sintética"),
+      expect(api.SearchBooks).toHaveBeenCalledWith("sintética", "books"),
     );
     expect(api.ListBooks).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "Tu biblioteca" })).toBeTruthy();
@@ -205,7 +322,7 @@ describe("portal y navegación de libros", () => {
       }),
     );
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("sintética", ""),
+      expect(api.ListBooks).toHaveBeenCalledWith("sintética", "", "books"),
     );
     expect(
       screen.getByRole("region", { name: "Biblioteca de libros" }),
@@ -224,7 +341,7 @@ describe("navegación y datos personales", () => {
       within(tabs).getByRole("button", { name: "A continuación" }),
     );
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("", "up-next"),
+      expect(api.ListBooks).toHaveBeenCalledWith("", "up-next", "books"),
     );
     expect(screen.queryByLabelText("Filtrar por estado")).toBeNull();
   });
@@ -277,7 +394,7 @@ describe("navegación y datos personales", () => {
       await screen.findByRole("button", { name: "Serie sintética · #1" }),
     );
     await waitFor(() =>
-      expect(api.ListSeriesBooks).toHaveBeenCalledWith(series.id),
+      expect(api.ListSeriesBooks).toHaveBeenCalledWith(series.id, "books"),
     );
     expect(
       await screen.findByLabelText("Estado de Obra sintética"),
@@ -294,7 +411,11 @@ describe("navegación y datos personales", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Guardar notas" }));
     await waitFor(() =>
-      expect(api.SaveBookNotes).toHaveBeenCalledWith(sample.id, "Nueva nota"),
+      expect(api.SaveBookNotes).toHaveBeenCalledWith(
+        sample.id,
+        "Nueva nota",
+        "books",
+      ),
     );
     expect((await screen.findByRole("status")).textContent).toContain(
       "Notas guardadas.",
@@ -332,7 +453,7 @@ describe("navegación y datos personales", () => {
     await detail();
     fireEvent.click(screen.getByRole("button", { name: "En propiedad" }));
     await waitFor(() =>
-      expect(api.SetBookOwned).toHaveBeenCalledWith(sample.id, true),
+      expect(api.SetBookOwned).toHaveBeenCalledWith(sample.id, true, "books"),
     );
     expect(
       screen
@@ -426,7 +547,9 @@ describe("eliminar libros", () => {
         name: "Eliminar definitivamente",
       }),
     );
-    await waitFor(() => expect(api.DeleteBook).toHaveBeenCalledWith(sample.id));
+    await waitFor(() =>
+      expect(api.DeleteBook).toHaveBeenCalledWith(sample.id, "books"),
+    );
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(
       screen.queryByRole("region", { name: "Detalle del libro" }),

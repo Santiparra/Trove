@@ -16,6 +16,7 @@ import BookSearch from "./books/BookSearch";
 import DeleteDialog from "./books/DeleteDialog";
 import { errorMessage, labelFor } from "./books/presentation";
 import BackupControl from "./backup/BackupControl";
+import { readingSection, readingLabels } from "./books/readingMedia";
 
 const media: { key: string; label: string; icon: IconName }[] = [
   { key: "books", label: "Libros", icon: "books" },
@@ -30,6 +31,9 @@ type View = "portal" | "list" | "series" | "detail" | "create" | "edit";
 
 export default function App() {
   const [section, setSection] = useState("books");
+  const reader = readingSection(section);
+  const currentMedium = reader?.medium || "books";
+  const labels = readingLabels(currentMedium);
   const [view, setView] = useState<View>("portal");
   const [returnTo, setReturnTo] = useState<"portal" | "list" | "series">(
     "portal",
@@ -58,8 +62,18 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
+    if (!reader) {
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
     setLoading(true);
-    Promise.all([Library.Info(), Library.Dashboard(), Library.ListSeries()])
+    Promise.all([
+      Library.Info(),
+      Library.Dashboard(currentMedium),
+      Library.ListSeries(currentMedium),
+    ])
       .then(([appInfo, overview, groups]) => {
         if (!active) return;
         setInfo(appInfo);
@@ -76,17 +90,17 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [revision]);
+  }, [revision, reader?.medium]);
 
   useEffect(() => {
-    if (view !== "list" && view !== "series") return;
+    if (!reader || (view !== "list" && view !== "series")) return;
     let active = true;
     setListLoading(true);
     setListError("");
     const timer = setTimeout(() => {
       (view === "series" && selectedSeries
-        ? Library.ListSeriesBooks(selectedSeries.id)
-        : Library.ListBooks(query, status)
+        ? Library.ListSeriesBooks(selectedSeries.id, currentMedium)
+        : Library.ListBooks(query, status, currentMedium)
       )
         .then((items) => {
           if (active) {
@@ -108,7 +122,7 @@ export default function App() {
       active = false;
       clearTimeout(timer);
     };
-  }, [view, query, status, revision, selectedSeries]);
+  }, [view, query, status, revision, selectedSeries, reader?.medium]);
 
   const canLeave = () =>
     !dirty ||
@@ -120,6 +134,12 @@ export default function App() {
   function navigate(key: string) {
     if (busy || deleteTarget || !canLeave()) return;
     setSection(key);
+    setSummary(null);
+    setBooks([]);
+    setSeries([]);
+    setLoadError("");
+    setListError("");
+    setRevision((value) => value + 1);
     setView("portal");
     setSelected(null);
     setQuery("");
@@ -146,7 +166,7 @@ export default function App() {
     setBusy(true);
     clearMessages();
     try {
-      const current = await Library.GetBook(book.id);
+      const current = await Library.GetBook(book.id, currentMedium);
       setSelected(current);
       setReturnTo(
         view === "series" ? "series" : view === "list" ? "list" : "portal",
@@ -185,7 +205,7 @@ export default function App() {
       setDirty(false);
       setView("detail");
       setRevision((value) => value + 1);
-      setNotice("Libro guardado en la biblioteca local.");
+      setNotice(`${labels.itemName} guardado en la biblioteca local.`);
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -197,7 +217,11 @@ export default function App() {
     setBusy(true);
     clearMessages();
     try {
-      const result = await Library.ChangeBookStatus(book.id, value);
+      const result = await Library.ChangeBookStatus(
+        book.id,
+        value,
+        currentMedium,
+      );
       if (selected?.id === result.id) setSelected(result);
       setRevision((current) => current + 1);
       setNotice("Estado de lectura actualizado.");
@@ -256,7 +280,7 @@ export default function App() {
     setBusy(true);
     setActionError("");
     try {
-      await Library.DeleteBook(deleteTarget.id);
+      await Library.DeleteBook(deleteTarget.id, currentMedium);
       if (selected?.id === deleteTarget.id) {
         setSelected(null);
         setView(returnTo);
@@ -264,7 +288,7 @@ export default function App() {
       }
       setDeleteTarget(null);
       setRevision((value) => value + 1);
-      setNotice("Libro eliminado de esta biblioteca.");
+      setNotice(`${labels.itemName} eliminado de esta biblioteca.`);
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -278,8 +302,8 @@ export default function App() {
       : view === "list"
         ? status && info
           ? labelFor(info.statuses, status)
-          : "Todos los libros"
-        : "Libros";
+          : `Todos los ${labels.plural}`
+        : labels.title;
 
   return (
     <div className="app-shell">
@@ -302,7 +326,7 @@ export default function App() {
             >
               <Icon name={item.icon} />
               {item.label}
-              {item.key === "books" && <span className="nav-dot" />}
+              {readingSection(item.key) && <span className="nav-dot" />}
             </button>
           ))}
         </nav>
@@ -312,7 +336,7 @@ export default function App() {
         </div>
       </aside>
       <main
-        className={`main-area ${section === "books" && view === "portal" ? "portal-main" : ""}`}
+        className={`main-area ${reader && view === "portal" ? "portal-main" : ""}`}
       >
         <header className="topbar">
           <span>
@@ -324,7 +348,7 @@ export default function App() {
             >
               {activeLabel}
             </button>
-            {section === "books" && view !== "portal" && (
+            {reader && view !== "portal" && (
               <>
                 <span className="breadcrumb">/</span>
                 <strong>
@@ -352,6 +376,10 @@ export default function App() {
                 return true;
               }}
               onRestored={() => {
+                setSummary(null);
+                setBooks([]);
+                setSeries([]);
+                setLoading(true);
                 setDirty(false);
                 setSelected(null);
                 setSelectedSeries(null);
@@ -414,7 +442,7 @@ export default function App() {
             {actionError}
           </div>
         )}
-        {section !== "books" ? (
+        {!reader ? (
           <section className="construction">
             <span className="construction-icon">
               <Icon
@@ -428,7 +456,8 @@ export default function App() {
             <p>
               Este espacio ya tiene su lugar.
               <br />
-              Por ahora, podés empezar a construir tu biblioteca de libros.
+              Por ahora, podés usar las bibliotecas locales de libros y novelas
+              ligeras.
             </p>
             <button className="primary" onClick={() => navigate("books")}>
               Ir a Libros <Icon name="chevron" size={16} />
@@ -494,11 +523,12 @@ export default function App() {
                     onClick={() => openEditor(null)}
                     disabled={!info || busy}
                   >
-                    <Icon name="plus" size={17} /> Añadir libro
+                    <Icon name="plus" size={17} /> {labels.add}
                   </button>
                 </section>
                 <div className="library-toolbar">
                   <BookSearch
+                    medium={currentMedium}
                     value={searchText}
                     disabled={busy}
                     onChange={(value) => {
@@ -555,6 +585,7 @@ export default function App() {
                 )}
                 {!listError && (
                   <BookList
+                    medium={currentMedium}
                     books={books}
                     statuses={info?.statuses ?? []}
                     busy={busy || listLoading}
@@ -585,19 +616,20 @@ export default function App() {
                 onSeries={openSeries}
                 onFavorite={(book, value) =>
                   void updatePersonal(
-                    () => Library.SetBookFavorite(book.id, value),
+                    () =>
+                      Library.SetBookFavorite(book.id, value, currentMedium),
                     "Favorito actualizado.",
                   )
                 }
                 onOwned={(book, value) =>
                   void updatePersonal(
-                    () => Library.SetBookOwned(book.id, value),
+                    () => Library.SetBookOwned(book.id, value, currentMedium),
                     "Propiedad actualizada.",
                   )
                 }
                 onNotes={(book, notes) =>
                   updatePersonal(
-                    () => Library.SaveBookNotes(book.id, notes),
+                    () => Library.SaveBookNotes(book.id, notes, currentMedium),
                     "Notas guardadas.",
                   )
                 }
@@ -606,7 +638,8 @@ export default function App() {
             )}
             {editing && info && (
               <BookEditor
-                key={view === "edit" ? selected?.id : "new"}
+                key={`${currentMedium}:${view === "edit" ? selected?.id : "new"}`}
+                medium={currentMedium}
                 book={view === "edit" ? selected : null}
                 info={info}
                 series={series}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import Icon from "../components/Icon";
+import { readingLabels } from "./readingMedia";
 
 export default function DeleteDialog({
   book,
@@ -15,6 +16,7 @@ export default function DeleteDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const labels = readingLabels(book.medium);
   const panel = useRef<HTMLDivElement>(null);
   const cancel = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -60,11 +62,11 @@ export default function DeleteDialog({
         <span className="delete-symbol">
           <Icon name="trash" size={25} />
         </span>
-        <h2 id="delete-title">¿Eliminar este libro?</h2>
+        <h2 id="delete-title">¿Eliminar este {labels.item}?</h2>
         <p id="delete-description">
           <strong>{book.title}</strong> se quitará de esta biblioteca junto con
-          sus notas y registro de lectura. No se eliminarán otros libros de su
-          serie. Esta acción no se puede deshacer.
+          sus notas y registro de lectura. No se eliminarán otros{" "}
+          {labels.plural} de su serie. Esta acción no se puede deshacer.
         </p>
         {error && (
           <div className="error-banner" role="alert">

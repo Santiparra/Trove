@@ -1,10 +1,9 @@
-// Package desktop is a thin Wails-facing adapter. It owns no business rules or SQL.
+// Package desktop adapts Wails requests; business rules and medium isolation live in Go.
 package desktop
 
 import (
 	"context"
 	"errors"
-	"log"
 	"sync"
 
 	"github.com/Santiparra/Trove/internal/books"
@@ -23,7 +22,10 @@ type Info struct {
 	Statuses []Choice `json:"statuses"`
 	Formats  []Choice `json:"formats"`
 }
-
+type BuildInfo struct {
+	Version  string
+	Revision string
+}
 type Library struct {
 	gate    sync.RWMutex
 	closing bool
@@ -31,107 +33,134 @@ type Library struct {
 	info    Info
 }
 
-type BuildInfo struct {
-	Version  string
-	Revision string
-}
-
 func NewLibrary(service *books.Service, profile, dir, buildID string, identity ...BuildInfo) *Library {
 	meta := BuildInfo{Version: "development", Revision: "unknown"}
 	if len(identity) > 0 {
 		meta = identity[0]
 	}
-	return &Library{service: service, info: Info{
-		Version: meta.Version, Revision: meta.Revision,
-		Profile: profile, DataDir: dir, BuildID: buildID,
+	return &Library{service: service, info: Info{Version: meta.Version, Revision: meta.Revision, Profile: profile, DataDir: dir, BuildID: buildID,
 		Statuses: []Choice{{"to-read", "Por leer"}, {"up-next", "A continuación"}, {"reading", "Leyendo"}, {"read", "Leído"}, {"paused", "Pausado"}, {"did-not-finish", "Sin terminar"}},
 		Formats:  []Choice{{"", "Sin especificar"}, {"paperback", "Tapa blanda"}, {"hardcover", "Tapa dura"}, {"digital", "Digital"}, {"audio", "Audiolibro"}, {"other", "Otro"}},
 	}}
 }
 
+// Called under the library gate. Scopes are request-local, never a mutable selected tab.
+func (l *Library) scoped(medium string, write bool) (*books.Service, error) {
+	if write && l.closing {
+		return nil, errors.New("Trove se está cerrando")
+	}
+	return l.service.ForMedium(medium)
+}
 func (l *Library) Info() Info { return l.info }
-func (l *Library) ListBooks(query, status string) ([]books.Book, error) {
+func (l *Library) ListBooks(query, status, medium string) ([]books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	result, err := l.service.ListByStatus(context.Background(), query, status)
+	s, err := l.scoped(medium, false)
 	if err != nil {
-		log.Printf("listar libros: %v", err)
-		return nil, errors.New("no se pudo leer la biblioteca; intentá actualizar el listado")
+		return nil, err
 	}
-	return result, nil
+	return s.ListByStatus(context.Background(), query, status)
 }
-
-func (l *Library) Dashboard() (books.Dashboard, error) {
+func (l *Library) Dashboard(medium string) (books.Dashboard, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	return l.service.Dashboard(context.Background())
-}
-func (l *Library) ChangeBookStatus(id, status string) (books.Book, error) {
-	l.gate.RLock()
-	defer l.gate.RUnlock()
-	if l.closing {
-		return books.Book{}, errors.New("Trove se está cerrando")
+	s, err := l.scoped(medium, false)
+	if err != nil {
+		return books.Dashboard{}, err
 	}
-	return l.service.ChangeStatus(context.Background(), id, status)
+	return s.Dashboard(context.Background())
 }
-func (l *Library) DeleteBook(id string) error {
+func (l *Library) GetBook(id, medium string) (books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	if l.closing {
-		return errors.New("Trove se está cerrando")
+	s, err := l.scoped(medium, false)
+	if err != nil {
+		return books.Book{}, err
 	}
-	return l.service.Delete(context.Background(), id)
+	return s.Get(context.Background(), id)
 }
-func (l *Library) GetBook(id string) (books.Book, error) {
+func (l *Library) ListSeries(medium string) ([]books.Series, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	return l.service.Get(context.Background(), id)
-}
-func (l *Library) ListSeries() ([]books.Series, error) {
-	l.gate.RLock()
-	defer l.gate.RUnlock()
-	return l.service.ListSeries(context.Background())
+	s, err := l.scoped(medium, false)
+	if err != nil {
+		return nil, err
+	}
+	return s.ListSeries(context.Background())
 }
 func (l *Library) SaveBook(input books.Input) (books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	if l.closing {
-		return books.Book{}, errors.New("Trove se está cerrando")
+	medium := input.Medium
+	if medium == "" {
+		medium = books.MediumBooks
 	}
-	return l.service.Save(context.Background(), input)
-}
-
-func (l *Library) SaveBookNotes(id, notes string) (books.Book, error) {
-	l.gate.RLock()
-	defer l.gate.RUnlock()
-	if l.closing {
-		return books.Book{}, errors.New("Trove se está cerrando")
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
 	}
-	return l.service.SaveNotes(context.Background(), id, notes)
+	return s.Save(context.Background(), input)
 }
-func (l *Library) SetBookFavorite(id string, value bool) (books.Book, error) {
+func (l *Library) ChangeBookStatus(id, status, medium string) (books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	if l.closing {
-		return books.Book{}, errors.New("Trove se está cerrando")
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
 	}
-	return l.service.SetFavorite(context.Background(), id, value)
+	return s.ChangeStatus(context.Background(), id, status)
 }
-func (l *Library) SetBookOwned(id string, value bool) (books.Book, error) {
+func (l *Library) DeleteBook(id, medium string) error {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	if l.closing {
-		return books.Book{}, errors.New("Trove se está cerrando")
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return err
 	}
-	return l.service.SetOwned(context.Background(), id, value)
+	return s.Delete(context.Background(), id)
 }
-func (l *Library) ListSeriesBooks(id string) ([]books.Book, error) {
+func (l *Library) SaveBookNotes(id, notes, medium string) (books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	return l.service.SeriesBooks(context.Background(), id)
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.SaveNotes(context.Background(), id, notes)
 }
-func (l *Library) SearchBooks(query string) (books.SearchResults, error) {
+func (l *Library) SetBookFavorite(id string, value bool, medium string) (books.Book, error) {
 	l.gate.RLock()
 	defer l.gate.RUnlock()
-	return l.service.Search(context.Background(), query)
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.SetFavorite(context.Background(), id, value)
+}
+func (l *Library) SetBookOwned(id string, value bool, medium string) (books.Book, error) {
+	l.gate.RLock()
+	defer l.gate.RUnlock()
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.SetOwned(context.Background(), id, value)
+}
+func (l *Library) ListSeriesBooks(id, medium string) ([]books.Book, error) {
+	l.gate.RLock()
+	defer l.gate.RUnlock()
+	s, err := l.scoped(medium, false)
+	if err != nil {
+		return nil, err
+	}
+	return s.SeriesBooks(context.Background(), id)
+}
+func (l *Library) SearchBooks(query, medium string) (books.SearchResults, error) {
+	l.gate.RLock()
+	defer l.gate.RUnlock()
+	s, err := l.scoped(medium, false)
+	if err != nil {
+		return books.SearchResults{}, err
+	}
+	return s.Search(context.Background(), query)
 }

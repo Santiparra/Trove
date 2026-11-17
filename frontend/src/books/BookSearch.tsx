@@ -8,12 +8,14 @@ import Icon from "../components/Icon";
 import { errorMessage, seriesLabel } from "./presentation";
 
 export default function BookSearch({
+  medium,
   value,
   disabled,
   onChange,
   onBook,
   onAll,
 }: {
+  medium: string;
   value: string;
   disabled: boolean;
   onChange: (query: string) => void;
@@ -37,7 +39,7 @@ export default function BookSearch({
     setError("");
     setResults(null);
     const timer = setTimeout(() => {
-      Library.SearchBooks(value.trim())
+      Library.SearchBooks(value.trim(), medium)
         .then((items) => {
           if (active) setResults(items);
         })
@@ -52,7 +54,7 @@ export default function BookSearch({
       active = false;
       clearTimeout(timer);
     };
-  }, [open, value]);
+  }, [open, value, medium]);
   useEffect(() => {
     function outside(event: PointerEvent) {
       if (!root.current?.contains(event.target as Node)) setOpen(false);

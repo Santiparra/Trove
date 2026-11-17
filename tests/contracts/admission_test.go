@@ -54,7 +54,7 @@ func start(t *testing.T, root, profile string) host {
 
 func TestAdmission_C01_EmptyDirectoryStartsOffline(t *testing.T) {
 	h := start(t, t.TempDir(), "test")
-	items, err := h.library.ListBooks("", "")
+	items, err := h.library.ListBooks("", "", books.MediumBooks)
 	if err != nil || len(items) != 0 {
 		t.Fatal("una biblioteca nueva debe iniciar vacía sin proveedor")
 	}
@@ -73,7 +73,7 @@ func TestAdmission_C02_ProfilesDoNotShareLibraryOrBackupOutput(t *testing.T) {
 	if _, err := a.library.SaveBook(books.Input{Title: "Solo prueba", Status: "to-read"}); err != nil {
 		t.Fatal(err)
 	}
-	items, err := b.library.ListBooks("", "")
+	items, err := b.library.ListBooks("", "", books.MediumBooks)
 	if err != nil || len(items) != 0 {
 		t.Fatal("se filtraron datos entre perfiles")
 	}
@@ -106,8 +106,12 @@ func TestAdmission_C03_WireDTOsPreserveMeaning(t *testing.T) {
 		t.Fatal(err)
 	}
 	var wire struct {
-		ID       string `json:"id"`
-		Favorite bool   `json:"favorite"`
+		ID     string `json:"id"`
+		Medium string `json:"medium"`
+		Series struct {
+			Medium string `json:"medium"`
+		} `json:"series"`
+		Favorite bool `json:"favorite"`
 		Edition  struct {
 			Owned bool `json:"owned"`
 		} `json:"edition"`
@@ -119,14 +123,14 @@ func TestAdmission_C03_WireDTOsPreserveMeaning(t *testing.T) {
 	if err = json.Unmarshal(encoded, &wire); err != nil {
 		t.Fatal(err)
 	}
-	if wire.ID == "" || !wire.Favorite || !wire.Edition.Owned || wire.Cycle.StartedOn != "" || wire.Cycle.FinishedOn != "" {
+	if wire.ID == "" || wire.Medium != books.MediumBooks || wire.Series.Medium != books.MediumBooks || !wire.Favorite || !wire.Edition.Owned || wire.Cycle.StartedOn != "" || wire.Cycle.FinishedOn != "" {
 		t.Fatal("el contrato de transporte pierde datos o fabrica fechas")
 	}
 	info := h.library.Info()
 	if info.Version != "1.2.3" || info.Revision != strings.Repeat("a", 40) || info.Profile != "test" {
 		t.Fatal("identidad no corresponde al paquete")
 	}
-	got, err := h.library.GetBook(book.ID)
+	got, err := h.library.GetBook(book.ID, books.MediumBooks)
 	if err != nil || got.Series == nil || got.Series.ID == "" || *got.Series.Position != 1.5 {
 		t.Fatal("vínculo/posición no recuperable desde el adaptador")
 	}
@@ -140,11 +144,11 @@ func TestAdmission_C04_InvalidWriteDoesNotCreatePartialRecords(t *testing.T) {
 	if _, err := h.library.SaveBook(books.Input{Title: "Fechas inválidas", Status: "read", StartedOn: "2026-02-01", FinishedOn: "2026-01-01"}); err == nil {
 		t.Fatal("se admitió cronología inválida")
 	}
-	items, err := h.library.ListBooks("", "")
+	items, err := h.library.ListBooks("", "", books.MediumBooks)
 	if err != nil || len(items) != 0 {
 		t.Fatal("hubo persistencia parcial")
 	}
-	series, err := h.library.ListSeries()
+	series, err := h.library.ListSeries(books.MediumBooks)
 	if err != nil || len(series) != 0 {
 		t.Fatal("se creó una serie de una escritura rechazada")
 	}
@@ -189,7 +193,7 @@ func recoverRepresentation(t *testing.T, name string) {
 	if p == nil || p.Works != 1 || p.Profile != "habitual" {
 		t.Fatal("la preparación no describe el destino")
 	}
-	if _, err = target.library.GetBook(previous.ID); err != nil {
+	if _, err = target.library.GetBook(previous.ID, books.MediumBooks); err != nil {
 		t.Fatal("preparar ya sustituyó la biblioteca")
 	}
 	result, err := adapter.ConfirmRestore(p.Token)
@@ -199,11 +203,11 @@ func recoverRepresentation(t *testing.T, name string) {
 	if result.SafetyCopy == "" {
 		t.Fatal("falta copia anterior")
 	}
-	got, err := target.library.GetBook(b.ID)
+	got, err := target.library.GetBook(b.ID, books.MediumBooks)
 	if err != nil || !got.Favorite || !got.Edition.Owned || got.Cycle.FinishedOn != "" || got.Notes != b.Notes {
 		t.Fatal("recuperación no equivalente")
 	}
-	if _, err = target.library.GetBook(previous.ID); err == nil {
+	if _, err = target.library.GetBook(previous.ID, books.MediumBooks); err == nil {
 		t.Fatal("se mezclaron bibliotecas")
 	}
 	if target.manager.State().Folder != "" {
@@ -234,7 +238,7 @@ func TestAdmission_C07_ExternalFileIsNotARecoveryBackup(t *testing.T) {
 	if _, err = adapter.ConfirmRestore("not-a-token"); err == nil {
 		t.Fatal("se restauró sin preparación confirmable")
 	}
-	if _, err = h.library.GetBook(b.ID); err != nil {
+	if _, err = h.library.GetBook(b.ID, books.MediumBooks); err != nil {
 		t.Fatal("el rechazo alteró la biblioteca")
 	}
 }
@@ -253,7 +257,7 @@ func TestAdmission_C08_BackupConfigurationFailureDoesNotRejectLocalWork(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = h.library.GetBook(book.ID); err != nil {
+	if _, err = h.library.GetBook(book.ID, books.MediumBooks); err != nil {
 		t.Fatal("el fallo de salida bloqueó la biblioteca")
 	}
 }

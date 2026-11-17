@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Santiparra/Trove/internal/backup"
+	"github.com/Santiparra/Trove/internal/books"
 )
 
 func readonly(path string) (*sql.DB, error) {
@@ -91,18 +92,29 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 2 {
+	if version < 1 || version > 3 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
-	rows, err := db.QueryContext(ctx, "SELECT id,name FROM series ORDER BY id")
+	medium := "'books'"
+	if version >= 3 {
+		medium = "medium"
+	}
+	rows, err := db.QueryContext(ctx, "SELECT id,name,"+medium+" FROM series ORDER BY id")
 	if err != nil {
 		return doc, err
 	}
 	for rows.Next() {
 		var v backup.Series
-		if err = rows.Scan(&v.ID, &v.Name); err != nil {
+		if err = rows.Scan(&v.ID, &v.Name, &v.Medium); err != nil {
 			rows.Close()
 			return doc, err
+		}
+		if doc.Version == 1 {
+			if v.Medium != books.MediumBooks {
+				rows.Close()
+				return doc, errors.New("el formato 1 no admite novelas ligeras")
+			}
+			v.Medium = ""
 		}
 		doc.Catalog.Series = append(doc.Catalog.Series, v)
 	}
@@ -116,7 +128,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 		favorite = "0"
 		owned = "0"
 	}
-	rows, err = db.QueryContext(ctx, "SELECT id,title,authors_json,notes,added_on,series_id,series_position,"+favorite+" FROM books ORDER BY id")
+	rows, err = db.QueryContext(ctx, "SELECT id,title,authors_json,notes,added_on,series_id,series_position,"+favorite+","+medium+" FROM books ORDER BY id")
 	if err != nil {
 		return doc, err
 	}
@@ -125,7 +137,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 		var authors string
 		var series sql.NullString
 		var position sql.NullFloat64
-		if err = rows.Scan(&v.ID, &v.Title, &authors, &v.Notes, &v.AddedOn, &series, &position, &v.Favorite); err != nil {
+		if err = rows.Scan(&v.ID, &v.Title, &authors, &v.Notes, &v.AddedOn, &series, &position, &v.Favorite, &v.Medium); err != nil {
 			rows.Close()
 			return doc, err
 		}
@@ -133,7 +145,6 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 			rows.Close()
 			return doc, err
 		}
-		v.Medium = "books"
 		v.SeriesID = series.String
 		if position.Valid {
 			v.Position = &position.Float64
@@ -205,7 +216,7 @@ func (s *Store) ReadNative(ctx context.Context, path string) (backup.Document, e
 	if err = db.QueryRowContext(ctx, "SELECT format,version,generation,created_at FROM trove_backup WHERE id=1").Scan(&doc.Format, &doc.Version, &doc.Generation, &doc.CreatedAt); err != nil {
 		return doc, errors.New("no es un respaldo SQLite identificado de Trove")
 	}
-	if doc.Format != backup.Format || doc.Version != backup.Version {
+	if doc.Format != backup.Format || !backup.SupportedVersion(doc.Version) {
 		return doc, errors.New("versión de respaldo SQLite no admitida")
 	}
 	return exportCatalog(ctx, db, doc)
@@ -226,7 +237,11 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 	}
 	defer tx.Rollback()
 	for _, v := range doc.Catalog.Series {
-		if _, err = tx.ExecContext(ctx, "INSERT INTO series(id,name,name_key) VALUES(?,?,?)", v.ID, v.Name, strings.ToLower(strings.Join(strings.Fields(v.Name), " "))); err != nil {
+		medium := v.Medium
+		if doc.Version == 1 {
+			medium = books.MediumBooks
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO series(id,name,name_key,medium) VALUES(?,?,?,?)", v.ID, v.Name, seriesKey(medium, v.Name), medium); err != nil {
 			return err
 		}
 	}
@@ -240,7 +255,7 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 		if v.Position != nil {
 			position = *v.Position
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite) VALUES(?,?,?,?,?,?,?,?)", v.ID, v.Title, string(authors), v.Notes, v.AddedOn, series, position, v.Favorite); err != nil {
+		if _, err = tx.ExecContext(ctx, "INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite,medium) VALUES(?,?,?,?,?,?,?,?,?)", v.ID, v.Title, string(authors), v.Notes, v.AddedOn, series, position, v.Favorite, v.Medium); err != nil {
 			return err
 		}
 	}
@@ -260,7 +275,7 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 	if err = integrity(ctx, prepared.db); err != nil {
 		return err
 	}
-	read, err := exportCatalog(ctx, prepared.db, backup.Document{Format: backup.Format, Version: backup.Version, Generation: doc.Generation, CreatedAt: doc.CreatedAt})
+	read, err := exportCatalog(ctx, prepared.db, backup.Document{Format: backup.Format, Version: doc.Version, Generation: doc.Generation, CreatedAt: doc.CreatedAt})
 	if err != nil {
 		return err
 	}

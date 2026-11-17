@@ -44,7 +44,7 @@ func TestBooksSurviveReopenAndShareSeries(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reopened.Close()
-	found, err := reopened.List(ctx, "ÁRBOL")
+	found, err := reopened.List(ctx, "ÁRBOL", books.MediumBooks)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +55,7 @@ func TestBooksSurviveReopenAndShareSeries(t *testing.T) {
 	if b.ID != first.ID || b.Notes != "Opinión sintética" || b.Cycle.FinishedOn != "2026-01-07" || b.Edition.Format != "digital" || *b.Series.Position != position {
 		t.Fatalf("reapertura incompleta: %+v", b)
 	}
-	all, err := reopened.List(ctx, "")
+	all, err := reopened.List(ctx, "", books.MediumBooks)
 	if err != nil {
 		t.Fatal(err)
 	}

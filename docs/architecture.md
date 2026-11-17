@@ -21,7 +21,9 @@ El frontend no accede a SQL. Los tipos externos o específicos del driver no def
 
 Una obra tiene identidad propia y puede estar relacionada con una serie y posición. Una edición conserva formato, idioma, identificador opcional y propiedad. El consumo se registra en ciclos separados, con estado y fechas conocidas. Favorito y notas pertenecen al registro personal.
 
-La interfaz inicial trabaja con una edición/ciclo por libro. El resguardo preserva todas las entidades almacenadas, no solo la proyección elegida por un listado. Las fechas desconocidas no se reconstruyen a partir de la fecha de importación o respaldo.
+Libros y Novelas ligeras comparten el modelo de lectura, con un discriminador explícito `books` / `light-novels`. Los servicios se acotan por petición, sin un «medio actual» mutable en el backend. El adaptador exige medio en consultas y mutaciones; un ID de otra sección no habilita leerlo, editarlo o borrarlo desde el contexto equivocado. La edición no cambia el medio de una entrada existente. Las series también tienen identidad por medio, aunque coincidan sus nombres.
+
+La interfaz inicial trabaja con una edición/ciclo por entrada de lectura. El resguardo preserva todas las entidades almacenadas, no solo la proyección elegida por un listado. Las fechas desconocidas no se reconstruyen a partir de la fecha de importación o respaldo.
 
 ## Persistencia y recuperación
 

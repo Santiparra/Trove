@@ -6,6 +6,7 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 export class Book {
+    "medium": string;
     "id": string;
     "title": string;
     "authors": string[];
@@ -18,6 +19,9 @@ export class Book {
 
     /** Creates a new Book instance. */
     constructor($$source: Partial<Book> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -53,22 +57,22 @@ export class Book {
      * Creates a new Book instance from a string or object.
      */
     static createFrom($$source: any = {}): Book {
-        const $$createField2_0 = $$createType0;
-        const $$createField3_0 = $$createType2;
-        const $$createField4_0 = $$createType3;
-        const $$createField5_0 = $$createType4;
+        const $$createField3_0 = $$createType0;
+        const $$createField4_0 = $$createType2;
+        const $$createField5_0 = $$createType3;
+        const $$createField6_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
         }
         if ("series" in $$parsedSource) {
-            $$parsedSource["series"] = $$createField3_0($$parsedSource["series"]);
+            $$parsedSource["series"] = $$createField4_0($$parsedSource["series"]);
         }
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField4_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
         }
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField5_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
         }
         return new Book($$parsedSource as Partial<Book>);
     }
@@ -111,6 +115,7 @@ export class Cycle {
 }
 
 export class Dashboard {
+    "medium": string;
     "total": number;
     "counts": StatusCount[];
     "currentlyReading": Book[];
@@ -119,6 +124,9 @@ export class Dashboard {
 
     /** Creates a new Dashboard instance. */
     constructor($$source: Partial<Dashboard> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("total" in $$source)) {
             this["total"] = 0;
         }
@@ -142,18 +150,18 @@ export class Dashboard {
      * Creates a new Dashboard instance from a string or object.
      */
     static createFrom($$source: any = {}): Dashboard {
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType8;
+        const $$createField2_0 = $$createType6;
         const $$createField3_0 = $$createType8;
+        const $$createField4_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
-            $$parsedSource["counts"] = $$createField1_0($$parsedSource["counts"]);
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
         }
         if ("currentlyReading" in $$parsedSource) {
-            $$parsedSource["currentlyReading"] = $$createField2_0($$parsedSource["currentlyReading"]);
+            $$parsedSource["currentlyReading"] = $$createField3_0($$parsedSource["currentlyReading"]);
         }
         if ("recentlyFinished" in $$parsedSource) {
-            $$parsedSource["recentlyFinished"] = $$createField3_0($$parsedSource["recentlyFinished"]);
+            $$parsedSource["recentlyFinished"] = $$createField4_0($$parsedSource["recentlyFinished"]);
         }
         return new Dashboard($$parsedSource as Partial<Dashboard>);
     }
@@ -200,6 +208,7 @@ export class Edition {
  * Input intentionally excludes database, edition and cycle identifiers.
  */
 export class Input {
+    "medium": string;
     "id": string;
     "title": string;
     "authors": string[];
@@ -220,6 +229,9 @@ export class Input {
 
     /** Creates a new Input instance. */
     constructor($$source: Partial<Input> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -279,10 +291,10 @@ export class Input {
      * Creates a new Input instance from a string or object.
      */
     static createFrom($$source: any = {}): Input {
-        const $$createField2_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
         }
         return new Input($$parsedSource as Partial<Input>);
     }
@@ -318,12 +330,16 @@ export class SearchResults {
 }
 
 export class Series {
+    "medium": string;
     "id": string;
     "name": string;
     "position": number | null;
 
     /** Creates a new Series instance. */
     constructor($$source: Partial<Series> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }

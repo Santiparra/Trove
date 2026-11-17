@@ -22,12 +22,16 @@ import (
 )
 
 const Format = "trove-library"
-const Version = 1
+const Version = 2
+
+func SupportedVersion(version int) bool { return version == 1 || version == Version }
+
 const MaxFileSize int64 = 256 << 20
 
 type Series struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Medium string `json:"medium,omitempty"`
 }
 type Work struct {
 	ID       string   `json:"id"`
@@ -72,7 +76,7 @@ type Document struct {
 var generationPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{1,100}$`)
 
 func (d *Document) Validate() error {
-	if d.Format != Format || d.Version != Version {
+	if d.Format != Format || !SupportedVersion(d.Version) {
 		return errors.New("no es un respaldo Trove compatible (formato o versión no admitidos)")
 	}
 	if !generationPattern.MatchString(d.Generation) {
@@ -82,6 +86,7 @@ func (d *Document) Validate() error {
 		return errors.New("fecha de generación inválida")
 	}
 	series := map[string]bool{}
+	seriesMedia := map[string]string{}
 	names := map[string]bool{}
 	works := map[string]bool{}
 	editions := map[string]string{}
@@ -104,7 +109,18 @@ func (d *Document) Validate() error {
 		if err := add(series, v.ID); err != nil {
 			return err
 		}
-		key := strings.ToLower(strings.Join(strings.Fields(v.Name), " "))
+		medium := v.Medium
+		if d.Version == 1 {
+			if medium != "" {
+				return errors.New("el formato 1 no admite medios de serie explícitos")
+			}
+			medium = books.MediumBooks
+		}
+		if !books.ValidMedium(medium) {
+			return errors.New("medio de serie no admitido")
+		}
+		seriesMedia[v.ID] = medium
+		key := medium + ":" + strings.ToLower(strings.Join(strings.Fields(v.Name), " "))
 		if key == "" || names[key] {
 			return errors.New("serie sin nombre o con nombre duplicado")
 		}
@@ -114,7 +130,7 @@ func (d *Document) Validate() error {
 		if err := add(works, v.ID); err != nil {
 			return err
 		}
-		if v.Medium != "books" {
+		if !books.ValidMedium(v.Medium) || (d.Version == 1 && v.Medium != books.MediumBooks) {
 			return errors.New("el respaldo contiene un medio que esta versión no admite")
 		}
 		if strings.TrimSpace(v.Title) == "" || !date(v.AddedOn) {
@@ -122,6 +138,9 @@ func (d *Document) Validate() error {
 		}
 		if v.SeriesID != "" && !series[v.SeriesID] {
 			return errors.New("una obra referencia una serie inexistente")
+		}
+		if v.SeriesID != "" && seriesMedia[v.SeriesID] != v.Medium {
+			return errors.New("una obra referencia una serie de otro medio")
 		}
 		if v.Position != nil && (v.SeriesID == "" || *v.Position < 0 || math.IsNaN(*v.Position) || math.IsInf(*v.Position, 0)) {
 			return errors.New("posición de serie inválida")

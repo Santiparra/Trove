@@ -1,14 +1,17 @@
 # Uso y datos locales
 
-## Biblioteca de libros
+## Bibliotecas de Libros y Novelas ligeras
 
-Libros abre un portal con estados, lecturas actuales, últimas finalizaciones conocidas y distribución visual. Las vistas previas se limitan al espacio disponible; los listados completos siguen accesibles.
+Cada sección abre su portal con estados, lecturas actuales, últimas finalizaciones conocidas y distribución visual. Comparten recorridos, pero sus listados, búsquedas y series son independientes. Las vistas previas se limitan al espacio disponible; los listados completos siguen accesibles.
+
+Cada volumen de novela ligera se registra individualmente y puede vincularse a una serie y número de orden. Una serie con el mismo nombre en Libros y Novelas ligeras no se fusiona automáticamente. Cambiar de pestaña no reclasifica ni modifica registros existentes.
 
 - Buscar por título muestra sugerencias locales; Enter o «Ver todos los resultados» abre el listado completo.
 - Elegir un estado abre sus registros. Los botones superiores cambian el filtro.
 - La serie aparece sobre el título y abre sus libros ordenados por posición; los que no tienen posición quedan al final.
 - La ficha permite guardar notas y modificar favorito, propiedad y estado sin abrir el formulario completo.
 - Solo el título es obligatorio al crear un libro. ISBN, autoría y fechas pueden completarse después.
+- En Novelas ligeras se usa «Añadir volumen», con la misma edición mínima y datos personales. La ficha permite editar, marcar favorito/propiedad, guardar notas y cambiar estados, incluida A continuación.
 - Eliminar exige confirmación y elimina los datos asociados al libro, no otros libros de su serie.
 
 ## Estados y fechas
@@ -66,3 +69,5 @@ Si una base dañada impide iniciar, abrir una raíz nueva y restaurar allí sin 
 ```
 
 Los formatos compatibles, límites y relaciones están en [formato de respaldo](backup-format.md).
+
+El esquema local actual es 3. Al abrir datos de las versiones previas se deja una copia `before-schema-3-*.sqlite` antes de incorporar el medio; los registros y series existentes siguen siendo Libros con las mismas identidades. Los respaldos nuevos contienen ambos medios; las copias de formato 1 siguen siendo recuperables como Libros. Restaurar siempre reemplaza el perfil completo, no mezcla su contenido con novelas ligeras posteriores.

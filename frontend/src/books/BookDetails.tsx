@@ -8,6 +8,7 @@ import Icon from "../components/Icon";
 import BookCover from "./BookCover";
 import StatusSelect from "./StatusSelect";
 import { dateLabel, labelFor, seriesLabel } from "./presentation";
+import { readingLabels } from "./readingMedia";
 
 export default function BookDetails({
   book,
@@ -37,6 +38,7 @@ export default function BookDetails({
   onDirty: (value: boolean) => void;
 }) {
   const [notes, setNotes] = useState(book.notes);
+  const labels = readingLabels(book.medium);
   useEffect(() => {
     setNotes(book.notes);
   }, [book.id, book.notes]);
@@ -44,7 +46,7 @@ export default function BookDetails({
     onDirty(notes !== book.notes);
   }, [notes, book.notes, onDirty]);
   return (
-    <section className="book-page" aria-label="Detalle del libro">
+    <section className="book-page" aria-label={labels.detail}>
       <button className="back-link" onClick={onBack} disabled={busy}>
         <Icon name="arrow" size={17} /> Volver
       </button>
@@ -93,14 +95,14 @@ export default function BookDetails({
               onChange={onStatus}
             />
             <button className="secondary" onClick={onEdit} disabled={busy}>
-              <Icon name="edit" size={16} /> Editar libro
+              <Icon name="edit" size={16} /> {labels.edit}
             </button>
             <button
               className="quiet danger-text"
               onClick={() => onDelete(book)}
               disabled={busy}
             >
-              <Icon name="trash" size={16} /> Eliminar libro
+              <Icon name="trash" size={16} /> Eliminar {labels.item}
             </button>
           </div>
           <p className="local-hint">
@@ -168,7 +170,7 @@ export default function BookDetails({
             </button>
           </div>
           <label className="inline-notes">
-            <span className="sr-only">Notas personales del libro</span>
+            <span className="sr-only">Notas personales del {labels.item}</span>
             <textarea
               value={notes}
               disabled={busy}

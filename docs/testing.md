@@ -1,6 +1,6 @@
 # Contratos y pruebas
 
-La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **32 escenarios core** actuales. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test.
+La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **35 escenarios core** actuales. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test.
 
 ## Catálogo de aceptación
 
@@ -38,6 +38,9 @@ La verificación se organiza por objetivos observables, no por porcentaje de cob
 | C30 | Mantener el contrato Go/Wails/TypeScript generado | `tools/verify.ps1 -CheckBindings` y compilación TypeScript |
 | C31 | Compilar sin Git y consultar identidad desde carpeta vacía | `tools/verify-without-git.ps1` sobre fuentes y portable |
 | C32 | Distribuir solo archivos explícitos con versión/perfil/checksums correctos | `tools/build.ps1`, `tools/package.ps1` |
+| C33 | Aislar lecturas, series, búsquedas y todas las mutaciones entre Libros y Novelas ligeras | `TestAdmission_C33_ReadingMediaAreIsolatedAcrossAllOperations` + interfaz |
+| C34 | Recuperar ambos medios desde JSON o SQLite sin perder identidades | `TestAdmission_C34_MixedLibraryRestoresFromEitherRepresentation` |
+| C35 | Admitir respaldos anteriores y migrar sin fabricar fechas ni mezclar bibliotecas | `TestAdmission_C35_LegacyJSONRestoresAsBooksWithoutInventingDates`, `TestSchemaTwoMigrationKeepsBookAndSeriesIdentities`, `TestLegacyDocumentKeepsOriginalContentHash` |
 
 ## Ejecución
 
