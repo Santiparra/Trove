@@ -1,71 +1,58 @@
-# Estrategia de pruebas
+# Contratos y pruebas
 
-Estado: estrategia aprobada y primeras pruebas implementadas. Pruebas automáticas focalizadas, prioridad a integridad de datos y validación manual de experiencia y paquete.
+La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **32 escenarios core** actuales. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test.
 
-## Objetivo
+## Catálogo de aceptación
 
-Detectar regresiones relevantes, especialmente pérdida de datos y cambios silenciosos de significado, sin convertir cada modificación en una batería extensa. Una prueba comprueba un comportamiento observable: preparar datos conocidos, ejecutar una acción y comparar con un resultado esperado.
-
-## Capas de comprobación
-
-| Capa | Herramienta | Qué comprobar |
+| ID | Objetivo / admisión y límite | Evidencia automatizada |
 | --- | --- | --- |
-| Reglas y casos de uso Go | `testing` de Go; dobles pequeños cuando hagan falta | Estados, ciclos, precedencia de datos y decisiones de importación sin arrancar Wails |
-| Persistencia e integración local | `testing` con SQLite real en directorios temporales | Guardado, reapertura, relaciones, transacciones y migraciones; no sustituir SQL por un mock que nunca ejecuta las consultas |
-| Importadores y adaptadores | `testing`, archivos sintéticos y respuestas HTTP controladas con `httptest` | Mapeo de campos, errores de formato, fechas desconocidas, clasificación y aislamiento; sin depender de APIs reales |
-| Interfaz | Vitest y React Testing Library si se adoptan | Interacciones con reglas propias de presentación: selección, revisión, mensajes y confirmación; no una prueba por componente trivial |
-| Aplicación empaquetada | Pruebas manuales guiadas inicialmente | Arranque, cierre, persistencia y recorrido afectado dentro de Wails real |
+| C01 | Iniciar biblioteca vacía sin proveedor ni repositorio requerido | `TestAdmission_C01_EmptyDirectoryStartsOffline` |
+| C02 | Separar biblioteca y salida de perfiles | `TestAdmission_C02_ProfilesDoNotShareLibraryOrBackupOutput` |
+| C03 | Conservar significado de DTOs y versión entre adaptadores | `TestAdmission_C03_WireDTOsPreserveMeaning` + bindings/TypeScript |
+| C04 | Rechazar entradas inválidas sin registros parciales | `TestAdmission_C04_InvalidWriteDoesNotCreatePartialRecords` |
+| C05 | Recuperar desde SQLite aislado sin JSON/manifiesto | `TestAdmission_C05_SQLiteRecoveryIsStandalone` |
+| C06 | Recuperar desde JSON aislado sin SQLite/manifiesto | `TestAdmission_C06_JSONRecoveryIsStandalone` |
+| C07 | Distinguir importación externa de restauración propia | `TestAdmission_C07_ExternalFileIsNotARecoveryBackup` |
+| C08 | Fallar al configurar respaldo sin bloquear trabajo local | `TestAdmission_C08_BackupConfigurationFailureDoesNotRejectLocalWork` |
+| C09 | Rechazar perfil/ruta inválidos sin destino alternativo oculto | `TestAdmission_C09_InvalidProfileOrDataRootHasNoSilentFallback` |
+| C10 | Guardar, editar y reabrir conservando identidad/serie | `TestBooksSurviveReopenAndShareSeries` |
+| C11 | Revertir transacciones fallidas y conservar edición previa | `TestSaveRollsBackAllTablesOnFailure`, `TestFailedEditPreservesSavedBookAndSeriesCanBeCleared` |
+| C12 | Rechazar esquema futuro y migrar el anterior con copia previa | `TestFutureSchemaIsRejected`, `TestVersionOneMigratesAndHasReadableSafetyCopy` |
+| C13 | Respetar fechas manuales/desconocidas y cronología | `TestValidationKeepsUnknownDatesAndRejectsInvalidInput`, `TestLiveReadingDates`, `TestSaveAppliesLiveDatesButHonorsManualEdits` |
+| C14 | Cambiar estado sin pisar otros datos | `TestQuickStatusChangesOnlyStatusAndUpdatesDashboard` |
+| C15 | Ordenar recientes solo por fechas conocidas y limitar preview | `TestDashboardUsesCompletionDatesAndLimitsRecentBooks` |
+| C16 | Eliminar un libro sin afectar otro y revertir fallo | `TestDeletePreservesOtherBooksAndRollsBackOnFailure` |
+| C17 | Mantener notas, propiedades y orden de serie independientes | `TestPersonalActionsAndSeriesOrdering` |
+| C18 | Validar formato, relaciones, campos y contenido faltante | `TestValidationRejectsBrokenRelationshipsAndFutureFormats`, `TestJSONRejectsUnknownFieldsAndTrailingData` |
+| C19 | Preservar todas las entidades y fechas en ambos respaldos | `TestArchiveRoundTripPreservesIDsAllCyclesAndUnknownDates` |
+| C20 | Conservar dos generaciones válidas y no duplicar sin cambios | `TestAutomaticGenerationsRetentionFailureAndRestoreBothFormats` |
+| C21 | No sustituir copia válida por generación incompleta/alterada | `TestIncompleteGenerationsAreIgnoredAndPreparedTamperingIsRejected` |
+| C22 | Congelar la preparación y cancelar sin tocar datos activos | `TestInvalidOrModifiedRestoreNeverTouchesActiveData` |
+| C23 | Recuperar biblioteca anterior si falla el reemplazo | `TestInstallRollbackLeavesPreviousLibraryReadable` |
+| C24 | No importar configuración de otro perfil al restaurar | `TestRestoreKeepsTargetProfileBackupConfiguration` |
+| C25 | Resguardar por temporizador, al cierre y tras reinicio | `TestDebounceAndShutdownSavePendingChangesWithoutManualExport` |
+| C26 | Esperar escrituras aceptadas y rechazar nuevas al cerrar | `TestShutdownWaitsForAcceptedWritesAndBacksThemUp` |
+| C27 | Navegar portal/estados/serie/búsqueda sin guardados implícitos | `frontend/src/App.test.tsx` |
+| C28 | Conservar borradores y datos confirmados ante errores de UI | `frontend/src/App.test.tsx` |
+| C29 | Exigir confirmación y distinguir éxito/error de recuperación | `frontend/src/backup/BackupPanel.test.tsx` |
+| C30 | Mantener el contrato Go/Wails/TypeScript generado | `tools/verify.ps1 -CheckBindings` y compilación TypeScript |
+| C31 | Compilar sin Git y consultar identidad desde carpeta vacía | `tools/verify-without-git.ps1` sobre fuentes y portable |
+| C32 | Distribuir solo archivos explícitos con versión/perfil/checksums correctos | `tools/build.ps1`, `tools/package.ps1` |
 
-Validación de tipos y compilación complementan las pruebas, pero no demuestran que el comportamiento sea correcto. Un test de React con puente simulado tampoco comprueba la integración real con Wails.
+## Ejecución
 
-## Ejemplos de pruebas con valor
+```powershell
+powershell -NoProfile -File tools/verify.ps1
+powershell -NoProfile -File tools/build.ps1 -Version development -Profile test -BuildID local
+powershell -NoProfile -File tools/verify-without-git.ps1
+```
 
-- Importar una entrada conocida en modo «conservar existentes» deja intactos todos sus datos locales.
-- En modo «sobrescribir», el puntaje entrante sustituye al local conforme al mapeo aprobado.
-- Repetir el mismo archivo no crea otra copia de los registros ya identificados.
-- Una fecha ausente sigue ausente; nunca se transforma en la fecha actual ni de importación.
-- La asignación manual en bloque aplica el medio elegido solo a las entradas seleccionadas y no incorpora las ignoradas.
-- Refrescar metadata conserva notas y consumo, y no modifica otro medio.
-- Guardar y volver a abrir la base recupera los cambios realizados.
-- Exportar/resguardar y restaurar en otra ubicación conserva la información incluida en el formato, sin exigir igualdad byte a byte entre archivos SQLite.
-- Un fallo durante una operación transaccional no deja una actualización personal a medias; un fallo al preparar backup no sustituye la última copia válida.
-- Una migración preserva los datos existentes definidos como compatibles y no reutiliza directorios de uso habitual durante la prueba.
+El runner de admisión `tests/contracts` atraviesa los adaptadores que Wails publica y utiliza SQLite real, carpetas nuevas y datos sintéticos. No levanta una ventana, APIs ni nube. La UI se prueba con Vitest/Testing Library y puente controlado; los bindings y sus consumidores se comprueban aparte contra Go.
 
-Estos casos se incorporan cuando exista la feature correspondiente; no construir ahora sistemas futuros para poder probarlos.
+La compilación sin Git usa fuentes y frontend ya generado en una copia donde Git no descubre el repositorio. El portable consulta identidad con `--version` desde una carpeta vacía, sin abrir una biblioteca. No equivale a automatización gráfica completa.
 
-## Datos, red y aislamiento
+## Verificación remota
 
-- Cada prueba automática crea sus propios archivos/directorios temporales y no consulta rutas de biblioteca o backup del usuario.
-- Fixtures públicos pequeños y sintéticos; nunca copiar exportaciones personales reales al repo. Los originales pueden ayudar a explorar el formato localmente, no son dependencia de la suite pública.
-- Reloj e IDs controlables cuando el resultado lo necesite; evitar pruebas que dependen de la hora real o de esperas arbitrarias.
-- Pruebas de proveedores con respuestas controladas, incluidos errores, sin tokens reales, cuota ni Internet. Las comprobaciones live se ejecutan aparte y explícitamente cuando sean pertinentes.
-- Mantener separado el perfil de prueba empaquetada del habitual, incluidas sus salidas de backup. Ver [workflow de releases](releases/README.md).
+GitHub Actions ejecuta el check **Windows x64** solo en PR hacia `main` o push a `main`. Una suite verde habilita la integración, pero no reemplaza comprobar interacción real, WebView2 y diálogos nativos en una PC. Los artefactos de PR permiten esa validación antes del merge.
 
-## Cuándo ejecutar qué
-
-1. **Durante una feature:** comprobar las reglas y fronteras modificadas con la evidencia más directa. Añadir o adaptar tests para lógica relevante; un cambio visual trivial puede verificarse por revisión o interacción sin un nuevo test automático.
-2. **Al corregir un bug:** si es una regresión significativa y reproducible, crear primero o junto al arreglo una prueba que fallaría con el comportamiento anterior.
-3. **Antes de una build de prueba:** ejecutar comprobaciones relacionadas con los cambios y las dependencias necesarias para producir el paquete. Entregar una lista breve de validación manual.
-4. **Al preparar una release:** ejecutar el conjunto estable relevante para lo incluido. Si cambia persistencia, resguardo o migraciones, incluir pruebas de esos recorridos; comprobar también arranque y recorrido principal en el candidato final.
-
-No ejecutar lint, tests, build y automatización visual como ceremonia universal. No repetir suites que ya pasaron si no hubo cambios o dudas nuevas que lo justifiquen. Nunca afirmar que la app completa está probada cuando solo se comprobaron tipos o funciones aisladas.
-
-## Automatización y alcance inicial
-
-Empezar por el backend y los recorridos de persistencia/importación, donde se concentran los riesgos del producto. Automatización end-to-end de escritorio y CI quedan para cuando aporten valor concreto; no se necesita Playwright ni otra herramienta global para salir de planificación.
-
-No fijar un porcentaje de cobertura obligatorio. Priorizar los comportamientos importantes y mantener pocos tests útiles, deterministas y mantenibles, en lugar de pruebas que solo replican la implementación.
-
-Comandos implementados: `go test ./internal/...` para backend, `npm --prefix frontend test` para interfaz y `wails3 task test` para ambos. Vitest y React Testing Library son dependencias de desarrollo locales, no requisitos del usuario final.
-
-Las primeras pruebas cubren validación y fechas desconocidas, persistencia y reapertura SQLite, búsqueda con mayúsculas Unicode, identidad de edición/ciclo, series compartidas, rechazo de esquemas futuros, rollback transaccional y separación de perfiles. En React se comprueba envío del formulario y preservación de datos/mensaje ante rechazo del backend. El puente Wails está simulado en esos tests de React; no prueban por sí mismos el WebView real.
-
-Para el portal se añaden pruebas de recuentos, últimos leídos ordenados por finalización conocida, filtros combinados de título/estado y cambio rápido sin alterar otros datos personales fuera de las fechas previstas. La eliminación se prueba contra SQLite real, incluyendo rollback ante fallos y conservación de libros de la misma serie. React verifica entrada por estado, búsqueda desplegable, navegación a ficha/formulario completos, confirmación/cancelación del borrado y errores de cambio de estado o eliminación.
-
-El siguiente pulido añade pruebas de transiciones de lectura con reloj controlado, fechas manuales y desconocidas, propiedades personales, notas independientes y orden de serie. Se prueba la migración desde esquema 1 con copia previa legible. Las interacciones de ficha comprueban que marcar favorito no descarte notas sin guardar y que un fallo conserve el borrador. Las pruebas DOM no prueban el tamaño visual real de la ventana.
-
-## Reparto de responsabilidades propuesto
-
-El agente implementa y ejecuta las pruebas técnicas pertinentes y comunica qué pasó, qué no se ejecutó y qué queda por revisar. El usuario valida que el comportamiento y la experiencia cumplen su intención mediante modo desarrollo o build de prueba. Esa validación complementa, no sustituye, las comprobaciones técnicas.
-
-El resumen de una entrega incluye cambio realizado, evidencia de verificación y recorridos manuales concretos si los hay. No se crean notas de release para registrar cada corrida de tests.
+La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resuelven antes de convertirlos en expectativas; casos negativos y recuperación se añaden por el riesgo que protegen, no para aumentar el número de tests.

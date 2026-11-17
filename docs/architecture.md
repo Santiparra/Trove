@@ -1,56 +1,42 @@
-# Arquitectura propuesta
+# Arquitectura
 
-Estado: arquitectura planteada aceptada por el usuario, con stack Wails v3 + Go + React/TypeScript + Vite + SQLite. Los contratos y la estructura concreta de paquetes se definirán al implementar.
+Trove es una aplicación modular local: interfaz React/TypeScript en Wails v3, casos de uso Go y SQLite embebido. No requiere servidor de base de datos ni cuenta propia.
 
-## Restricciones confirmadas
+## Responsabilidades
 
-Aplicación local para una sola PC. El usuario abre la app y no administra servicios. La gestión personal funciona sin proveedores; las integraciones enriquecen y rescatan datos.
+| Componente | Responsabilidad |
+| --- | --- |
+| `frontend/src/books` | Presentación, formularios, navegación y estado de interacción |
+| `frontend/src/backup` | Configuración visible, estado y confirmación de recuperación |
+| `internal/desktop` | Adaptadores Wails, contratos de entrada/salida y diálogos nativos |
+| `internal/books` | Identidad, validaciones y casos de uso de biblioteca |
+| `internal/storage/sqlite` | SQL, transacciones, migraciones y adaptación de snapshots |
+| `internal/backup` | Formato lógico, validación, generaciones y restauración mediante un contrato de backend |
+| `internal/config` | Resolución de perfiles y ubicación de datos |
+| `main.go` | Composición de dependencias y ciclo de vida nativo |
 
-Dos capas de datos confirmadas: registro local independiente (título, referencias, estado, notas, fechas, progreso) y metadata vinculada a proveedores. Son responsabilidades distintas, no necesariamente dos archivos ni dos bases. El tamaño y el formato, no solo la procedencia, determinan qué entra en el respaldo; ver [persistencia](backend.md).
+El frontend no accede a SQL. Los tipos externos o específicos del driver no definen el dominio. Los bindings se generan desde Go, se versionan y se verifican en CI junto con sus consumidores TypeScript.
 
-Los medios deben ser moderadamente independientes y admitir estructuras especializadas. Reconstruir metadata de libros no debe alterar series de TV, incluso si comparten proveedor. El alcance de cada operación debe identificar medio, proveedor y registros objetivo.
+## Modelo local
 
-## Organización recomendada
+Una obra tiene identidad propia y puede estar relacionada con una serie y posición. Una edición conserva formato, idioma, identificador opcional y propiedad. El consumo se registra en ciclos separados, con estado y fechas conocidas. Favorito y notas pertenecen al registro personal.
 
-1. **Interfaz:** biblioteca, edición, progreso, importaciones y vinculación.
-2. **Casos de uso:** acciones completas como agregar obra, terminar lectura, importar archivo o actualizar metadata.
-3. **Dominio:** reglas e identidad propias, sin dependencia de APIs externas.
-4. **Adaptadores:** persistencia, archivos, importadores y proveedores de metadata.
+La interfaz inicial trabaja con una edición/ciclo por libro. El resguardo preserva todas las entidades almacenadas, no solo la proyección elegida por un listado. Las fechas desconocidas no se reconstruyen a partir de la fecha de importación o respaldo.
 
-Un único producto modular es suficiente. Separar frontend y backend conceptualmente no exige dos aplicaciones, un servidor web ni microservicios.
+## Persistencia y recuperación
 
-## Principios confirmados y aplicación propuesta
+SQLite se encapsula detrás de operaciones concretas. Sus transacciones evitan actualizaciones parciales. El esquema se versiona y las migraciones existentes generan una copia previa cuando corresponda. Un esquema futuro no reconocido se rechaza.
 
-El usuario solicita convenciones consistentes, mínimo código duplicado, frontend ligero, lógica de negocio en backend y persistencia desacoplada. No exige DDD ni una metodología específica.
+El resguardo produce SQLite y un modelo JSON independiente. Ambas representaciones provienen del mismo snapshot consistente. Las generaciones se preparan temporalmente y se publican completas; las fallidas no sustituyen la última válida.
 
-- **Frontend React:** presentación, navegación, formularios, estado de interacción y validaciones para experiencia de uso. No contiene reglas autoritativas de consumo, importación, emparejamiento, resguardo o SQL. Tener frontend ligero no significa trasladar al backend detalles visuales.
-- **Backend Go:** casos de uso y validación autoritativa, reglas de consumo, orquestación de importaciones, metadata y resguardos. Recibir datos desde la UI no evita validarlos nuevamente en esta frontera.
-- **Puente Wails:** adaptador fino que transforma entradas/salidas y delega en casos de uso. El dominio no importa Wails.
-- **Persistencia:** contratos pequeños según necesidades de los casos de uso; implementación SQLite encapsula SQL, driver y detalles de esquema. El dominio no depende de `sql.DB`, filas SQL ni errores del driver. Los límites transaccionales se definen por operación de negocio, sin filtrar conexiones al núcleo.
-- **Integraciones:** tipos de respuesta de APIs y formatos de importación se traducen en los adaptadores; no se convierten en el modelo interno. Cada medio conserva sus reglas y estructura propias.
-- **Composición:** conectar implementaciones concretas en el arranque, no crearlas dentro de las reglas de negocio. Preferir composición explícita e idiomática de Go a un framework de inyección.
-- **Reutilización:** extraer lo que realmente es común; no forzar repositorios genéricos ni una superentidad multimedia para eliminar similitudes superficiales. Compartir mecanismos, especializar reglas.
-- **Convenciones propuestas:** nombres de código en inglés, documentación en español, formato estándar de Go, TypeScript estricto y límites de módulos claros. Aprobar convenciones específicas al iniciar el código.
+Restaurar valida el archivo, prepara una base nueva, conserva una copia de la biblioteca activa y serializa el reemplazo frente a operaciones de biblioteca. Los archivos de configuración de la máquina no forman parte de los datos recuperados. Cambiar de motor requeriría otro adaptador y migración, pero el JSON no obliga a leer primero SQLite.
 
-Dirección propuesta de dependencias: interfaz → adaptador Wails → casos de uso → dominio/contratos; SQLite y proveedores implementan contratos del núcleo. Las implementaciones externas dependen de esos contratos, no al revés.
+## Extensión por medios y proveedores
 
-Migrar de SQLite seguiría requiriendo un nuevo adaptador, migración de datos y comprobaciones; el objetivo es evitar reescribir interfaz y reglas de negocio, no prometer sustitución gratuita de cualquier motor.
+Las secciones tienen identidad y reglas propias. Compartir mecanismos no implica imponer la misma estructura a todos los medios. Importar archivos externos, vincular metadata y restaurar respaldos son operaciones distintas.
 
-## Comprobación arquitectónica al implementar
+Las integraciones de proveedores e importadores externos aún no están implementadas. Su incorporación debe mantener independientes los registros propios y extender explícitamente formatos, contratos y compatibilidad. No se implementa un framework genérico de plugins.
 
-Propuesta: probar reglas y casos de uso sin arrancar Wails ni consultar proveedores; comprobar persistencia y transacciones contra SQLite real en pruebas focalizadas; probar el mapeo de importaciones con archivos representativos. Mantener pruebas de round-trip de exportación/restauración cuando exista ese recorrido. No construir adaptadores alternativos ficticios ni un framework general para demostrar desacoplamiento.
+## Distribución
 
-## Límites importantes
-
-- IDs de proveedores no sustituyen la identidad interna propuesta.
-- Importar un historial no exige encontrar una obra en un proveedor de metadata.
-- Un fallo de actualización no debe eliminar el último snapshot válido.
-- Los datos personales y sus modificaciones deben tener reglas explícitas de precedencia.
-- Las capacidades de proveedores pueden diferir; no asumir intercambiabilidad perfecta.
-- Las credenciales deben permanecer fuera de exportaciones compartidas; su almacenamiento depende del stack elegido.
-
-## Decisiones pendientes
-
-Implementación inicial: `internal/books` contiene modelo y casos de uso; `internal/storage/sqlite` implementa el contrato de persistencia y migraciones; `internal/desktop` adapta Wails; `internal/config` separa perfiles; `main.go` compone dependencias. React y sus tests están en `frontend/src`, con bindings generados en `frontend/bindings`. El frontend no accede a SQLite ni a proveedores.
-
-Esquema físico en SQLite, contratos concretos del puente Wails, detalles de distribución portable y ubicación de datos. Propuesta: núcleo común y tablas especializadas por medio dentro de una base, sin acoplar el formato de exportación al esquema interno. Ver [stack](tech-stack.md) y [backend](backend.md).
+El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).

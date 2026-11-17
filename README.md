@@ -1,170 +1,59 @@
 # Trove
 
-Biblioteca y bitácora personal multimedia para Windows. Centraliza el seguimiento de libros, anime y otros medios, con datos locales independientes de los servicios externos.
+Biblioteca y bitácora multimedia local para **Windows x64**. Los datos personales pertenecen a la biblioteca local; los proveedores externos no son necesarios para registrar libros.
 
-> **Primera entrega local en desarrollo.** Navegación por medios y biblioteca manual de libros con SQLite. Las otras secciones están en construcción. No hay una release publicada ni versión pública asignada. Trove es un nombre provisional.
+## Funciones disponibles
 
-## Objetivo
+- Biblioteca manual de libros con autoría, serie y orden, edición, estado y fechas.
+- Portal de lectura, búsqueda local y navegación por series.
+- Notas, favoritos, propiedad y cambios rápidos de estado.
+- Respaldo automático SQLite + JSON y restauración completa con validación y copia previa.
+- Perfiles separados de desarrollo, prueba y uso habitual.
 
-- Gestionar una biblioteca personal sin cuenta de Trove ni conexión obligatoria.
-- Registrar estados, puntajes, notas, progreso y ciclos de lectura o visualización.
-- Crear obras y ediciones manuales y vincular metadata externa de forma opcional.
-- Importar archivos exportados desde servicios especializados.
-- Conservar datos mediante respaldos automáticos y formatos abiertos de recuperación.
+Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos, proveedores de metadata, portadas reales ni puntajes.
 
-El primer medio es **libros**. El portal muestra estados y cantidades, lecturas actuales, últimos leídos con fecha registrada y distribución visual. Desde allí se accede a los listados, la búsqueda y fichas completas para crear, editar, cambiar rápidamente el estado o eliminar un libro con confirmación. Se conservan autoría, Serie y número de orden, edición mínima, notas y fechas. Las importaciones, proveedores, portadas reales, puntajes, relecturas avanzadas y respaldos automáticos todavía no están implementados. The StoryGraph será la primera fuente de importación.
+## Descargar y ejecutar
 
-La navegación incluye páginas locales de serie, botones de estado y búsqueda desplegable sin abandonar el portal. Se pueden guardar notas directamente en la ficha, marcar favorito y propiedad y usar el estado manual **A continuación**. Las acciones de lectura registran el primer inicio y la finalización cuando existe inicio; las fechas manuales se respetan.
+Las entregas se publican en [Releases](https://github.com/Santiparra/Trove/releases) cuando un cambio integrado en `main` supera las verificaciones. Mientras no haya una publicación disponible se puede compilar desde el código.
 
-## Stack
+1. Descargar el ZIP **Windows x64** de una release.
+2. Extraerlo en una carpeta con permiso de escritura.
+3. Abrir `Trove.exe`.
 
-| Área | Tecnología |
-| --- | --- |
-| Escritorio | Wails v3 |
-| Núcleo y lógica de negocio | Go |
-| Interfaz | React + TypeScript + Vite |
-| Persistencia local | SQLite |
-| Plataforma inicial | Windows x64 |
+Requisito de ejecución: [Microsoft WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente disponible en Windows moderno. No requiere Go, Node, un servidor SQLite ni cuenta de Trove. El paquete portable no está firmado digitalmente.
 
-Interfaz y documentación en español; nombres de código en inglés. Los títulos de las obras conservan su idioma, independientemente del idioma de la interfaz.
+Las releases usan `data/habitual/` junto al ejecutable. Los artefactos de PR usan un perfil de prueba independiente. Copiar solo el EXE no transfiere una biblioteca: conservar los datos o restaurar un respaldo.
 
-## Desarrollo
+## Datos y recuperación
 
-### Obtener el repositorio
+Configurar una carpeta desde **Respaldo y restauración**. Trove mantiene dos generaciones completas de SQLite y JSON; un cliente de Drive/Dropbox puede sincronizar esa carpeta. El indicador confirma resguardo local, no subida a la nube.
+
+El JSON documentado conserva identidades y relaciones sin depender de SQLite. Restaurar reemplaza el perfil seleccionado, no mezcla bibliotecas ni importa datos de otros servicios. Los archivos no tienen cifrado propio.
+
+## Desarrollo y contribuciones
 
 ```powershell
 git clone https://github.com/Santiparra/Trove.git
 cd Trove
-```
-
-### Instalar dependencias del proyecto
-
-Desde la raíz, después de instalar las herramientas de la sección siguiente:
-
-```powershell
 go mod download
 npm --prefix frontend ci
-```
-
-No es necesario instalar SQLite: se integra mediante `modernc.org/sqlite`, sin CGo. No se requiere un compilador C por este driver.
-
-### Ejecutar en desarrollo
-
-```powershell
 wails3 task dev
 ```
 
-Genera bindings, compila el backend y abre la ventana Wails con frontend Vite en `127.0.0.1:9245`. Los cambios del frontend se recargan; los de Go reinician el backend. Detener con `Ctrl+C` en esa terminal. El puerto debe estar disponible.
-
-### Comprobar y compilar una build de prueba
-
-```powershell
-wails3 task test
-wails3 task build
-.\bin\Trove-test.exe
-```
-
-`test` ejecuta las pruebas Go y frontend. `build` compila el frontend y el ejecutable con assets embebidos, marcado como **PRUEBA / no publicado**, sin asignar versión de release. No requiere dejar un servidor de desarrollo activo para usarlo. WebView2 Runtime debe estar disponible en Windows.
-
-La build está en `bin/Trove-test.exe`. Se puede copiar a otra carpeta y ejecutar; sus datos nuevos quedan junto al ejecutable bajo `data/test/`. Copiar solo el EXE no copia una biblioteca existente: para conservar datos de esta prueba, trasladar también esa carpeta con la app cerrada. La build no está firmada.
-
-### Datos separados
-
-| Perfil | Ubicación predeterminada |
-| --- | --- |
-| Desarrollo | `.local/development/` en el directorio desde el que se inicia |
-| Build de prueba | `data/test/` junto al ejecutable |
-| Habitual (solo selección explícita) | `data/habitual/` junto al ejecutable |
-
-El perfil y la ruta activa se pueden consultar en la etiqueta superior de la app. Esta entrega debe probarse con datos reemplazables: aún no hay backup/restauración automáticos.
-
-Opcionalmente se puede elegir una raíz de datos; el nombre del perfil siempre se añade para mantener aislamiento:
-
-```powershell
-.\bin\Trove-test.exe --profile test --data-dir "C:\TrovePruebas"
-```
-
-El ejemplo usa `C:\TrovePruebas\test\`. La base `trove.sqlite` y la configuración WebView que gestione el runtime no son material para publicar en Git. La app crea el esquema al primer arranque y rechaza esquemas futuros que no pueda interpretar.
-
-### Recorrido manual de aceptación
-
-1. Recorrer las secciones; solo Libros está funcional.
-2. Crear un libro sintético, con autoría, Serie y número, sin ISBN ni proveedor.
-3. Crear otro libro de la misma serie usando la sugerencia del formulario y otro número.
-4. Buscar por título, editar estado, notas, edición y fechas conocidas; dejar las desconocidas vacías.
-5. Cerrar completamente y reabrir. Verificar datos y vínculos en el perfil de prueba.
-6. Confirmar que desarrollo y build de prueba no muestran la misma biblioteca por defecto.
-7. Comprobar cantidades y distribución del portal, entrar por estado y cambiarlo desde el selector rápido. Verificar que no se sobrescriben notas ni se fabrican fechas.
-8. Añadir fecha de finalización a una lectura terminada y comprobar su aparición entre los últimos leídos. Las portadas son marcadores locales provisionales.
-9. Abrir una ficha y su formulario a página completa. Cancelar la eliminación y luego probarla con un libro sintético prescindible; comprobar que otro libro de su serie se conserva.
-10. Abrir una serie desde su nombre y verificar orden numérico, con los libros sin posición al final. Cambiar de listado mediante los botones de estado.
-11. Escribir una búsqueda sin salir del portal; abrir una coincidencia o todos los resultados. Probar Escape y navegación de teclado.
-12. Guardar notas desde la ficha y marcar/desmarcar favorito y propiedad; comprobar que ninguna de esas acciones modifica el resto del registro.
-13. Con datos sintéticos: empezar, pausar y retomar sin perder inicio; completar con inicio conocido registra hoy, mientras marcar leído sin inicio no inventa finalización. Probar fechas manuales y rechazo de finalización anterior al inicio.
-
-Al abrir por primera vez una base del esquema anterior, se crea junto a ella una copia `before-schema-2-*.sqlite` antes de migrar favorito/propiedad. No se asigna una nueva versión pública de la app por ese cambio de esquema. El ejecutable anterior no puede abrir el esquema nuevo; una vuelta atrás requiere restaurar datos compatibles. Esta copia de seguridad local de migración no reemplaza el sistema de backups/exportación todavía pendiente.
-
-Las pruebas automáticas verifican persistencia/reapertura y errores de guardado. No sustituyen la validación visual del paquete; el arranque desde una instalación limpia y la interacción manual deben comprobarse antes de considerar el candidato aprobado.
-
-### Requisitos para Windows
-
-| Herramienta | Requisito |
-| --- | --- |
-| [Go](https://go.dev/dl/) | 1.26 o posterior compatible con Wails v3 |
-| [Node.js y npm](https://nodejs.org/) | Rama LTS compatible; npm incluido con Node |
-| [Git](https://git-scm.com/downloads) | Versión estable |
-| [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) | Disponible en el sistema; instalar si falta |
-| Wails CLI | v3.0.0 como referencia inicial |
-
-Instalar el CLI después de Go. El comando se puede ejecutar desde cualquier directorio y no genera un proyecto:
-
-```powershell
-go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
-```
-
-Comprobar las herramientas y prerrequisitos:
-
-```powershell
-go version
-node --version
-npm --version
-git --version
-wails3 doctor
-```
-
-React, TypeScript, Vite y el driver SQLite son dependencias versionadas del proyecto; no requieren instalación global. Los lockfiles de npm y Go deben conservarse.
-
-### Resolver problemas de PATH
-
-En instalaciones predeterminadas de Windows, el PATH debe incluir:
-
-- `C:\Program Files\Go\bin`, para el ejecutable de Go.
-- `%USERPROFILE%\go\bin`, para herramientas como `wails3.exe`.
-
-Las rutas pueden variar si se personalizaron la instalación, `GOBIN` o `GOPATH`. Después de modificar el entorno, abrir una terminal nueva; en terminales integradas puede ser necesario reiniciar también el editor o la aplicación anfitriona.
-
-Para diagnosticar si el CLI está instalado pero no se encuentra en PATH:
-
-```powershell
-& "$env:USERPROFILE\go\bin\wails3.exe" doctor
-```
-
-La [guía del entorno](docs/development-environment.md) detalla las dependencias, fuentes y alcance de las comprobaciones realizadas. Las herramientas de compilación no serán necesarias para ejecutar una release; los requisitos de distribución se documentarán al preparar el paquete.
+Antes de ejecutar esos comandos, instalar las herramientas indicadas en [desarrollo](docs/development.md). El código de trabajo se integra en `dev`; los PR destinados a `main` ejecutan las verificaciones Windows. Integrar en `main` inicia la publicación automática si las verificaciones pasan.
 
 ## Documentación
 
-| Tema | Documento |
+| Tema | Referencia |
 | --- | --- |
-| Producto | [Visión y alcance](docs/vision.md) · [Decisiones](docs/decisions.md) · [Roadmap](docs/roadmap.md) |
-| Diseño técnico | [Arquitectura](docs/architecture.md) · [Dominio](docs/domain.md) · [Stack](docs/tech-stack.md) |
-| Componentes | [Frontend](docs/frontend.md) · [Backend y persistencia](docs/backend.md) · [Integraciones](docs/integrations.md) |
-| Importaciones | [Análisis de exportaciones de ejemplo](docs/import-analysis.md) |
-| Entorno | [Preparación de desarrollo](docs/development-environment.md) |
-| Calidad | [Estrategia de pruebas](docs/testing.md) |
-| Operación | [Seguridad](docs/security.md) · [Durabilidad](docs/longevity.md) · [Releases](docs/releases/README.md) |
-
-La documentación distingue decisiones confirmadas, propuestas y asuntos pendientes. Las exportaciones personales usadas para analizar formatos no forman parte de los datos públicos del repositorio.
+| Uso y almacenamiento | [Guía de uso](docs/usage.md) |
+| Entorno y comandos | [Desarrollo](docs/development.md) |
+| Responsabilidades y límites | [Arquitectura](docs/architecture.md) |
+| Recuperación portable | [Formato de respaldo](docs/backup-format.md) |
+| Criterios verificables | [Contratos y pruebas](docs/testing.md) |
+| Publicación y artefactos | [Releases](docs/releases/README.md) |
+| Alcance de privacidad | [Seguridad](docs/security.md) |
 
 ## Licencia
 
-Consultar [LICENSE](LICENSE).
+[MIT](LICENSE).

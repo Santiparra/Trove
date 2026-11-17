@@ -1,0 +1,2 @@
+# El contrato generado conserva LF independientemente de la configuración de Git en Windows.
+frontend/bindings/** text eol=lf

@@ -8,6 +8,27 @@ import {
   within,
 } from "@testing-library/react";
 import App from "./App";
+import * as BackupService from "../bindings/github.com/Santiparra/Trove/internal/desktop/backups";
+
+vi.mock(
+  "../bindings/github.com/Santiparra/Trove/internal/desktop/backups",
+  () => ({
+    State: vi.fn().mockResolvedValue({
+      profile: "test",
+      folder: "",
+      phase: "unconfigured",
+      pending: false,
+      lastSavedAt: "",
+      generation: "",
+      lastError: "",
+    }),
+    ChooseFolder: vi.fn(),
+    BackupNow: vi.fn(),
+    ChooseRestore: vi.fn(),
+    CancelRestore: vi.fn(),
+    ConfirmRestore: vi.fn(),
+  }),
+);
 
 const api = vi.hoisted(() => ({
   Info: vi.fn(),
@@ -69,6 +90,15 @@ function overview(withBook = false) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(BackupService.State).mockResolvedValue({
+    profile: "test",
+    folder: "",
+    phase: "unconfigured",
+    pending: false,
+    lastSavedAt: "",
+    generation: "",
+    lastError: "",
+  });
   api.Info.mockResolvedValue({
     profile: "test",
     dataDir: "synthetic/test",

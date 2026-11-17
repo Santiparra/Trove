@@ -1,0 +1,95 @@
+name: Main quality and release
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 25
+    env:
+      CGO_ENABLED: '0'
+      GOTOOLCHAIN: local
+    outputs:
+      version: ${{ steps.identity.outputs.version }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6
+        with:
+          go-version: '1.27.4'
+          cache: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '26.13.0'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
+      - name: Install frontend dependencies
+        run: npm --prefix frontend ci
+      - name: Set package identity
+        id: identity
+        shell: pwsh
+        env:
+          EVENT: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          if ($env:EVENT -eq 'push') {
+            "version=0.1.$env:GITHUB_RUN_NUMBER" >> $env:GITHUB_OUTPUT
+            "profile=habitual" >> $env:GITHUB_OUTPUT
+          } else {
+            "version=0.0.0-pr.$env:PR_NUMBER.$env:GITHUB_RUN_NUMBER" >> $env:GITHUB_OUTPUT
+            "profile=test" >> $env:GITHUB_OUTPUT
+          }
+      - name: Contracts, frontend and generated bindings
+        run: ./tools/verify.ps1 -CheckBindings
+      - name: Build identified portable
+        run: ./tools/build.ps1 -Version '${{ steps.identity.outputs.version }}' -Revision '${{ github.sha }}' -Profile '${{ steps.identity.outputs.profile }}' -BuildID '${{ github.run_id }}'
+      - name: Admission without Git or existing data
+        run: ./tools/verify-without-git.ps1
+      - name: Distribution and negative package contracts
+        run: ./tools/verify-distribution.ps1 -Revision '${{ github.sha }}'
+      - name: Upload tested portable
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5
+        with:
+          name: Trove-windows-x64
+          path: artifacts/portable/
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish verified release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: windows
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: Trove-windows-x64
+          path: artifacts/portable
+      - name: Package the tested files without rebuilding
+        run: ./tools/package.ps1 -Version '${{ needs.windows.outputs.version }}' -Revision '${{ github.sha }}'
+      - name: Publish or resume the same release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./tools/publish.ps1 -Repository '${{ github.repository }}' -Version '${{ needs.windows.outputs.version }}' -Revision '${{ github.sha }}'
