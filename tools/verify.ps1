@@ -26,14 +26,13 @@ try {
     Invoke-Checked 'npm' @('--prefix', 'frontend', 'test')
     if ($CheckBindings) {
         Invoke-Checked 'wails3' @('generate', 'bindings', '-clean=true', '-ts', '-d', 'frontend/bindings')
-        $changes = & git status --porcelain -- frontend/bindings
+        # Compare actual normalized content; status can report transient EOL/stat changes
+        # immediately after regenerating a fresh Windows checkout.
+        & git diff --exit-code HEAD -- frontend/bindings
+        if ($LASTEXITCODE -ne 0) { throw 'Los bindings no corresponden al backend: regenerar y versionar frontend/bindings.' }
+        $added = & git ls-files --others --exclude-standard -- frontend/bindings
         if ($LASTEXITCODE -ne 0) { throw 'No se pudo comprobar el contrato generado.' }
-        if ($changes) {
-            $changes
-            & git diff -- frontend/bindings
-            & git ls-files --eol frontend/bindings
-            throw 'Los bindings no corresponden al backend: regenerar y versionar frontend/bindings.'
-        }
+        if ($added) { $added; throw 'Hay modelos generados nuevos que deben versionarse.' }
     }
 }
 finally { Pop-Location }
