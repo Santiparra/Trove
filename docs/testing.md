@@ -61,3 +61,5 @@ La compilación sin Git usa fuentes y frontend ya generado en una copia donde Gi
 GitHub Actions ejecuta el check **Windows x64** solo en PR hacia `main` o push a `main`. Una suite verde habilita la integración, pero no reemplaza comprobar interacción real, WebView2 y diálogos nativos en una PC. Los artefactos de PR permiten esa validación antes del merge.
 
 La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resuelven antes de convertirlos en expectativas; casos negativos y recuperación se añaden por el riesgo que protegen, no para aumentar el número de tests.
+
+`frontend/src/books/BookSearch.test.tsx` verifica con reloj controlado la pausa de escritura, la cancelación de temporizadores pendientes y el orden local → proveedor, sin solicitudes reales. Los recorridos de autoría/serie desde fichas locales y remotas y el alta inmediata al elegir estado se verifican en `frontend/src/App.test.tsx`.

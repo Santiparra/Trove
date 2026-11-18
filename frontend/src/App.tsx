@@ -100,7 +100,7 @@ export default function App() {
     setRemoteWorks([]);
     setRemoteError("");
     if (
-      view !== "list" ||
+      (view !== "list" && view !== "series") ||
       currentMedium !== "books" ||
       query.trim().length < 2 ||
       status ||
@@ -378,8 +378,9 @@ export default function App() {
     setView("series");
     setReturnTo("series");
     setDirty(false);
-    setQuery("");
-    setSearchText("");
+    setStatus("");
+    setQuery(value.name);
+    setSearchText(value.name);
     clearMessages();
   }
   function allSearchResults(value: string) {
@@ -438,7 +439,9 @@ export default function App() {
       : view === "list"
         ? status && info
           ? labelFor(info.statuses, status)
-          : `Todos los ${labels.plural}`
+          : query
+            ? `Resultados para «${query}»`
+            : `Todos los ${labels.plural}`
         : labels.title;
 
   return (
@@ -777,6 +780,7 @@ export default function App() {
                   info={info}
                   configured={!!catalogState?.configured}
                   target={catalogTarget}
+                  onSearch={allSearchResults}
                   onBusy={setBusy}
                   onBack={() => {
                     setView(catalogReturn);
@@ -807,6 +811,7 @@ export default function App() {
                 onDelete={requestDelete}
                 onStatus={changeStatus}
                 onSeries={openSeries}
+                onSearch={allSearchResults}
                 onFavorite={(book, value) =>
                   void updatePersonal(
                     () =>

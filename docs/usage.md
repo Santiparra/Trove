@@ -8,7 +8,8 @@ Cada volumen de novela ligera se registra individualmente y puede vincularse a u
 
 - La búsqueda muestra primero resultados locales por título, autoría, serie o identificador. En Libros agrega candidatos de Hardcover en el mismo flotante cuando hay clave configurada, sin bloquear las coincidencias locales. Enter o «Ver todos los resultados» abre el listado completo.
 - Elegir un estado abre sus registros. Los botones superiores cambian el filtro.
-- La serie aparece sobre el título y abre sus libros ordenados por posición; los que no tienen posición quedan al final.
+- La serie aparece sobre el título. Una serie local conserva sus libros ordenados por posición (los que no tienen posición quedan al final) y, en Libros, suma candidatos del catálogo por nombre. Una serie de catálogo abre la búsqueda compartida por su nombre.
+- Pulsar un autor en una ficha local o remota abre la búsqueda compartida de sus libros. Los resultados remotos requieren la clave configurada; las coincidencias locales siguen disponibles sin ella.
 - La ficha permite guardar notas y modificar favorito, propiedad y estado sin abrir el formulario completo.
 - Solo el título es obligatorio al crear un libro. ISBN, autoría y fechas pueden completarse después.
 - En Novelas ligeras se usa «Añadir volumen», con la misma edición mínima y datos personales. La ficha permite editar, marcar favorito/propiedad, guardar notas y cambiar estados, incluida A continuación.
@@ -19,10 +20,12 @@ Cada volumen de novela ligera se registra individualmente y puede vincularse a u
 1. Configurar una clave de lectura de Hardcover desde **Claves**, junto al indicador de respaldos. Guardarla no consulta ni sincroniza la biblioteca personal del proveedor.
 2. Usar la búsqueda principal por título, autor, serie o ISBN. Elegir un resultado abre directamente la ficha compartida, con portada, información y gestión. Una obra abre preferentemente la edición local vinculada; si no existe, se elige la edición con más campos informados entre las devueltas por el proveedor. Buscar un ISBN concreto respeta esa edición.
 3. Desde la ficha, usar **Elegir otra edición** o **Cambiar edición vinculada** para ver hasta 20 ediciones y buscar otra por ISBN. Consultar y revisar no agrega registros.
-4. El botón **Agregar · Por leer** permite elegir otro estado en su desplegable y agregar directamente. Una única serie bibliográfica se preselecciona; se puede quitar, y varias asociaciones requieren elección. Agregar como Leído no fabrica fechas de consumo.
+4. El botón **Agregar · Por leer** agrega con un clic. Elegir otro estado en su desplegable ejecuta el alta inmediatamente, sin una confirmación adicional; los registros existentes también cambian de estado al elegirlo. Una única serie bibliográfica se preselecciona; se puede quitar, y varias asociaciones requieren elección. Agregar como Leído no fabrica fechas de consumo.
 5. Una edición ya vinculada abre su registro local con estado y acciones, sin ofrecer agregar. Coincidencias por ISBN o por otra edición de la obra se revisan antes de vincular. No se fusionan automáticamente ediciones distintas.
 
 La ficha distribuye portada, información y gestión en tres columnas cuando hay espacio, sin deformar la imagen. La descripción extensa se expande con **Leer más**. Los identificadores y fuentes están en un bloque desplegable al pie.
+
+La búsqueda flotante espera 140 ms de pausa antes de consultar localmente y otros 350 ms después de obtener esos resultados antes de consultar Hardcover. Seguir escribiendo cancela los temporizadores pendientes; las respuestas antiguas no reemplazan la consulta vigente. Las peticiones que ya salieron no se cancelan en la red.
 
 Desde la ficha se puede vincular o cambiar edición, refrescar metadata y desvincular. Estas operaciones conservan los datos personales; el refresco fallido conserva el snapshot anterior. La descripción y demás metadata guardada se pueden leer offline. Las portadas ya descargadas se reutilizan localmente; las no disponibles muestran un marcador. Open Library solo complementa campos faltantes con un ISBN seguro de la edición elegida.
 

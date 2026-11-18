@@ -81,6 +81,17 @@
 .profile-info .hero-author {
   margin: 10px 0 18px;
 }
+.author-link {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  text-align: inherit;
+}
+.author-link:hover:not(:disabled) {
+  color: #c9e2d0;
+  text-decoration: underline;
+}
 .profile-series {
   font-size: 12px;
   color: #b2c8ae;

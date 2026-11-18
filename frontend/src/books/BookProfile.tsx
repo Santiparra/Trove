@@ -14,6 +14,7 @@ export default function BookProfile({
   busy,
   onBack,
   onSeries,
+  onSearch,
   management,
   children,
 }: {
@@ -22,6 +23,7 @@ export default function BookProfile({
   busy: boolean;
   onBack: () => void;
   onSeries?: (series: Series) => void;
+  onSearch: (query: string) => void;
   management: ReactNode;
   children?: ReactNode;
 }) {
@@ -67,18 +69,38 @@ export default function BookProfile({
           ) : (
             !!snapshot?.work.series?.length && (
               <p className="profile-series">
-                {snapshot.work.series
-                  .map(
-                    (item) =>
-                      `${item.name}${item.position != null ? ` · #${item.position}` : ""}`,
-                  )
-                  .join(" · ")}
+                {snapshot.work.series.map((item, index) => (
+                  <span key={item.id}>
+                    {index > 0 && " · "}
+                    <button
+                      className="series-title"
+                      disabled={busy}
+                      onClick={() => onSearch(item.name)}
+                    >
+                      {item.name}
+                      {item.position != null ? ` · #${item.position}` : ""}
+                    </button>
+                  </span>
+                ))}
               </p>
             )
           )}
           <h1>{title}</h1>
           <p className="hero-author">
-            {authors.join(" · ") || "Autoría sin especificar"}
+            {authors.length
+              ? authors.map((author, index) => (
+                  <span key={`${author}:${index}`}>
+                    {index > 0 && " · "}
+                    <button
+                      className="author-link"
+                      disabled={busy}
+                      onClick={() => onSearch(author)}
+                    >
+                      {author}
+                    </button>
+                  </span>
+                ))
+              : "Autoría sin especificar"}
           </p>
           <dl className="profile-facts">
             {(book?.edition.language || snapshot?.edition.language) && (

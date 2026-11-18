@@ -17,6 +17,7 @@ export default function CatalogPage({
   configured,
   onBack,
   onDone,
+  onSearch,
   onBusy,
 }: {
   initial: CatalogPreview;
@@ -25,6 +26,7 @@ export default function CatalogPage({
   configured: boolean;
   onBack: () => void;
   onDone: (book: Book, message: string) => void;
+  onSearch: (query: string) => void;
   onBusy: (value: boolean) => void;
 }) {
   const [preview, setPreview] = useState(initial);
@@ -76,11 +78,20 @@ export default function CatalogPage({
       ),
     );
   }
+  function add(selectedStatus: string) {
+    setStatus(selectedStatus);
+    void action(async () => {
+      const result = await Catalog.Add(preview.token, series, selectedStatus);
+      if (result.kind === "review") setPreview({ ...preview, match: result });
+      else onDone(result.book, result.message);
+    });
+  }
   return (
     <BookProfile
       snapshot={snapshot}
       busy={busy}
       onBack={onBack}
+      onSearch={onSearch}
       management={
         <>
           {local ? (
@@ -122,18 +133,7 @@ export default function CatalogPage({
                 <button
                   className="primary"
                   disabled={busy}
-                  onClick={() =>
-                    void action(async () => {
-                      const result = await Catalog.Add(
-                        preview.token,
-                        series,
-                        status,
-                      );
-                      if (result.kind === "review")
-                        setPreview({ ...preview, match: result });
-                      else onDone(result.book, result.message);
-                    })
-                  }
+                  onClick={() => add(status)}
                 >
                   Agregar ·{" "}
                   {info.statuses.find((item) => item.value === status)?.label}
@@ -142,7 +142,7 @@ export default function CatalogPage({
                   aria-label="Estado al agregar"
                   disabled={busy}
                   value={status}
-                  onChange={(event) => setStatus(event.target.value)}
+                  onChange={(event) => add(event.target.value)}
                 >
                   {info.statuses.map((item) => (
                     <option key={item.value} value={item.value}>

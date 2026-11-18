@@ -19,6 +19,7 @@ export default function BookDetails({
   onDelete,
   onStatus,
   onSeries,
+  onSearch,
   onFavorite,
   onOwned,
   onNotes,
@@ -36,6 +37,7 @@ export default function BookDetails({
   onDelete: (book: Book) => void;
   onStatus: (book: Book, status: string) => void;
   onSeries: (series: Series) => void;
+  onSearch: (query: string) => void;
   onFavorite: (book: Book, value: boolean) => void;
   onOwned: (book: Book, value: boolean) => void;
   onNotes: (book: Book, notes: string) => Promise<void>;
@@ -55,6 +57,7 @@ export default function BookDetails({
       busy={busy}
       onBack={onBack}
       onSeries={onSeries}
+      onSearch={onSearch}
       management={
         <>
           <StatusSelect
