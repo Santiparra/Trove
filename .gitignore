@@ -21,6 +21,8 @@
 **/backup-settings.json
 **/.backup-settings-*.json
 **/catalog-credentials.bin
+**/provider-network.json
+**/.provider-network-*
 **/.catalog-key-*
 **/catalog-covers/
 

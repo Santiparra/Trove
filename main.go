@@ -61,10 +61,14 @@ func main() {
 	library := desktop.NewLibrary(books.NewService(store), cfg.Profile, cfg.DataDir, buildID, desktop.BuildInfo{Version: version, Revision: revision})
 	vault := credentials.New(cfg.DataDir)
 	hardcover, openlibrary := providers.NewHardcover(vault.Get), providers.NewOpenLibrary()
-	health := providers.NewHealth(hardcover, openlibrary)
+	network, err := providers.NewNetworkPolicy(cfg.DataDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	health := providers.NewHealth(hardcover, openlibrary, network)
 	defer health.Close()
 	health.Check()
-	catalogService := desktop.NewCatalog(catalog.New(hardcover, openlibrary), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers")), library, health)
+	catalogService := desktop.NewCatalog(catalog.New(hardcover, openlibrary), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers"), network), library, health)
 	app := application.New(application.Options{
 		Name: "Trove", Description: "Biblioteca personal multimedia local",
 		Windows:  application.WindowsOptions{WebviewUserDataPath: filepath.Join(cfg.DataDir, "webview")},

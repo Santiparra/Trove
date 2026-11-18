@@ -14,10 +14,12 @@ export default function EditionPicker({
   onWork,
   onClose,
   configured,
+  localOnly = false,
 }: {
   workID?: string;
   disabled: boolean;
   configured: boolean;
+  localOnly?: boolean;
   onEdition: (id: string) => void;
   onWork: (work: Work) => void;
   onClose: () => void;
@@ -28,7 +30,11 @@ export default function EditionPicker({
   const [loading, setLoading] = useState(false);
   useEffect(() => {
     let active = true;
-    if (!workID) return;
+    if (!workID || localOnly) {
+      setEditions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     Catalog.Editions(workID)
@@ -44,7 +50,7 @@ export default function EditionPicker({
     return () => {
       active = false;
     };
-  }, [workID]);
+  }, [workID, localOnly]);
   return (
     <section className="edition-picker" aria-label="Ediciones">
       <div className="card-heading">
@@ -58,6 +64,7 @@ export default function EditionPicker({
         value={query}
         disabled={disabled}
         configured={configured}
+        localOnly={localOnly}
         onChange={setQuery}
         onBook={() => {}}
         onAll={() => {}}

@@ -42,6 +42,18 @@ export function ConfirmRestore(token: string): $CancellablePromise<backup$0.Rest
     });
 }
 
+export function PreviewGeneration(id: string): $CancellablePromise<backup$0.Preview | null> {
+    return $Call.ByID(1674258768, id).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
+
+export function RestoreChoices(): $CancellablePromise<backup$0.RestoreChoice[]> {
+    return $Call.ByID(1780278096).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
 export function State(): $CancellablePromise<backup$0.Status> {
     return $Call.ByID(2658187575).then(($result: any) => {
         return $$createType0($result);
@@ -53,3 +65,5 @@ const $$createType0 = backup$0.Status.createFrom;
 const $$createType1 = backup$0.Preview.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = backup$0.RestoreResult.createFrom;
+const $$createType4 = backup$0.RestoreChoice.createFrom;
+const $$createType5 = $Create.Array($$createType4);

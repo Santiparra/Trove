@@ -188,7 +188,7 @@ func TestBackgroundChecksAreBoundedAndNeverSendKeysToSecondary(t *testing.T) {
 	ol.endpoint = server.URL
 	ol.http = server.Client()
 	ol.pace.interval = 0
-	h := NewHealth(hc, ol)
+	h := NewHealth(hc, ol, nil)
 	defer h.Close()
 	h.Check()
 	h.Check()
@@ -220,7 +220,7 @@ func TestMissingKeyAndInvalidProbePayloadAreNotReportedHealthy(t *testing.T) {
 	ol.endpoint = server.URL
 	ol.http = server.Client()
 	ol.pace.interval = 0
-	h := NewHealth(hc, ol)
+	h := NewHealth(hc, ol, nil)
 	defer h.Close()
 	h.Check()
 	h.wg.Wait()
@@ -257,7 +257,7 @@ func TestStartupCheckDoesNotWaitForNetworkAndShutdownCancelsIt(t *testing.T) {
 	ol.endpoint = server.URL
 	ol.http = server.Client()
 	ol.pace.interval = 0
-	h := NewHealth(hc, ol)
+	h := NewHealth(hc, ol, nil)
 	state := h.Check()
 	<-entered
 	if !state.Checking {

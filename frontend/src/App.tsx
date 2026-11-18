@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Library from "../bindings/github.com/Santiparra/Trove/internal/desktop/library";
 import type {
   Info,
@@ -30,6 +30,7 @@ import CatalogPage from "./catalog/CatalogPage";
 import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
 import CatalogControl from "./catalog/CatalogControl";
 import ProviderHealth from "./catalog/ProviderHealth";
+import SuccessToast from "./components/SuccessToast";
 import EditionPicker from "./catalog/EditionPicker";
 
 const media: { key: string; label: string; icon: IconName }[] = [
@@ -85,7 +86,15 @@ export default function App() {
   const [loadError, setLoadError] = useState("");
   const [listError, setListError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNoticeValue] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
+  const noticeSequence = useRef(0);
+  function setNotice(message: string) {
+    setNoticeValue(message ? { id: ++noticeSequence.current, message } : null);
+  }
+  const [localOnly, setLocalOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -105,7 +114,8 @@ export default function App() {
       currentMedium !== "books" ||
       query.trim().length < 2 ||
       status ||
-      !catalogState?.configured
+      !catalogState?.configured ||
+      localOnly
     ) {
       setRemoteLoading(false);
       return;
@@ -128,7 +138,7 @@ export default function App() {
       active = false;
       clearTimeout(timer);
     };
-  }, [view, query, currentMedium, status, catalogState?.configured]);
+  }, [view, query, currentMedium, status, catalogState?.configured, localOnly]);
 
   useEffect(() => {
     let active = true;
@@ -505,8 +515,9 @@ export default function App() {
           </span>
           <div className="topbar-actions">
             <ProviderHealth
-              disabled={busy || !!deleteTarget}
+              disabled={!!deleteTarget}
               configured={!!catalogState?.configured}
+              onLocalOnly={setLocalOnly}
             />
             <CatalogControl
               state={catalogState}
@@ -514,6 +525,7 @@ export default function App() {
               onState={setCatalogState}
             />
             <BackupControl
+              onNotice={setNotice}
               disabled={busy || !!deleteTarget}
               canOpen={() => {
                 if (busy || deleteTarget || !canLeave()) return false;
@@ -582,12 +594,11 @@ export default function App() {
           </div>
         )}
         {notice && (
-          <div className="notice page-notice" role="status">
-            {notice}
-            <button aria-label="Cerrar aviso" onClick={() => setNotice("")}>
-              ×
-            </button>
-          </div>
+          <SuccessToast
+            key={notice.id}
+            message={notice.message}
+            onDismiss={() => setNotice("")}
+          />
         )}
         {actionError && !editing && !deleteTarget && (
           <div className="error-banner page-error" role="alert">
@@ -681,6 +692,7 @@ export default function App() {
                     }}
                     onBook={openBook}
                     configured={!!catalogState?.configured}
+                    localOnly={localOnly}
                     onWork={(work) => void openCandidate(work)}
                     onAll={allSearchResults}
                   />
@@ -784,6 +796,7 @@ export default function App() {
                   initial={catalogPreview}
                   info={info}
                   configured={!!catalogState?.configured}
+                  localOnly={localOnly}
                   target={catalogTarget}
                   onSearch={allSearchResults}
                   onBusy={setBusy}
@@ -803,6 +816,7 @@ export default function App() {
               )}
             {view === "detail" && selected && info && (
               <BookDetails
+                localOnly={localOnly}
                 book={selected}
                 info={info}
                 busy={busy}
@@ -842,6 +856,7 @@ export default function App() {
                   showEditions ? (
                     <EditionPicker
                       configured={!!catalogState?.configured}
+                      localOnly={localOnly}
                       workID={selected.edition.catalog?.work.id}
                       disabled={busy}
                       onClose={() => setShowEditions(false)}

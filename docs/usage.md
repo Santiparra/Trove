@@ -33,6 +33,16 @@ El alta manual sigue disponible sin clave ni conexión. Novelas ligeras conserva
 
 ## Salud de proveedores
 
+### Modo solo local
+
+Desde el panel **Proveedores**, el botón **Modo solo local** desactiva las consultas a Hardcover y Open Library, los chequeos de salud y las descargas de portadas. El bloqueo se aplica en Go, también cancela solicitudes en curso y se guarda por perfil para respetarlo al reiniciar. No borra claves ni lo interpreta como una caída del proveedor.
+
+La biblioteca, los snapshots persistidos, las portadas ya cacheadas y toda la gestión personal siguen disponibles. Las portadas no descargadas muestran su marcador; refrescar metadata y buscar ediciones remotas queda deshabilitado. Al reactivar la red se vuelven a permitir consultas, conservando las reglas del circuit breaker.
+
+Para comprobar una restauración sin conexión: activar el modo, restaurar la generación elegida y recorrer las fichas locales. La configuración de red no forma parte del respaldo y no cambia al restaurarlo.
+
+### Indicador y diagnóstico
+
 El indicador **Proveedores**, junto a Claves y respaldos, muestra el último estado conocido de las APIs de Hardcover y Open Library. Al abrirlo se ven disponibilidad, duración de la última consulta, hora y posibles pausas. Una clave ausente o rechazada se distingue de un fallo de servicio. No comprueba las portadas ni garantiza que todas las operaciones del proveedor funcionen.
 
 - Al iniciar se ejecuta una comprobación breve por API en segundo plano, con presupuesto de 8 segundos y sin bloquear la biblioteca. Hardcover se omite si falta clave. Las consultas normales actualizan el mismo estado.
@@ -76,6 +86,8 @@ Una raíz alternativa siempre recibe la subcarpeta del perfil:
 El ejemplo usa `C:\TrovePruebas\test\`. No compartir el mismo directorio activo entre instancias durante una restauración.
 
 ## Respaldo automático
+
+Los éxitos cotidianos se muestran como avisos flotantes sin desplazar el contenido. Se cierran a los 5 segundos, con pausa mientras tienen el foco o el puntero, y pueden descartarse manualmente. Los errores permanecen en el contexto de la operación.
 
 1. Abrir **Respaldo y restauración**.
 2. Elegir una carpeta distinta de los datos activos. Se agrega el nombre del perfil.

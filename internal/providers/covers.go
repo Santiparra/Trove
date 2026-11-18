@@ -33,8 +33,11 @@ type Covers struct {
 	flights map[string]*coverFlight
 }
 
-func NewCovers(dir string) *Covers {
+func NewCovers(dir string, network *NetworkPolicy) *Covers {
 	h := client()
+	if network != nil {
+		network.protect(h)
+	}
 	h.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		if len(via) >= 3 || !catalog.ValidCoverURL(req.URL.String()) {
 			return errors.New("redirección de portada no permitida")

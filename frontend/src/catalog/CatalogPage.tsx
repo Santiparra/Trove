@@ -15,6 +15,7 @@ export default function CatalogPage({
   target,
   info,
   configured,
+  localOnly,
   onBack,
   onDone,
   onSearch,
@@ -24,6 +25,7 @@ export default function CatalogPage({
   target: Book | null;
   info: Info;
   configured: boolean;
+  localOnly: boolean;
   onBack: () => void;
   onDone: (book: Book, message: string) => void;
   onSearch: (query: string) => void;
@@ -174,7 +176,7 @@ export default function CatalogPage({
           )}
           <button
             className="secondary"
-            disabled={busy}
+            disabled={busy || localOnly}
             onClick={() => setPicking((value) => !value)}
           >
             Elegir otra edición
@@ -191,6 +193,7 @@ export default function CatalogPage({
       {picking && (
         <EditionPicker
           configured={configured}
+          localOnly={localOnly}
           workID={snapshot.work.id}
           disabled={busy}
           onClose={() => setPicking(false)}

@@ -25,6 +25,7 @@ type ProviderStatus struct {
 }
 
 type HealthReport struct {
+	LocalOnly   bool             `json:"localOnly"`
 	Providers   []ProviderStatus `json:"providers"`
 	Checking    bool             `json:"checking"`
 	NextCheckAt string           `json:"nextCheckAt"`
@@ -134,6 +135,10 @@ func (m *monitor) finish(epoch, sequence uint64, duration time.Duration, err err
 		m.trial = false
 		return
 	}
+	if isLocalOnly(err) {
+		m.trial = false
+		return
+	}
 	// Requests that started before an opened circuit cannot reopen it on completion.
 	if sequence < m.completed || (!m.until.IsZero() && !m.trial) || m.status.State == "access-denied" || m.status.State == "unconfigured" {
 		return
@@ -185,6 +190,7 @@ func (m *monitor) finish(epoch, sequence uint64, duration time.Duration, err err
 
 // Health owns only bounded, explicit checks; it never periodically polls providers.
 type Health struct {
+	network     *NetworkPolicy
 	hardcover   *Hardcover
 	openlibrary *OpenLibrary
 	mu          sync.Mutex
@@ -196,9 +202,13 @@ type Health struct {
 	wg          sync.WaitGroup
 }
 
-func NewHealth(hardcover *Hardcover, openlibrary *OpenLibrary) *Health {
+func NewHealth(hardcover *Hardcover, openlibrary *OpenLibrary, network *NetworkPolicy) *Health {
 	ctx, cancel := context.WithCancel(context.Background())
-	h := &Health{hardcover: hardcover, openlibrary: openlibrary, ctx: ctx, cancel: cancel}
+	h := &Health{hardcover: hardcover, openlibrary: openlibrary, network: network, ctx: ctx, cancel: cancel}
+	if network != nil {
+		network.protect(hardcover.http)
+		network.protect(openlibrary.http)
+	}
 	token, err := hardcover.token()
 	hardcover.health = newMonitor("hardcover", "Hardcover", err == nil && token != "")
 	openlibrary.health = newMonitor("openlibrary", "Open Library", true)
@@ -208,6 +218,9 @@ func (h *Health) State() HealthReport {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	report := HealthReport{Providers: []ProviderStatus{h.hardcover.health.snapshot(), h.openlibrary.health.snapshot()}, Checking: h.checking}
+	if h.network != nil {
+		report.LocalOnly = h.network.LocalOnly()
+	}
 	if !h.next.IsZero() {
 		report.NextCheckAt = h.next.UTC().Format(time.RFC3339Nano)
 	}
@@ -217,7 +230,7 @@ func (h *Health) State() HealthReport {
 // Check starts at most one pair of lightweight probes; cooldowns also apply to checks.
 func (h *Health) Check() HealthReport {
 	h.mu.Lock()
-	if h.closed || h.checking || time.Now().Before(h.next) {
+	if h.closed || h.checking || time.Now().Before(h.next) || (h.network != nil && h.network.LocalOnly()) {
 		h.mu.Unlock()
 		return h.State()
 	}
@@ -244,6 +257,15 @@ func (h *Health) Check() HealthReport {
 func (h *Health) CredentialsChanged() {
 	token, err := h.hardcover.token()
 	h.hardcover.health.reset(err == nil && token != "")
+}
+func (h *Health) SetLocalOnly(value bool) (HealthReport, error) {
+	if h.network == nil {
+		return h.State(), errors.New("modo de red no disponible")
+	}
+	if err := h.network.SetLocalOnly(value); err != nil {
+		return h.State(), err
+	}
+	return h.State(), nil
 }
 func (h *Health) Close() {
 	h.mu.Lock()

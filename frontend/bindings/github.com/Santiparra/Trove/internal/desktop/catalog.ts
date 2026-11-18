@@ -92,6 +92,12 @@ export function Search(query: string): $CancellablePromise<catalog$0.SearchResul
     });
 }
 
+export function SetLocalOnly(value: boolean): $CancellablePromise<providers$0.HealthReport> {
+    return $Call.ByID(2696629167, value).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function State(): $CancellablePromise<$models.CatalogState> {
     return $Call.ByID(2139015283).then(($result: any) => {
         return $$createType2($result);

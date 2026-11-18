@@ -48,6 +48,9 @@ func (p *OpenLibrary) getRaw(ctx context.Context, path string, out any) error {
 	req.Header.Set("User-Agent", userAgent)
 	response, err := p.http.Do(req)
 	if err != nil {
+		if isLocalOnly(err) {
+			return err
+		}
 		return failure("network", "Open Library no está disponible")
 	}
 	err = responseJSON(response, out)

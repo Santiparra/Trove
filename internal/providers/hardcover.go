@@ -53,6 +53,9 @@ func (p *Hardcover) queryRaw(ctx context.Context, query string, variables any, o
 	req.Header.Set("User-Agent", userAgent)
 	response, err := p.http.Do(req)
 	if err != nil {
+		if isLocalOnly(err) {
+			return err
+		}
 		return failure("network", "no se pudo conectar con Hardcover; los datos locales siguen disponibles")
 	}
 	var envelope struct {

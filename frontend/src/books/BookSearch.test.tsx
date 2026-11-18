@@ -52,3 +52,23 @@ it("espera la pausa de escritura, cancela consultas pendientes y busca local ant
   await act(() => vi.advanceTimersByTimeAsync(350));
   expect(api.remote).toHaveBeenCalledExactlyOnceWith("Aut");
 });
+it("en solo local busca en la biblioteca sin programar una petición remota", async () => {
+  render(
+    <BookSearch
+      medium="books"
+      value="Sintético"
+      disabled={false}
+      configured
+      localOnly
+      onChange={vi.fn()}
+      onBook={vi.fn()}
+      onAll={vi.fn()}
+    />,
+  );
+  act(() => {
+    document.querySelector<HTMLInputElement>("input")!.focus();
+  });
+  await act(() => vi.advanceTimersByTimeAsync(1000));
+  expect(api.local).toHaveBeenCalledExactlyOnceWith("Sintético", "books");
+  expect(api.remote).not.toHaveBeenCalled();
+});

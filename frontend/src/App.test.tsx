@@ -14,6 +14,7 @@ const catalog = vi.hoisted(() => ({
   State: vi.fn(),
   ProviderHealth: vi.fn(),
   CheckProviders: vi.fn(),
+  SetLocalOnly: vi.fn(),
   SaveKey: vi.fn(),
   ClearKey: vi.fn(),
   Search: vi.fn(),
@@ -46,6 +47,8 @@ vi.mock(
     ChooseFolder: vi.fn(),
     BackupNow: vi.fn(),
     ChooseRestore: vi.fn(),
+    RestoreChoices: vi.fn(),
+    PreviewGeneration: vi.fn(),
     CancelRestore: vi.fn(),
     ConfirmRestore: vi.fn(),
   }),
@@ -113,6 +116,7 @@ function overview(withBook = false) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(BackupService.RestoreChoices).mockResolvedValue([]);
   catalog.State.mockResolvedValue({ configured: true });
   catalog.ProviderHealth.mockResolvedValue({
     providers: [],
@@ -269,6 +273,42 @@ describe("Catálogo de Libros", () => {
     fireEvent.click(screen.getByRole("button", { name: "Refrescar metadata" }));
     await screen.findByText("Metadata de catálogo actualizada.");
     expect(notes).toHaveProperty("value", "Borrador sin guardar");
+  });
+  it("en solo local muestra snapshots y permite gestión personal sin ofrecer refresco remoto", async () => {
+    catalog.ProviderHealth.mockResolvedValue({
+      providers: [],
+      localOnly: true,
+      checking: false,
+      nextCheckAt: "",
+    });
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.GetBook.mockResolvedValue(linked);
+    api.SetBookFavorite.mockResolvedValue({ ...linked, favorite: true });
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Abrir ${sample.title}` }),
+    );
+    expect(await screen.findByText("Descripción guardada")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Refrescar metadata" }),
+    ).toHaveProperty("disabled", true);
+    expect(
+      screen.getByRole("button", { name: "Cambiar edición vinculada" }),
+    ).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("Notas personales del libro")).toHaveProperty(
+      "disabled",
+      false,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Favorito" }));
+    await waitFor(() =>
+      expect(api.SetBookFavorite).toHaveBeenCalledWith(
+        sample.id,
+        true,
+        "books",
+      ),
+    );
+    expect(catalog.Search).not.toHaveBeenCalled();
+    expect(catalog.Refresh).not.toHaveBeenCalled();
   });
   it("abre directamente una ficha desde una obra, sin interponer el selector de ediciones", async () => {
     catalog.Search.mockResolvedValue({ works: [snapshot.work], warnings: [] });

@@ -28,6 +28,7 @@ export default function BookDetails({
   onRefresh,
   onUnlink,
   editions,
+  localOnly,
 }: {
   book: Book;
   info: Info;
@@ -46,6 +47,7 @@ export default function BookDetails({
   onRefresh: () => void;
   onUnlink: () => void;
   editions?: ReactNode;
+  localOnly: boolean;
 }) {
   const [notes, setNotes] = useState(book.notes);
   const labels = readingLabels(book.medium);
@@ -89,14 +91,22 @@ export default function BookDetails({
           </button>
           {book.medium === "books" && (
             <>
-              <button className="quiet" disabled={busy} onClick={onCatalog}>
+              <button
+                className="quiet"
+                disabled={busy || localOnly}
+                onClick={onCatalog}
+              >
                 {book.edition.catalog
                   ? "Cambiar edición vinculada"
                   : "Vincular edición de catálogo"}
               </button>
               {book.edition.catalog && (
                 <>
-                  <button className="quiet" disabled={busy} onClick={onRefresh}>
+                  <button
+                    className="quiet"
+                    disabled={busy || localOnly}
+                    onClick={onRefresh}
+                  >
                     Refrescar metadata
                   </button>
                   <button className="quiet" disabled={busy} onClick={onUnlink}>

@@ -73,6 +73,9 @@ func responseJSON(response *http.Response, output any) error {
 		return failure("service", "el proveedor no está disponible; se conservan los datos locales")
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, 2<<20+1))
+	if isLocalOnly(err) {
+		return err
+	}
 	if err != nil || len(data) > 2<<20 {
 		return failure("response", "respuesta de catálogo demasiado grande o incompleta")
 	}

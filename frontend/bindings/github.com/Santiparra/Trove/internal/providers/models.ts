@@ -6,12 +6,16 @@
 import { Create as $Create } from "@wailsio/runtime";
 
 export class HealthReport {
+    "localOnly": boolean;
     "providers": ProviderStatus[];
     "checking": boolean;
     "nextCheckAt": string;
 
     /** Creates a new HealthReport instance. */
     constructor($$source: Partial<HealthReport> = {}) {
+        if (!("localOnly" in $$source)) {
+            this["localOnly"] = false;
+        }
         if (!("providers" in $$source)) {
             this["providers"] = [];
         }
@@ -29,10 +33,10 @@ export class HealthReport {
      * Creates a new HealthReport instance from a string or object.
      */
     static createFrom($$source: any = {}): HealthReport {
-        const $$createField0_0 = $$createType1;
+        const $$createField1_0 = $$createType1;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("providers" in $$parsedSource) {
-            $$parsedSource["providers"] = $$createField0_0($$parsedSource["providers"]);
+            $$parsedSource["providers"] = $$createField1_0($$parsedSource["providers"]);
         }
         return new HealthReport($$parsedSource as Partial<HealthReport>);
     }

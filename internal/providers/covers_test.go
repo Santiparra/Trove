@@ -21,7 +21,7 @@ func TestCoversUseValidatedLocalCacheWithoutCatalogCredentials(t *testing.T) {
 	if err := png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 4, 6))); err != nil {
 		t.Fatal(err)
 	}
-	c := NewCovers(t.TempDir())
+	c := NewCovers(t.TempDir(), nil)
 	calls := 0
 	c.http.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		calls++

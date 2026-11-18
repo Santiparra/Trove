@@ -15,6 +15,7 @@ const labels: Record<string, string> = {
   "access-denied": "Acceso rechazado",
 };
 function summary(report: HealthReport | null) {
+  if (report?.localOnly) return { label: "Solo local", tone: "unknown" };
   if (!report?.providers.length)
     return { label: "Sin comprobar", tone: "unknown" };
   if (report.checking) return { label: "Comprobando…", tone: "unknown" };
@@ -53,21 +54,28 @@ function statusText(provider: ProviderStatus) {
 export default function ProviderHealth({
   disabled,
   configured,
+  onLocalOnly,
 }: {
   disabled: boolean;
   configured: boolean;
+  onLocalOnly?: (value: boolean) => void;
 }) {
   const [report, setReport] = useState<HealthReport | null>(null);
   const [open, setOpen] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [modeBusy, setModeBusy] = useState(false);
+  useEffect(() => {
+    if (report) onLocalOnly?.(!!report.localOnly);
+  }, [report?.localOnly, onLocalOnly]);
   const [error, setError] = useState("");
   const sequence = useRef(0);
+  const modeRequest = useRef(false);
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let active = true;
     let reading = false;
     async function read() {
-      if (reading) return;
+      if (reading || modeRequest.current) return;
       reading = true;
       const current = ++sequence.current;
       try {
@@ -124,6 +132,22 @@ export default function ProviderHealth({
       setChecking(false);
     }
   }
+  async function toggleMode() {
+    if (modeBusy || !report) return;
+    modeRequest.current = true;
+    setModeBusy(true);
+    setError("");
+    const current = ++sequence.current;
+    try {
+      const value = await Catalog.SetLocalOnly(!report.localOnly);
+      if (current === sequence.current) setReport(value);
+    } catch (reason) {
+      if (current === sequence.current) setError(errorMessage(reason));
+    } finally {
+      modeRequest.current = false;
+      setModeBusy(false);
+    }
+  }
   const state = summary(report);
   const waiting =
     !!report?.nextCheckAt && Date.parse(report.nextCheckAt) > Date.now();
@@ -151,13 +175,28 @@ export default function ProviderHealth({
               ×
             </button>
           </div>
+          <button
+            className="secondary"
+            aria-pressed={!!report?.localOnly}
+            disabled={disabled || modeBusy || !report}
+            onClick={() => void toggleMode()}
+          >
+            Modo solo local{report?.localOnly ? " · Activado" : ""}
+          </button>
+          {report?.localOnly && (
+            <p className="management-hint">
+              Sin consultas ni descargas remotas. Se mantienen la biblioteca,
+              los snapshots y las portadas cacheadas. Se conserva al reiniciar
+              este perfil.
+            </p>
+          )}
           {report?.providers.map((provider) => (
             <article key={provider.id} className="provider-health-item">
               <strong>{provider.name}</strong>
               <span
                 className={`provider-state provider-state-${provider.state}`}
               >
-                {statusText(provider)}
+                {report.localOnly ? "Solo local" : statusText(provider)}
               </span>
               <p>{provider.detail || "Todavía no se consultó la API."}</p>
               {provider.checkedAt && (
@@ -183,7 +222,14 @@ export default function ProviderHealth({
           ))}
           <button
             className="secondary"
-            disabled={disabled || checking || !!report?.checking || waiting}
+            disabled={
+              disabled ||
+              checking ||
+              !!report?.checking ||
+              waiting ||
+              !!report?.localOnly ||
+              modeBusy
+            }
             onClick={() => void check()}
           >
             {report?.checking || checking ? "Comprobando…" : "Comprobar ahora"}

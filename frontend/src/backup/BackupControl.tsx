@@ -8,10 +8,12 @@ export default function BackupControl({
   disabled,
   canOpen,
   onRestored,
+  onNotice,
 }: {
   disabled: boolean;
   canOpen: () => boolean;
   onRestored: () => void;
+  onNotice: (message: string) => void;
 }) {
   const [state, setState] = useState<Status | null>(null);
   const [open, setOpen] = useState(false);
@@ -64,6 +66,7 @@ export default function BackupControl({
           onState={setState}
           onClose={() => setOpen(false)}
           onRestored={onRestored}
+          onNotice={onNotice}
         />
       )}
     </>

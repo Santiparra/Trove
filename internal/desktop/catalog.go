@@ -91,6 +91,17 @@ func (c *Catalog) CheckProviders() providers.HealthReport {
 	}
 	return c.health.Check()
 }
+func (c *Catalog) SetLocalOnly(value bool) (providers.HealthReport, error) {
+	c.library.gate.RLock()
+	defer c.library.gate.RUnlock()
+	if c.library.closing {
+		return c.ProviderHealth(), errors.New("Trove se está cerrando")
+	}
+	if c.health == nil {
+		return c.ProviderHealth(), errors.New("modo de red no disponible")
+	}
+	return c.health.SetLocalOnly(value)
+}
 func (c *Catalog) Editions(workID string) ([]cat.Edition, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()

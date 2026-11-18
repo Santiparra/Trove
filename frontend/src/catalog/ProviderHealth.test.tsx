@@ -8,10 +8,18 @@ import {
 } from "@testing-library/react";
 import ProviderHealth from "./ProviderHealth";
 
-const api = vi.hoisted(() => ({ state: vi.fn(), check: vi.fn() }));
+const api = vi.hoisted(() => ({
+  state: vi.fn(),
+  check: vi.fn(),
+  mode: vi.fn(),
+}));
 vi.mock(
   "../../bindings/github.com/Santiparra/Trove/internal/desktop/catalog",
-  () => ({ ProviderHealth: api.state, CheckProviders: api.check }),
+  () => ({
+    ProviderHealth: api.state,
+    CheckProviders: api.check,
+    SetLocalOnly: api.mode,
+  }),
 );
 const healthy = (id: string, name: string) => ({
   id,
@@ -118,4 +126,22 @@ it("un fallo del estado local no se presenta como proveedores saludables", async
     "textContent",
     "No se pudo leer el estado",
   );
+});
+it("activa solo local sin confundirlo con una caída ni lanzar una comprobación", async () => {
+  api.mode.mockResolvedValue({ ...report, localOnly: true });
+  const onLocalOnly = vi.fn();
+  render(
+    <ProviderHealth disabled={false} configured onLocalOnly={onLocalOnly} />,
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Proveedores · OK" }),
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Modo solo local" }));
+  await screen.findByRole("button", { name: "Proveedores · Solo local" });
+  expect(api.mode).toHaveBeenCalledExactlyOnceWith(true);
+  expect(onLocalOnly).toHaveBeenLastCalledWith(true);
+  expect(
+    screen.getByRole("button", { name: "Comprobar ahora" }),
+  ).toHaveProperty("disabled", true);
+  expect(api.check).not.toHaveBeenCalled();
 });

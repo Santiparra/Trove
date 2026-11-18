@@ -89,6 +89,8 @@ El JSON se obtiene del snapshot terminado, no de otra consulta posterior a la bi
 
 Se admiten archivos regulares de hasta 256 MiB por representación. La app prepara una base nueva, verifica que el contenido recuperado coincide y muestra el perfil de destino antes de reemplazar. No mezcla bibliotecas. La selección de archivos usa diálogos nativos.
 
-La configuración de carpeta vive en `backup-settings.json` junto a los datos del perfil y **no** se restaura desde el respaldo. Tampoco se incluyen rutas de máquina, tokens, logs, cachés del WebView o portadas. No se consulta Internet ni se aplican reglas de lectura en vivo al recuperar fechas históricas.
+La configuración de carpeta vive en `backup-settings.json` junto a los datos del perfil y **no** se restaura desde el respaldo. El modo solo local vive en `provider-network.json` y tampoco se exporta ni se modifica durante la recuperación. No se incluyen rutas de máquina, tokens, logs, cachés del WebView o portadas. No se consulta Internet ni se aplican reglas de lectura en vivo al recuperar fechas históricas.
+
+El selector de restauración presenta las dos generaciones completas válidas más recientes como **Actual** y **Anterior**, con fecha y hora locales. La elección conserva el ID exacto, vuelve a verificar manifiesto y archivos antes de preparar la copia y exige la confirmación habitual antes de reemplazar. Si la generación elegida desapareció, rotó fuera de las dos disponibles o fue alterada, no se sustituye silenciosamente por otra. La selección manual de un archivo SQLite o JSON sigue disponible mediante el diálogo nativo.
 
 Las copias `before-restore-*.sqlite` anteriores a un reemplazo quedan locales para recuperación; su retirada manual es independiente de la retención automática de generaciones. El usuario debe cerrar otras instancias antes de restaurar. Ante un fallo de reemplazo se intenta reabrir la biblioteca anterior y se informa la ubicación de seguridad si requiere intervención.

@@ -3,6 +3,7 @@
 
 export {
     Preview,
+    RestoreChoice,
     RestoreResult,
     Status
 } from "./models.js";

@@ -49,6 +49,8 @@ La selección se prepara en Go y se confirma mediante un token temporal, sin ace
 
 `internal/providers/health.go` integra diagnóstico y circuit breaker en las llamadas reales de cada adaptador. Mantiene estado efímero por proveedor, distingue acceso, límites, ausencia de registros y fallos de red/respuesta, e impide consultas en cola cuando el circuito se abre. El arranque dispara dos comprobaciones acotadas en paralelo; el cierre cancela sus contextos y espera su terminación. El frontend consulta estado por IPC sin generar sondeos remotos periódicos. Los cambios de clave reinician el circuito de Hardcover e invalidan resultados anteriores todavía en vuelo.
 
+`internal/providers/network.go` mantiene la política de red del perfil y protege los transportes HTTP de todos los adaptadores y descargas de portada. En solo local bloquea nuevas solicitudes y cancela el contexto de las existentes; las interrupciones intencionales no cuentan como fallos de proveedor. Cualquier adaptador futuro debe compartir esta política. El selector de respaldos usa IDs de generaciones validadas por Go, sin aceptar rutas construidas por el frontend.
+
 ## Distribución
 
 El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).

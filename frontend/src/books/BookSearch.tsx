@@ -23,6 +23,7 @@ export default function BookSearch({
   onWork,
   configured = false,
   catalogOnly = false,
+  localOnly = false,
 }: {
   medium: string;
   value: string;
@@ -33,6 +34,7 @@ export default function BookSearch({
   onWork?: (work: Work) => void;
   configured?: boolean;
   catalogOnly?: boolean;
+  localOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -81,6 +83,7 @@ export default function BookSearch({
       !results ||
       medium !== "books" ||
       !configured ||
+      localOnly ||
       value.trim().length < 2
     ) {
       setRemoteLoading(false);
@@ -104,7 +107,7 @@ export default function BookSearch({
       active = false;
       clearTimeout(timer);
     };
-  }, [open, results, medium, configured, value]);
+  }, [open, results, medium, configured, value, localOnly]);
   useEffect(() => {
     function outside(event: PointerEvent) {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
@@ -229,7 +232,12 @@ export default function BookSearch({
                   {remoteError}
                 </p>
               )}
-              {medium === "books" && !configured && (
+              {medium === "books" && localOnly && (
+                <p className="search-feedback">
+                  Modo solo local · Proveedores desactivados
+                </p>
+              )}
+              {medium === "books" && !configured && !localOnly && (
                 <p className="search-feedback">
                   Catálogo sin configurar · Claves en el encabezado
                 </p>
