@@ -78,4 +78,6 @@ La versión de aplicación no es la versión del esquema SQLite ni la del respal
 
 El check Windows valida contratos, frontend, bindings y paquete portable. El artefacto de PR usa perfil `test`. Después del merge, se repiten las verificaciones sobre el commit integrado y se publica el paquete `habitual` desde el artefacto de ese mismo run, sin recompilar en el job de publicación.
 
+Cada corte incorpora su documento de novedades en `docs/releases/` y actualiza `current.txt` para seleccionarlo. La verificación comprueba que existe y tiene contenido; la publicación lo usa como cuerpo de la release. El número real se asigna en Actions y no se adelanta en el documento. Ver el [procedimiento de notas](releases/README.md#preparar-las-notas-de-cada-corte).
+
 Ver [contratos](testing.md), [arquitectura](architecture.md) y [releases](releases/README.md).

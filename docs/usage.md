@@ -85,9 +85,11 @@ Una raíz alternativa siempre recibe la subcarpeta del perfil:
 
 El ejemplo usa `C:\TrovePruebas\test\`. No compartir el mismo directorio activo entre instancias durante una restauración.
 
-## Respaldo automático
+## Avisos de operaciones
 
 Los éxitos cotidianos se muestran como avisos flotantes sin desplazar el contenido. Se cierran a los 5 segundos, con pausa mientras tienen el foco o el puntero, y pueden descartarse manualmente. Los errores permanecen en el contexto de la operación.
+
+## Respaldo automático
 
 1. Abrir **Respaldo y restauración**.
 2. Elegir una carpeta distinta de los datos activos. Se agrega el nombre del perfil.
@@ -99,7 +101,11 @@ Un fallo de salida conserva el cambio local y la última copia válida. Se infor
 
 ## Restaurar
 
-Elegir un SQLite o JSON generado por esta función, revisar fecha/contenido/perfil y confirmar el reemplazo completo. Cualquiera de las representaciones válidas funciona sin la otra ni el manifiesto. No es una importación desde servicios externos.
+1. Abrir **Respaldo y restauración**. El selector muestra las generaciones completas válidas de la carpeta configurada como **Actual** y **Anterior**, con fecha y hora locales.
+2. Elegir la generación y pulsar **Revisar respaldo seleccionado**. La preparación vuelve a validar esa generación exacta; si cambió o ya no está disponible, se informa el problema sin elegir otra automáticamente.
+3. Revisar fecha, contenido y perfil de destino, marcar la confirmación y pulsar **Restaurar y reemplazar biblioteca**. **Cambiar selección** descarta la preparación sin reemplazar datos.
+
+También se puede usar **Seleccionar respaldo para restaurar** para elegir un SQLite o JSON generado por Trove desde el diálogo nativo. Cualquiera de las representaciones válidas funciona sin la otra ni el manifiesto al elegirla manualmente. No es una importación desde servicios externos.
 
 La preparación se valida antes del reemplazo y vence a los diez minutos. Se conserva una copia `before-restore-*.sqlite` en el perfil. Si falla el reemplazo se intenta reabrir la biblioteca anterior. La configuración de salida permanece ligada al perfil de destino.
 

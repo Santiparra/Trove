@@ -54,3 +54,5 @@ La selección se prepara en Go y se confirma mediante un token temporal, sin ace
 ## Distribución
 
 El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).
+
+Las novedades se conservan por corte en `docs/releases/`. `current.txt` selecciona el documento público que el script de publicación usa como cuerpo de la release, independientemente del título del PR y del mensaje de merge. La versión sigue procediendo de la identidad calculada por Actions.

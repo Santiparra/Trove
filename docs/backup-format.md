@@ -77,7 +77,7 @@ Las copias de formato 1 contienen solo `works.medium = books`; sus series no tie
 
 Los nuevos respaldos se escriben en formato 3. Las restauraciones antiguas se preparan sobre el esquema actual, sin aplicar fechas de lectura en vivo. Se admiten snapshots nativos identificados con esquemas SQLite 1, 2, 3 o 4 y formato compatible. Una aplicación anterior puede no admitir el esquema 4 o el formato 3.
 
-Restaurar una copia antigua es recuperar ese estado completo, que no contiene novelas ligeras: no conserva por mezcla las entradas añadidas después. La copia previa al reemplazo sí conserva el estado actual completo con ambos medios.
+Restaurar una copia anterior recupera exactamente ese estado completo: el formato 1 no contiene novelas ligeras y el formato 2 no contiene snapshots bibliográficos. No conserva por mezcla las entradas añadidas después. La copia previa al reemplazo sí conserva el estado actual completo.
 
 ## Respaldo nativo
 

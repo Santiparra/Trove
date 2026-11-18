@@ -1,6 +1,6 @@
 # Contratos y pruebas
 
-La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **35 escenarios core** actuales. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test.
+La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **35 escenarios core**, complementados por los contratos de catálogo, proveedores, modo solo local e interacción descritos más abajo. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test ni el total de pruebas de la aplicación.
 
 ## Catálogo de aceptación
 
@@ -67,3 +67,5 @@ La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resu
 `internal/providers/health_test.go` verifica pausa tras fallos, una única recuperación concurrente, solicitudes en cola, invalidación al cambiar credenciales, cancelaciones, latencia sin espera local, 404/429, comprobaciones acotadas, respuestas incompatibles y cierre con cancelación. Usa reloj controlado y servidores HTTP sintéticos, sin claves reales ni servicios externos. `frontend/src/catalog/ProviderHealth.test.tsx` comprueba resumen, estados diferenciados, acción manual y refresco exclusivamente local.
 
 `internal/providers/network_test.go` verifica persistencia por perfil, bloqueo de ambos catálogos y portadas, caché offline y cancelación durante una respuesta en curso. `internal/backup/manager_test.go` verifica selección exacta Actual/Anterior, revalidación ante alteraciones y copia previa al reemplazo. Las pruebas de interfaz cubren selección por fecha, modo solo local sin impedir la gestión personal y expiración/pausa de los toasts.
+
+Antes de los tests, `tools/verify.ps1` comprueba la sintaxis de los scripts, los enlaces Markdown locales y el documento de novedades elegido por `docs/releases/current.txt`. Una publicación usa esas notas y el artefacto ya validado; el PR no publica ni crea tags. Ver [publicaciones y artefactos](releases/README.md).
