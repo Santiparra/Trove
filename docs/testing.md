@@ -63,3 +63,5 @@ GitHub Actions ejecuta el check **Windows x64** solo en PR hacia `main` o push a
 La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resuelven antes de convertirlos en expectativas; casos negativos y recuperación se añaden por el riesgo que protegen, no para aumentar el número de tests.
 
 `frontend/src/books/BookSearch.test.tsx` verifica con reloj controlado la pausa de escritura, la cancelación de temporizadores pendientes y el orden local → proveedor, sin solicitudes reales. Los recorridos de autoría/serie desde fichas locales y remotas y el alta inmediata al elegir estado se verifican en `frontend/src/App.test.tsx`.
+
+`internal/providers/health_test.go` verifica pausa tras fallos, una única recuperación concurrente, solicitudes en cola, invalidación al cambiar credenciales, cancelaciones, latencia sin espera local, 404/429, comprobaciones acotadas, respuestas incompatibles y cierre con cancelación. Usa reloj controlado y servidores HTTP sintéticos, sin claves reales ni servicios externos. `frontend/src/catalog/ProviderHealth.test.tsx` comprueba resumen, estados diferenciados, acción manual y refresco exclusivamente local.

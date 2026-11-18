@@ -12,6 +12,8 @@ import App from "./App";
 import * as BackupService from "../bindings/github.com/Santiparra/Trove/internal/desktop/backups";
 const catalog = vi.hoisted(() => ({
   State: vi.fn(),
+  ProviderHealth: vi.fn(),
+  CheckProviders: vi.fn(),
   SaveKey: vi.fn(),
   ClearKey: vi.fn(),
   Search: vi.fn(),
@@ -112,6 +114,11 @@ function overview(withBook = false) {
 beforeEach(() => {
   vi.resetAllMocks();
   catalog.State.mockResolvedValue({ configured: true });
+  catalog.ProviderHealth.mockResolvedValue({
+    providers: [],
+    checking: false,
+    nextCheckAt: "",
+  });
   catalog.CoverDataURL.mockResolvedValue("");
   catalog.Search.mockResolvedValue({ works: [], warnings: [] });
   vi.mocked(BackupService.State).mockResolvedValue({

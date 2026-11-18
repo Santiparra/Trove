@@ -4,11 +4,11 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"html"
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -46,22 +46,40 @@ func (p *pace) wait(ctx context.Context) error {
 func responseJSON(response *http.Response, output any) error {
 	defer response.Body.Close()
 	if response.StatusCode == 401 || response.StatusCode == 403 {
-		return errors.New("el proveedor rechazó el acceso; revisá la clave y sus permisos de catálogo")
+		return failure("access", "el proveedor rechazó el acceso; revisá la clave y sus permisos de catálogo")
 	}
 	if response.StatusCode == 429 {
-		return errors.New("el proveedor alcanzó su límite; esperá antes de reintentar")
+		delay := recoveryDelay
+		if seconds, err := strconv.Atoi(response.Header.Get("Retry-After")); err == nil && seconds > 0 {
+			if seconds > 86400 {
+				seconds = 86400
+			}
+			delay = time.Duration(seconds) * time.Second
+		} else if date, err := http.ParseTime(response.Header.Get("Retry-After")); err == nil && time.Until(date) > 0 {
+			delay = time.Until(date)
+		}
+		if delay > 24*time.Hour {
+			delay = 24 * time.Hour
+		}
+		return &providerError{kind: "rate-limit", message: "el proveedor alcanzó su límite; esperá antes de reintentar", retry: delay}
+	}
+	if response.StatusCode == 404 {
+		return failure("missing", "el proveedor no encontró este registro")
+	}
+	if response.StatusCode == 400 || response.StatusCode == 422 {
+		return failure("request", "el proveedor no pudo resolver esta consulta")
 	}
 	if response.StatusCode != http.StatusOK {
-		return errors.New("el proveedor no está disponible; se conservan los datos locales")
+		return failure("service", "el proveedor no está disponible; se conservan los datos locales")
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, 2<<20+1))
 	if err != nil || len(data) > 2<<20 {
-		return errors.New("respuesta de catálogo demasiado grande o incompleta")
+		return failure("response", "respuesta de catálogo demasiado grande o incompleta")
 	}
 	decoder := json.NewDecoder(strings.NewReader(string(data)))
 	decoder.UseNumber()
 	if err = decoder.Decode(output); err != nil {
-		return errors.New("respuesta de catálogo inválida")
+		return failure("response", "respuesta de catálogo inválida")
 	}
 	return nil
 }

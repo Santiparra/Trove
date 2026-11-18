@@ -31,6 +31,18 @@ Desde la ficha se puede vincular o cambiar edición, refrescar metadata y desvin
 
 El alta manual sigue disponible sin clave ni conexión. Novelas ligeras conserva su flujo manual. La clave y las imágenes cacheadas no se exportan: tras restaurar en otra ubicación puede ser necesario configurar la clave y descargar portadas nuevamente.
 
+## Salud de proveedores
+
+El indicador **Proveedores**, junto a Claves y respaldos, muestra el último estado conocido de las APIs de Hardcover y Open Library. Al abrirlo se ven disponibilidad, duración de la última consulta, hora y posibles pausas. Una clave ausente o rechazada se distingue de un fallo de servicio. No comprueba las portadas ni garantiza que todas las operaciones del proveedor funcionen.
+
+- Al iniciar se ejecuta una comprobación breve por API en segundo plano, con presupuesto de 8 segundos y sin bloquear la biblioteca. Hardcover se omite si falta clave. Las consultas normales actualizan el mismo estado.
+- **Comprobar ahora** permite repetir el diagnóstico, como máximo una vez cada 15 segundos; respeta las pausas de cada proveedor. No hay sondeos remotos periódicos. El indicador refresca únicamente el estado local cada 3 segundos mientras la ventana es visible.
+- Tres fallos consecutivos observados pausan nuevas consultas durante un minuto. Después se admite una única consulta de recuperación; si funciona se reabre el acceso, y si falla se vuelve a pausar. Las solicitudes todavía en cola también respetan el circuito.
+- Un HTTP 429 pausa de inmediato, con al menos un minuto y respetando `Retry-After` hasta 24 horas. Un rechazo de acceso de Hardcover bloquea nuevas consultas hasta guardar nuevamente o reemplazar la clave. Quitarla muestra «Sin configurar».
+- Un registro ausente (404) no marca el proveedor como caído. Las cancelaciones locales no suman fallos. La duración excluye la espera local impuesta por el límite de ritmo.
+
+El diagnóstico no modifica la biblioteca ni sus snapshots; el estado de salud es temporal y no se exporta. Un problema de Open Library no lo convierte en proveedor principal ni impide usar los datos ya guardados.
+
 ## Estados y fechas
 
 Estados: Por leer, A continuación, Leyendo, Leído, Pausado y Sin terminar. A continuación se asigna manualmente.

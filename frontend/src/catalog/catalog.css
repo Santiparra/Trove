@@ -262,6 +262,45 @@
 .catalog-control {
   position: relative;
 }
+.provider-health-healthy {
+  color: #b9dbba;
+  border-color: #426045;
+}
+.provider-health-warning {
+  color: #e0c58f;
+  border-color: #74603c;
+}
+.provider-health-unknown {
+  color: #a6b4bd;
+}
+.provider-health-panel {
+  width: min(390px, calc(100vw - 40px));
+}
+.provider-health-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  border-bottom: 1px solid #34453c;
+  padding-bottom: 14px;
+}
+.provider-health-item p,
+.provider-health-item small {
+  grid-column: 1/-1;
+  line-height: 1.65;
+  color: #a7bbb1;
+}
+.provider-state {
+  font-size: 11px;
+  color: #b6c6c6;
+}
+.provider-state-healthy {
+  color: #b9dbba;
+}
+.provider-state-degraded,
+.provider-state-paused,
+.provider-state-access-denied {
+  color: #e0c58f;
+}
 .catalog-key-panel {
   position: absolute;
   top: calc(100% + 12px);
@@ -287,6 +326,17 @@
   color: #99b5a4;
 }
 @media (max-width: 1150px) {
+  .topbar {
+    height: auto;
+    min-height: 69px;
+    padding: 12px 0;
+  }
+  .topbar-actions {
+    gap: 6px;
+    flex-shrink: 1;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
   .book-profile-grid {
     grid-template-columns: 210px minmax(0, 1fr);
     gap: 22px;

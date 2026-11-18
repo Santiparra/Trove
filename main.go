@@ -60,7 +60,11 @@ func main() {
 	store.SetOnChange(backups.MarkDirty)
 	library := desktop.NewLibrary(books.NewService(store), cfg.Profile, cfg.DataDir, buildID, desktop.BuildInfo{Version: version, Revision: revision})
 	vault := credentials.New(cfg.DataDir)
-	catalogService := desktop.NewCatalog(catalog.New(providers.NewHardcover(vault.Get), providers.NewOpenLibrary()), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers")), library)
+	hardcover, openlibrary := providers.NewHardcover(vault.Get), providers.NewOpenLibrary()
+	health := providers.NewHealth(hardcover, openlibrary)
+	defer health.Close()
+	health.Check()
+	catalogService := desktop.NewCatalog(catalog.New(hardcover, openlibrary), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers")), library, health)
 	app := application.New(application.Options{
 		Name: "Trove", Description: "Biblioteca personal multimedia local",
 		Windows:  application.WindowsOptions{WebviewUserDataPath: filepath.Join(cfg.DataDir, "webview")},

@@ -47,6 +47,8 @@ La selección se prepara en Go y se confirma mediante un token temporal, sin ace
 
 `BookSearch` presenta primero coincidencias locales y después candidatos remotos en el mismo flotante. `BookProfile` comparte la presentación de fichas locales y remotas; la gestión depende de si existe registro personal. Go reconoce coincidencias antes del alta y prioriza la edición local o la más informativa al abrir una obra. Cambiar de edición se gestiona desde la propia ficha. La configuración de claves queda en el encabezado, separada del contenido bibliográfico.
 
+`internal/providers/health.go` integra diagnóstico y circuit breaker en las llamadas reales de cada adaptador. Mantiene estado efímero por proveedor, distingue acceso, límites, ausencia de registros y fallos de red/respuesta, e impide consultas en cola cuando el circuito se abre. El arranque dispara dos comprobaciones acotadas en paralelo; el cierre cancela sus contextos y espera su terminación. El frontend consulta estado por IPC sin generar sondeos remotos periódicos. Los cambios de clave reinician el circuito de Hardcover e invalidan resultados anteriores todavía en vuelo.
+
 ## Distribución
 
 El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).

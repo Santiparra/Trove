@@ -17,6 +17,7 @@ type OpenLibrary struct {
 	http     *http.Client
 	endpoint string
 	pace     pace
+	health   *monitor
 }
 
 func NewOpenLibrary() *OpenLibrary {
@@ -30,9 +31,15 @@ func NewOpenLibrary() *OpenLibrary {
 	return &OpenLibrary{http: httpClient, endpoint: "https://openlibrary.org", pace: pace{interval: time.Second}}
 }
 func (p *OpenLibrary) get(ctx context.Context, path string, out any) error {
+	if p.health != nil {
+		return p.health.run(ctx, p.pace.wait, func() error { return p.getRaw(ctx, path, out) })
+	}
 	if err := p.pace.wait(ctx); err != nil {
 		return errors.New("consulta secundaria cancelada")
 	}
+	return p.getRaw(ctx, path, out)
+}
+func (p *OpenLibrary) getRaw(ctx context.Context, path string, out any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.endpoint+path, nil)
 	if err != nil {
 		return errors.New("consulta secundaria inválida")
@@ -41,9 +48,15 @@ func (p *OpenLibrary) get(ctx context.Context, path string, out any) error {
 	req.Header.Set("User-Agent", userAgent)
 	response, err := p.http.Do(req)
 	if err != nil {
-		return errors.New("Open Library no está disponible")
+		return failure("network", "Open Library no está disponible")
 	}
-	return responseJSON(response, out)
+	err = responseJSON(response, out)
+	var problem *providerError
+	// This public API has no user key to replace; an access rejection must remain recoverable.
+	if errors.As(err, &problem) && problem.kind == "access" {
+		return failure("service", "Open Library rechazó temporalmente la consulta")
+	}
+	return err
 }
 
 var editionKey = regexp.MustCompile(`^/books/(OL[0-9]+M)$`)

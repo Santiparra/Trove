@@ -16,6 +16,8 @@ SQLite y los respaldos no tienen cifrado propio: quien acceda a los archivos pue
 
 Las búsquedas transmiten consulta o ISBN a Hardcover. Al seleccionar o refrescar una edición se consultan sus referencias y, cuando corresponde, el ISBN en Open Library. Las descargas de portadas exponen la IP al host de imágenes. No se consulta ni sincroniza la biblioteca personal de Hardcover.
 
+Al iniciar se comprueba la API de Hardcover (solo si hay clave) con una consulta de una referencia de catálogo, y Open Library con un ISBN público fijo de diagnóstico. Estas comprobaciones también exponen la IP, pero no envían títulos, notas ni progreso de la biblioteca. Se ejecutan una vez en segundo plano; se pueden repetir manualmente y no hay sondeos periódicos de red. El estado, los errores genéricos y los tiempos se conservan solo en memoria. Las consultas normales alimentan el mismo diagnóstico; los mensajes no incorporan cuerpos remotos ni credenciales.
+
 La clave se introduce en un campo protegido y se guarda por perfil en `catalog-credentials.bin`, cifrada con DPAPI para la cuenta Windows. No se devuelve al frontend ni se incluye en respaldos. Guardarla no comprueba su validez hasta la consulta. Quitarla conserva la biblioteca y sus snapshots.
 
 Go limita endpoints, HTTPS, redirecciones, tamaños y tiempos de espera; no devuelve cuerpos de error con credenciales. Las portadas se admiten solo desde `assets.hardcover.app`, `images.hardcover.app` y `covers.openlibrary.org`, se validan como imágenes raster y se sirven a React como data URL desde una caché local por perfil. No se envía la clave al descargar imágenes ni a Open Library. La metadata se presenta como texto, sin ejecutar HTML o SQL externo.

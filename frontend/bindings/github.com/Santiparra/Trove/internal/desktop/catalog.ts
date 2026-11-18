@@ -11,6 +11,9 @@ import * as books$0 from "../books/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as catalog$0 from "../catalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as providers$0 from "../providers/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -22,9 +25,15 @@ export function Add(token: string, seriesID: string, status: string): $Cancellab
     });
 }
 
+export function CheckProviders(): $CancellablePromise<providers$0.HealthReport> {
+    return $Call.ByID(1202160856).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function ClearKey(): $CancellablePromise<$models.CatalogState> {
     return $Call.ByID(712945670).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType2($result);
     });
 }
 
@@ -34,13 +43,13 @@ export function CoverDataURL(url: string): $CancellablePromise<string> {
 
 export function Editions(workID: string): $CancellablePromise<catalog$0.Edition[]> {
     return $Call.ByID(3217377773, workID).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function Link(bookID: string, token: string): $CancellablePromise<books$0.Book> {
     return $Call.ByID(3506587910, bookID, token).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
@@ -49,51 +58,58 @@ export function Link(bookID: string, token: string): $CancellablePromise<books$0
  */
 export function OpenWork(workID: string): $CancellablePromise<$models.CatalogPreview> {
     return $Call.ByID(1163671795, workID).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType6($result);
     });
 }
 
 export function Preview(editionID: string): $CancellablePromise<$models.CatalogPreview> {
     return $Call.ByID(4065591170, editionID).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType6($result);
+    });
+}
+
+export function ProviderHealth(): $CancellablePromise<providers$0.HealthReport> {
+    return $Call.ByID(3230990893).then(($result: any) => {
+        return $$createType1($result);
     });
 }
 
 export function Refresh(bookID: string): $CancellablePromise<books$0.Book> {
     return $Call.ByID(623700565, bookID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
 export function SaveKey(value: string): $CancellablePromise<$models.CatalogState> {
     return $Call.ByID(2351698418, value).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType2($result);
     });
 }
 
 export function Search(query: string): $CancellablePromise<catalog$0.SearchResult> {
     return $Call.ByID(3542086750, query).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType7($result);
     });
 }
 
 export function State(): $CancellablePromise<$models.CatalogState> {
     return $Call.ByID(2139015283).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType2($result);
     });
 }
 
 export function Unlink(bookID: string): $CancellablePromise<books$0.Book> {
     return $Call.ByID(3682714017, bookID).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
 // Private type creation functions
 const $$createType0 = books$0.CatalogResult.createFrom;
-const $$createType1 = $models.CatalogState.createFrom;
-const $$createType2 = catalog$0.Edition.createFrom;
-const $$createType3 = $Create.Array($$createType2);
-const $$createType4 = books$0.Book.createFrom;
-const $$createType5 = $models.CatalogPreview.createFrom;
-const $$createType6 = catalog$0.SearchResult.createFrom;
+const $$createType1 = providers$0.HealthReport.createFrom;
+const $$createType2 = $models.CatalogState.createFrom;
+const $$createType3 = catalog$0.Edition.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = books$0.Book.createFrom;
+const $$createType6 = $models.CatalogPreview.createFrom;
+const $$createType7 = catalog$0.SearchResult.createFrom;

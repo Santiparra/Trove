@@ -19,18 +19,25 @@ type Hardcover struct {
 	http     *http.Client
 	endpoint string
 	pace     pace
+	health   *monitor
 }
 
 func NewHardcover(token func() (string, error)) *Hardcover {
 	return &Hardcover{token: token, http: client(), endpoint: "https://api.hardcover.app/v1/graphql", pace: pace{interval: time.Second}}
 }
 func (p *Hardcover) query(ctx context.Context, query string, variables any, out any) error {
+	if p.health != nil {
+		return p.health.run(ctx, p.pace.wait, func() error { return p.queryRaw(ctx, query, variables, out) })
+	}
+	if err := p.pace.wait(ctx); err != nil {
+		return errors.New("consulta de catálogo cancelada")
+	}
+	return p.queryRaw(ctx, query, variables, out)
+}
+func (p *Hardcover) queryRaw(ctx context.Context, query string, variables any, out any) error {
 	token, err := p.token()
 	if err != nil || token == "" {
-		return errors.New("configurá una clave de lectura Hardcover para consultar el catálogo")
-	}
-	if err = p.pace.wait(ctx); err != nil {
-		return errors.New("consulta de catálogo cancelada")
+		return failure("unconfigured", "configurá una clave de lectura Hardcover para consultar el catálogo")
 	}
 	body, err := json.Marshal(map[string]any{"query": query, "variables": variables})
 	if err != nil {
@@ -46,7 +53,7 @@ func (p *Hardcover) query(ctx context.Context, query string, variables any, out 
 	req.Header.Set("User-Agent", userAgent)
 	response, err := p.http.Do(req)
 	if err != nil {
-		return errors.New("no se pudo conectar con Hardcover; los datos locales siguen disponibles")
+		return failure("network", "no se pudo conectar con Hardcover; los datos locales siguen disponibles")
 	}
 	var envelope struct {
 		Data   json.RawMessage   `json:"data"`
@@ -56,10 +63,22 @@ func (p *Hardcover) query(ctx context.Context, query string, variables any, out 
 		return err
 	}
 	if len(envelope.Errors) > 0 || len(envelope.Data) == 0 || string(envelope.Data) == "null" {
-		return errors.New("Hardcover no pudo resolver la consulta; revisá el acceso o reintentá más tarde")
+		for _, item := range envelope.Errors {
+			var problem struct {
+				Extensions struct {
+					Code string `json:"code"`
+				} `json:"extensions"`
+			}
+			_ = json.Unmarshal(item, &problem)
+			switch strings.ToLower(problem.Extensions.Code) {
+			case "invalid-jwt", "permission-denied", "access-denied", "unauthenticated", "forbidden":
+				return failure("access", "Hardcover rechazó el acceso; revisá la clave y sus permisos")
+			}
+		}
+		return failure("response", "Hardcover no pudo resolver la consulta; revisá el acceso o reintentá más tarde")
 	}
 	if err = json.Unmarshal(envelope.Data, out); err != nil {
-		return errors.New("Hardcover devolvió datos incompatibles")
+		return failure("response", "Hardcover devolvió datos incompatibles")
 	}
 	return nil
 }

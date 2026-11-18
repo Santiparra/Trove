@@ -29,6 +29,7 @@ import { readingSection, readingLabels } from "./books/readingMedia";
 import CatalogPage from "./catalog/CatalogPage";
 import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
 import CatalogControl from "./catalog/CatalogControl";
+import ProviderHealth from "./catalog/ProviderHealth";
 import EditionPicker from "./catalog/EditionPicker";
 
 const media: { key: string; label: string; icon: IconName }[] = [
@@ -503,6 +504,10 @@ export default function App() {
             )}
           </span>
           <div className="topbar-actions">
+            <ProviderHealth
+              disabled={busy || !!deleteTarget}
+              configured={!!catalogState?.configured}
+            />
             <CatalogControl
               state={catalogState}
               disabled={busy || !!deleteTarget}

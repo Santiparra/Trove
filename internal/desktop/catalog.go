@@ -9,6 +9,7 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	cat "github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/providers"
 )
 
 type CatalogKey interface {
@@ -33,6 +34,7 @@ type previewEntry struct {
 	at       time.Time
 }
 type Catalog struct {
+	health   *providers.Health
 	service  *cat.Service
 	key      CatalogKey
 	covers   CatalogCovers
@@ -41,8 +43,8 @@ type Catalog struct {
 	previews map[string]previewEntry
 }
 
-func NewCatalog(service *cat.Service, key CatalogKey, covers CatalogCovers, library *Library) *Catalog {
-	return &Catalog{service: service, key: key, covers: covers, library: library, previews: map[string]previewEntry{}}
+func NewCatalog(service *cat.Service, key CatalogKey, covers CatalogCovers, library *Library, health *providers.Health) *Catalog {
+	return &Catalog{service: service, key: key, covers: covers, library: library, health: health, previews: map[string]previewEntry{}}
 }
 func (c *Catalog) State() CatalogState {
 	token, err := c.key.Get()
@@ -57,11 +59,17 @@ func (c *Catalog) SaveKey(value string) (CatalogState, error) {
 	if err := c.key.Save(value); err != nil {
 		return c.State(), err
 	}
+	if c.health != nil {
+		c.health.CredentialsChanged()
+	}
 	return c.State(), nil
 }
 func (c *Catalog) ClearKey() (CatalogState, error) {
 	if err := c.key.Clear(); err != nil {
 		return c.State(), err
+	}
+	if c.health != nil {
+		c.health.CredentialsChanged()
 	}
 	return c.State(), nil
 }
@@ -69,6 +77,19 @@ func (c *Catalog) Search(query string) (cat.SearchResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 	return c.service.Search(ctx, query)
+}
+
+func (c *Catalog) ProviderHealth() providers.HealthReport {
+	if c.health == nil {
+		return providers.HealthReport{Providers: []providers.ProviderStatus{}}
+	}
+	return c.health.State()
+}
+func (c *Catalog) CheckProviders() providers.HealthReport {
+	if c.health == nil {
+		return providers.HealthReport{Providers: []providers.ProviderStatus{}}
+	}
+	return c.health.Check()
 }
 func (c *Catalog) Editions(workID string) ([]cat.Edition, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)

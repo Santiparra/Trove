@@ -57,7 +57,7 @@ func TestCatalogWorkOpensInformativeEditionThenRecognizesLocalCopy(t *testing.T)
 	defer s.Close()
 	library := NewLibrary(books.NewService(s), "test", "synthetic", "contract")
 	remote := &catalogChoices{}
-	adapter := NewCatalog(cat.New(remote, nil), &catalogKey{}, catalogImages{}, library)
+	adapter := NewCatalog(cat.New(remote, nil), &catalogKey{}, catalogImages{}, library, nil)
 	preview, err := adapter.OpenWork("10")
 	if err != nil || remote.selected != "22" || preview.Match != nil {
 		t.Fatalf("no abrió edición informativa: %+v %v", preview, err)
@@ -81,7 +81,7 @@ func TestCatalogPreviewIsTemporaryAndFailedRefreshKeepsLastSnapshot(t *testing.T
 	defer s.Close()
 	library := NewLibrary(books.NewService(s), "test", "synthetic", "contract")
 	remote := &catalogRemote{}
-	adapter := NewCatalog(cat.New(remote, nil), &catalogKey{}, catalogImages{}, library)
+	adapter := NewCatalog(cat.New(remote, nil), &catalogKey{}, catalogImages{}, library, nil)
 	preview, err := adapter.Preview("20")
 	if err != nil {
 		t.Fatal(err)
