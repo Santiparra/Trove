@@ -13,6 +13,7 @@ try {
         if ($errors.Count -ne 0) { throw "Sintaxis inválida en $($script.Name): $($errors -join '; ')" }
     }
     $documents = @((Get-Item -LiteralPath (Join-Path $root 'README.md'))) + @(Get-ChildItem -LiteralPath (Join-Path $root 'docs') -Recurse -Filter '*.md')
+    [void](Get-ReleaseNotesPath $root)
     foreach ($document in $documents) {
         $text = Get-Content -LiteralPath $document.FullName -Raw
         foreach ($link in [regex]::Matches($text, '\]\(([^)#]+\.md)(?:#[^)]*)?\)')) {

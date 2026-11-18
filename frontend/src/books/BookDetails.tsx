@@ -1,13 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type {
   Book,
   Series,
 } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
-import BookCover from "./BookCover";
 import StatusSelect from "./StatusSelect";
-import { dateLabel, labelFor, seriesLabel } from "./presentation";
+import { dateLabel } from "./presentation";
+import { readingLabels } from "./readingMedia";
+import BookProfile from "./BookProfile";
 
 export default function BookDetails({
   book,
@@ -18,10 +19,16 @@ export default function BookDetails({
   onDelete,
   onStatus,
   onSeries,
+  onSearch,
   onFavorite,
   onOwned,
   onNotes,
   onDirty,
+  onCatalog,
+  onRefresh,
+  onUnlink,
+  editions,
+  localOnly,
 }: {
   book: Book;
   info: Info;
@@ -31,42 +38,36 @@ export default function BookDetails({
   onDelete: (book: Book) => void;
   onStatus: (book: Book, status: string) => void;
   onSeries: (series: Series) => void;
+  onSearch: (query: string) => void;
   onFavorite: (book: Book, value: boolean) => void;
   onOwned: (book: Book, value: boolean) => void;
   onNotes: (book: Book, notes: string) => Promise<void>;
   onDirty: (value: boolean) => void;
+  onCatalog: () => void;
+  onRefresh: () => void;
+  onUnlink: () => void;
+  editions?: ReactNode;
+  localOnly: boolean;
 }) {
   const [notes, setNotes] = useState(book.notes);
-  useEffect(() => {
-    setNotes(book.notes);
-  }, [book.id, book.notes]);
-  useEffect(() => {
-    onDirty(notes !== book.notes);
-  }, [notes, book.notes, onDirty]);
+  const labels = readingLabels(book.medium);
+  useEffect(() => setNotes(book.notes), [book.id, book.notes]);
+  useEffect(() => onDirty(notes !== book.notes), [notes, book.notes, onDirty]);
   return (
-    <section className="book-page" aria-label="Detalle del libro">
-      <button className="back-link" onClick={onBack} disabled={busy}>
-        <Icon name="arrow" size={17} /> Volver
-      </button>
-      <div className="book-hero">
-        <div className="hero-cover">
-          <BookCover book={book} />
-        </div>
-        <div className="book-hero-text">
-          <p className="eyebrow">EN TU BIBLIOTECA · REGISTRO LOCAL</p>
-          {book.series && (
-            <button
-              className="series-title hero-series-title"
-              onClick={() => onSeries(book.series!)}
-              disabled={busy}
-            >
-              {seriesLabel(book)}
-            </button>
-          )}
-          <h1>{book.title}</h1>
-          <p className="hero-author">
-            {book.authors.join(" · ") || "Autoría sin especificar"}
-          </p>
+    <BookProfile
+      book={book}
+      busy={busy}
+      onBack={onBack}
+      onSeries={onSeries}
+      onSearch={onSearch}
+      management={
+        <>
+          <StatusSelect
+            book={book}
+            options={info.statuses}
+            disabled={busy}
+            onChange={onStatus}
+          />
           <div className="personal-flags">
             <button
               className={`flag-button ${book.favorite ? "is-active" : ""}`}
@@ -85,38 +86,44 @@ export default function BookDetails({
               <Icon name="check" size={16} /> En propiedad
             </button>
           </div>
-          <div className="book-actions">
-            <StatusSelect
-              book={book}
-              options={info.statuses}
-              disabled={busy}
-              onChange={onStatus}
-            />
-            <button className="secondary" onClick={onEdit} disabled={busy}>
-              <Icon name="edit" size={16} /> Editar libro
-            </button>
-            <button
-              className="quiet danger-text"
-              onClick={() => onDelete(book)}
-              disabled={busy}
-            >
-              <Icon name="trash" size={16} /> Eliminar libro
-            </button>
-          </div>
-          <p className="local-hint">
-            Al empezar se registra el inicio; al completar, el fin solo si hay
-            inicio. Podés editar ambas fechas.
-          </p>
-        </div>
-      </div>
-      <div className="book-detail-grid">
-        <section className="portal-card">
-          <div className="card-heading">
-            <h2>Tu lectura</h2>
-          </div>
-          <dl className="book-facts">
-            <dt>Estado</dt>
-            <dd>{labelFor(info.statuses, book.cycle.status)}</dd>
+          <button className="secondary" onClick={onEdit} disabled={busy}>
+            <Icon name="edit" size={16} /> {labels.edit}
+          </button>
+          {book.medium === "books" && (
+            <>
+              <button
+                className="quiet"
+                disabled={busy || localOnly}
+                onClick={onCatalog}
+              >
+                {book.edition.catalog
+                  ? "Cambiar edición vinculada"
+                  : "Vincular edición de catálogo"}
+              </button>
+              {book.edition.catalog && (
+                <>
+                  <button
+                    className="quiet"
+                    disabled={busy || localOnly}
+                    onClick={onRefresh}
+                  >
+                    Refrescar metadata
+                  </button>
+                  <button className="quiet" disabled={busy} onClick={onUnlink}>
+                    Desvincular catálogo
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          <button
+            className="quiet danger-text"
+            disabled={busy}
+            onClick={() => onDelete(book)}
+          >
+            <Icon name="trash" size={16} /> Eliminar {labels.item}
+          </button>
+          <dl className="profile-facts personal-dates">
             <dt>Añadido</dt>
             <dd>{dateLabel(book.addedOn)}</dd>
             <dt>Inicio</dt>
@@ -124,61 +131,39 @@ export default function BookDetails({
             <dt>Finalización</dt>
             <dd>{dateLabel(book.cycle.finishedOn)}</dd>
           </dl>
-        </section>
-        <section className="portal-card">
-          <div className="card-heading">
-            <h2>Obra y edición</h2>
-          </div>
-          <dl className="book-facts">
-            <dt>Serie</dt>
-            <dd>
-              {book.series ? (
-                <button
-                  className="series-title"
-                  onClick={() => onSeries(book.series!)}
-                  disabled={busy}
-                >
-                  {seriesLabel(book)}
-                </button>
-              ) : (
-                "Sin serie"
-              )}
-            </dd>
-            <dt>Idioma</dt>
-            <dd>{book.edition.language || "Sin especificar"}</dd>
-            <dt>Formato</dt>
-            <dd>{labelFor(info.formats, book.edition.format)}</dd>
-            <dt>ISBN / ID</dt>
-            <dd>{book.edition.identifier || "Sin especificar"}</dd>
-            <dt>Propiedad</dt>
-            <dd>
-              {book.edition.owned ? "En propiedad" : "No marcado en propiedad"}
-            </dd>
-          </dl>
-        </section>
-        <section className="portal-card full-width-card">
-          <div className="card-heading">
-            <h2>Notas personales</h2>
-            <button
-              className="small-save"
-              disabled={busy || notes === book.notes}
-              onClick={() => void onNotes(book, notes)}
-            >
-              Guardar notas
-            </button>
-          </div>
-          <label className="inline-notes">
-            <span className="sr-only">Notas personales del libro</span>
-            <textarea
-              value={notes}
-              disabled={busy}
-              rows={5}
-              placeholder="Tus impresiones, ideas o recordatorios…"
-              onChange={(event) => setNotes(event.target.value)}
-            />
-          </label>
-        </section>
-      </div>
-    </section>
+        </>
+      }
+    >
+      {editions}
+      {!!book.edition.catalog?.warnings?.length && (
+        <ul className="catalog-warnings">
+          {book.edition.catalog.warnings.map((warning, index) => (
+            <li key={index}>{warning}</li>
+          ))}
+        </ul>
+      )}
+      <section className="portal-card profile-notes">
+        <div className="card-heading">
+          <h2>Notas personales</h2>
+          <button
+            className="small-save"
+            disabled={busy || notes === book.notes}
+            onClick={() => void onNotes(book, notes)}
+          >
+            Guardar notas
+          </button>
+        </div>
+        <label className="inline-notes">
+          <span className="sr-only">Notas personales del {labels.item}</span>
+          <textarea
+            value={notes}
+            disabled={busy}
+            rows={4}
+            placeholder="Tus impresiones, ideas o recordatorios…"
+            onChange={(event) => setNotes(event.target.value)}
+          />
+        </label>
+      </section>
+    </BookProfile>
   );
 }

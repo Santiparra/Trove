@@ -42,6 +42,69 @@ func generations(t *testing.T, folder string) []string {
 	return result
 }
 
+func TestRestoreChoicesSelectExactGenerationAndRevalidateBeforePreparation(t *testing.T) {
+	ctx := context.Background()
+	base := t.TempDir()
+	store, err := sqlite.Open(filepath.Join(base, "profile", "trove.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	service := books.NewService(store)
+	b, err := service.Save(ctx, books.Input{Title: "Sintético", Status: "to-read", Notes: "Anterior"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m := backup.New(store, filepath.Join(base, "profile"), "test")
+	defer m.Close()
+	state, err := m.Configure(ctx, filepath.Join(base, "backups"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := state.Generation
+	if _, err = service.SaveNotes(ctx, b.ID, "Actual"); err != nil {
+		t.Fatal(err)
+	}
+	m.MarkDirty()
+	if err = m.Flush(ctx); err != nil {
+		t.Fatal(err)
+	}
+	current := m.State().Generation
+	choices, err := m.RestoreChoices()
+	if err != nil || len(choices) != 2 || choices[0].Label != "Actual" || choices[0].Generation != current || choices[1].Label != "Anterior" || choices[1].Generation != previous || choices[0].CreatedAt == "" || choices[1].CreatedAt == "" {
+		t.Fatalf("opciones incorrectas: %+v %v", choices, err)
+	}
+	p, err := m.PreviewGeneration(ctx, previous)
+	if err != nil || p.Generation != previous {
+		t.Fatal("no preparó generación elegida")
+	}
+	stored, _ := service.Get(ctx, b.ID)
+	if stored.Notes != "Actual" {
+		t.Fatal("vista previa modificó biblioteca")
+	}
+	result, err := m.ConfirmRestore(ctx, p.Token)
+	if err != nil || result.SafetyCopy == "" {
+		t.Fatal("restauración sin copia previa")
+	}
+	stored, _ = service.Get(ctx, b.ID)
+	if stored.Notes != "Anterior" {
+		t.Fatal("restauró generación incorrecta")
+	}
+	if _, err = m.PreviewGeneration(ctx, "../unknown"); err == nil {
+		t.Fatal("aceptó generación ajena")
+	}
+	if err = os.WriteFile(filepath.Join(state.Folder, "generation-"+current, "trove.sqlite"), []byte("corrupt"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = m.PreviewGeneration(ctx, current); err == nil {
+		t.Fatal("no revalidó generación alterada")
+	}
+	stored, _ = service.Get(ctx, b.ID)
+	if stored.Notes != "Anterior" {
+		t.Fatal("fallo modificó biblioteca")
+	}
+}
+
 func TestAutomaticGenerationsRetentionFailureAndRestoreBothFormats(t *testing.T) {
 	ctx := context.Background()
 	root := t.TempDir()

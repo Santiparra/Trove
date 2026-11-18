@@ -62,6 +62,35 @@ export class Preview {
     }
 }
 
+export class RestoreChoice {
+    "generation": string;
+    "label": string;
+    "createdAt": string;
+
+    /** Creates a new RestoreChoice instance. */
+    constructor($$source: Partial<RestoreChoice> = {}) {
+        if (!("generation" in $$source)) {
+            this["generation"] = "";
+        }
+        if (!("label" in $$source)) {
+            this["label"] = "";
+        }
+        if (!("createdAt" in $$source)) {
+            this["createdAt"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new RestoreChoice instance from a string or object.
+     */
+    static createFrom($$source: any = {}): RestoreChoice {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new RestoreChoice($$parsedSource as Partial<RestoreChoice>);
+    }
+}
+
 export class RestoreResult {
     "safetyCopy": string;
     "works": number;

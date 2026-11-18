@@ -15,6 +15,18 @@ function Set-ProjectTemp {
     $env:TMP = $temp
 }
 
+function Get-ReleaseNotesPath {
+    param([string]$Root)
+    $folder = Join-Path $Root 'docs/releases'
+    $name = (Get-Content -LiteralPath (Join-Path $folder 'current.txt') -Raw -Encoding UTF8).Trim()
+    if ($name -cnotmatch '^[a-z0-9][a-z0-9-]*\.md$' -or $name -ieq 'README.md') { throw 'La selección de novedades debe identificar un documento de corte dentro de docs/releases/.' }
+    $path = Join-Path $folder $name
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'No existe el documento de novedades seleccionado.' }
+    $notes = Get-Content -LiteralPath $path -Raw -Encoding UTF8
+    if ([string]::IsNullOrWhiteSpace($notes) -or $notes -notmatch '(?m)^#\s+\S') { throw 'El documento de novedades está vacío o no tiene título.' }
+    return $path
+}
+
 function Get-ArtifactDirectory {
     param([string]$Root, [string]$RelativePath)
     $path = [System.IO.Path]::GetFullPath((Join-Path $Root $RelativePath))

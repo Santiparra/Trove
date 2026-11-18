@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({
   ChooseFolder: vi.fn(),
   BackupNow: vi.fn(),
   ChooseRestore: vi.fn(),
+  RestoreChoices: vi.fn(),
+  PreviewGeneration: vi.fn(),
   CancelRestore: vi.fn(),
   ConfirmRestore: vi.fn(),
 }));
@@ -43,6 +45,7 @@ const preview = {
 };
 beforeEach(() => {
   vi.resetAllMocks();
+  api.RestoreChoices.mockResolvedValue([]);
   api.State.mockResolvedValue(state);
   api.ChooseRestore.mockResolvedValue(preview);
   api.CancelRestore.mockResolvedValue(undefined);
@@ -50,6 +53,51 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("restauración confirmada", () => {
+  it("permite seleccionar Actual o Anterior con fecha y valida la generación exacta antes de confirmar", async () => {
+    api.RestoreChoices.mockResolvedValue([
+      {
+        generation: "current",
+        label: "Actual",
+        createdAt: "2026-01-02T12:30:00Z",
+      },
+      {
+        generation: "previous",
+        label: "Anterior",
+        createdAt: "2026-01-01T08:15:00Z",
+      },
+    ]);
+    api.PreviewGeneration.mockResolvedValue({
+      ...preview,
+      generation: "previous",
+    });
+    render(
+      <BackupPanel
+        state={state}
+        onState={vi.fn()}
+        onClose={vi.fn()}
+        onRestored={vi.fn()}
+      />,
+    );
+    await screen.findByRole("option", { name: /Anterior/ });
+    const previous = screen.getByRole("option", { name: /Anterior/ });
+    expect(previous.textContent).toContain(
+      new Date("2026-01-01T08:15:00Z").toLocaleString("es"),
+    );
+    fireEvent.change(screen.getByLabelText("Generación a restaurar"), {
+      target: { value: "previous" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Revisar respaldo seleccionado" }),
+    );
+    expect(
+      await screen.findByRole("button", {
+        name: "Restaurar y reemplazar biblioteca",
+      }),
+    ).toHaveProperty("disabled", true);
+    expect(api.PreviewGeneration).toHaveBeenCalledExactlyOnceWith("previous");
+    expect(api.ConfirmRestore).not.toHaveBeenCalled();
+    expect(api.ChooseRestore).not.toHaveBeenCalled();
+  });
   it("validar no restaura y el reemplazo exige una confirmación explícita", async () => {
     const restored = vi.fn();
     api.ConfirmRestore.mockResolvedValue({

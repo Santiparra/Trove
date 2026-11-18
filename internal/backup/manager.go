@@ -49,6 +49,61 @@ type RestoreResult struct {
 	SafetyCopy string `json:"safetyCopy"`
 	Works      int    `json:"works"`
 }
+type RestoreChoice struct {
+	Generation string `json:"generation"`
+	Label      string `json:"label"`
+	CreatedAt  string `json:"createdAt"`
+}
+
+func (m *Manager) restoreChoices() ([]generation, error) {
+	folder := m.State().Folder
+	if folder == "" {
+		return []generation{}, nil
+	}
+	items, err := completeGenerations(folder)
+	if errors.Is(err, os.ErrNotExist) {
+		return []generation{}, nil
+	}
+	if err != nil {
+		return nil, errors.New("no se pudieron leer las generaciones de respaldo")
+	}
+	if len(items) > 2 {
+		items = items[:2]
+	}
+	return items, nil
+}
+func (m *Manager) RestoreChoices() ([]RestoreChoice, error) {
+	m.op.Lock()
+	defer m.op.Unlock()
+	items, err := m.restoreChoices()
+	if err != nil {
+		return nil, err
+	}
+	choices := make([]RestoreChoice, 0, len(items))
+	for i, item := range items {
+		label := "Actual"
+		if i == 1 {
+			label = "Anterior"
+		}
+		choices = append(choices, RestoreChoice{Generation: item.Generation, Label: label, CreatedAt: item.CreatedAt})
+	}
+	return choices, nil
+}
+func (m *Manager) PreviewGeneration(ctx context.Context, id string) (Preview, error) {
+	m.op.Lock()
+	defer m.op.Unlock()
+	items, err := m.restoreChoices()
+	if err != nil {
+		return Preview{}, err
+	}
+	for _, item := range items {
+		if item.Generation == id {
+			return m.previewRestore(ctx, filepath.Join(item.path, "trove.sqlite"), &item.manifest)
+		}
+	}
+	return Preview{}, errors.New("el respaldo seleccionado ya no está disponible o no pasó la validación; actualizá la selección")
+}
+
 type manifest struct {
 	Format      string `json:"format"`
 	Version     int    `json:"version"`
@@ -437,6 +492,9 @@ func (m *Manager) clearPrepared() {
 func (m *Manager) PreviewRestore(ctx context.Context, source string) (Preview, error) {
 	m.op.Lock()
 	defer m.op.Unlock()
+	return m.previewRestore(ctx, source, nil)
+}
+func (m *Manager) previewRestore(ctx context.Context, source string, expected *manifest) (Preview, error) {
 	m.clearPrepared()
 	dir, err := os.MkdirTemp(m.dir, ".restore-")
 	if err != nil {
@@ -468,6 +526,9 @@ func (m *Manager) PreviewRestore(ctx context.Context, source string) (Preview, e
 	}
 	if err = doc.Validate(); err != nil {
 		return Preview{}, err
+	}
+	if expected != nil && (doc.Generation != expected.Generation || doc.CreatedAt != expected.CreatedAt || doc.ContentHash() != expected.ContentHash) {
+		return Preview{}, errors.New("el respaldo seleccionado cambió; actualizá la selección")
 	}
 	path := filepath.Join(dir, "prepared.sqlite")
 	if err = m.backend.Prepare(ctx, doc, path); err != nil {

@@ -11,8 +11,11 @@ import (
 
 	"github.com/Santiparra/Trove/internal/backup"
 	"github.com/Santiparra/Trove/internal/books"
+	"github.com/Santiparra/Trove/internal/catalog"
 	"github.com/Santiparra/Trove/internal/config"
+	"github.com/Santiparra/Trove/internal/credentials"
 	"github.com/Santiparra/Trove/internal/desktop"
+	"github.com/Santiparra/Trove/internal/providers"
 	"github.com/Santiparra/Trove/internal/storage/sqlite"
 	"github.com/wailsapp/wails/v3/pkg/application"
 )
@@ -56,10 +59,20 @@ func main() {
 	defer backups.Close()
 	store.SetOnChange(backups.MarkDirty)
 	library := desktop.NewLibrary(books.NewService(store), cfg.Profile, cfg.DataDir, buildID, desktop.BuildInfo{Version: version, Revision: revision})
+	vault := credentials.New(cfg.DataDir)
+	hardcover, openlibrary := providers.NewHardcover(vault.Get), providers.NewOpenLibrary()
+	network, err := providers.NewNetworkPolicy(cfg.DataDir)
+	if err != nil {
+		log.Fatal(err)
+	}
+	health := providers.NewHealth(hardcover, openlibrary, network)
+	defer health.Close()
+	health.Check()
+	catalogService := desktop.NewCatalog(catalog.New(hardcover, openlibrary), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers"), network), library, health)
 	app := application.New(application.Options{
 		Name: "Trove", Description: "Biblioteca personal multimedia local",
 		Windows:  application.WindowsOptions{WebviewUserDataPath: filepath.Join(cfg.DataDir, "webview")},
-		Services: []application.Service{application.NewService(library)},
+		Services: []application.Service{application.NewService(library), application.NewService(catalogService)},
 		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 	})
 	app.RegisterService(application.NewService(desktop.NewBackups(backups, library,

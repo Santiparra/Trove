@@ -3,12 +3,18 @@ package books
 
 import (
 	"errors"
+	"github.com/Santiparra/Trove/internal/catalog"
 	"math"
 	"strings"
 	"time"
 )
 
-var ErrNotFound = errors.New("el libro ya no existe; actualizá el listado")
+var ErrNotFound = errors.New("el registro no existe en este medio; actualizá el listado")
+
+const MediumBooks = "books"
+const MediumLightNovels = "light-novels"
+
+func ValidMedium(medium string) bool { return medium == MediumBooks || medium == MediumLightNovels }
 
 func ValidStatus(status string) bool {
 	switch status {
@@ -27,17 +33,20 @@ func ValidFormat(format string) bool {
 }
 
 type Series struct {
+	Medium   string   `json:"medium"`
 	ID       string   `json:"id"`
 	Name     string   `json:"name"`
 	Position *float64 `json:"position"`
 }
 
 type Edition struct {
-	ID         string `json:"id"`
-	Language   string `json:"language"`
-	Format     string `json:"format"`
-	Identifier string `json:"identifier"`
-	Owned      bool   `json:"owned"`
+	Identifiers []catalog.Identifier `json:"identifiers"`
+	Catalog     *catalog.Snapshot    `json:"catalog"`
+	ID          string               `json:"id"`
+	Language    string               `json:"language"`
+	Format      string               `json:"format"`
+	Identifier  string               `json:"identifier"`
+	Owned       bool                 `json:"owned"`
 }
 
 // Cycle is a single reading. A future rereading will create a new cycle, not reset this one.
@@ -49,6 +58,7 @@ type Cycle struct {
 }
 
 type Book struct {
+	Medium   string   `json:"medium"`
 	ID       string   `json:"id"`
 	Title    string   `json:"title"`
 	Authors  []string `json:"authors"`
@@ -62,6 +72,7 @@ type Book struct {
 
 // Input intentionally excludes database, edition and cycle identifiers.
 type Input struct {
+	Medium           string   `json:"medium"`
 	ID               string   `json:"id"`
 	Title            string   `json:"title"`
 	Authors          []string `json:"authors"`
@@ -103,6 +114,12 @@ func (c Cycle) Transition(next, today string, editStart, editFinish bool) (Cycle
 }
 
 func (in Input) Normalize(today string) (Input, error) {
+	if in.Medium == "" {
+		in.Medium = MediumBooks
+	}
+	if !ValidMedium(in.Medium) {
+		return in, errors.New("el medio de lectura no es válido")
+	}
 	in.ID = strings.TrimSpace(in.ID)
 	in.Title = strings.TrimSpace(in.Title)
 	in.SeriesName = strings.Join(strings.Fields(in.SeriesName), " ")

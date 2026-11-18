@@ -1,6 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Library from "../bindings/github.com/Santiparra/Trove/internal/desktop/library";
-import type { Info } from "../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type {
+  Info,
+  CatalogPreview,
+  CatalogState,
+} from "../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type { Work } from "../bindings/github.com/Santiparra/Trove/internal/catalog/models";
 import type {
   Book,
   Dashboard,
@@ -14,8 +19,19 @@ import BookDetails from "./books/BookDetails";
 import BookEditor from "./books/BookEditor";
 import BookSearch from "./books/BookSearch";
 import DeleteDialog from "./books/DeleteDialog";
-import { errorMessage, labelFor } from "./books/presentation";
+import {
+  errorMessage,
+  labelFor,
+  representedInLibrary,
+} from "./books/presentation";
 import BackupControl from "./backup/BackupControl";
+import { readingSection, readingLabels } from "./books/readingMedia";
+import CatalogPage from "./catalog/CatalogPage";
+import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
+import CatalogControl from "./catalog/CatalogControl";
+import ProviderHealth from "./catalog/ProviderHealth";
+import SuccessToast from "./components/SuccessToast";
+import EditionPicker from "./catalog/EditionPicker";
 
 const media: { key: string; label: string; icon: IconName }[] = [
   { key: "books", label: "Libros", icon: "books" },
@@ -26,11 +42,33 @@ const media: { key: string; label: string; icon: IconName }[] = [
   { key: "tv", label: "Series de TV", icon: "tv" },
   { key: "movies", label: "Películas", icon: "movies" },
 ];
-type View = "portal" | "list" | "series" | "detail" | "create" | "edit";
+type View =
+  | "portal"
+  | "list"
+  | "series"
+  | "detail"
+  | "create"
+  | "edit"
+  | "catalog";
 
 export default function App() {
   const [section, setSection] = useState("books");
+  const reader = readingSection(section);
+  const currentMedium = reader?.medium || "books";
+  const labels = readingLabels(currentMedium);
   const [view, setView] = useState<View>("portal");
+  const [catalogTarget, setCatalogTarget] = useState<Book | null>(null);
+  const [catalogPreview, setCatalogPreview] = useState<CatalogPreview | null>(
+    null,
+  );
+  const [catalogState, setCatalogState] = useState<CatalogState | null>(null);
+  const [showEditions, setShowEditions] = useState(false);
+  const [remoteWorks, setRemoteWorks] = useState<Work[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState("");
+  const [catalogReturn, setCatalogReturn] = useState<
+    "portal" | "list" | "series" | "detail"
+  >("portal");
   const [returnTo, setReturnTo] = useState<"portal" | "list" | "series">(
     "portal",
   );
@@ -48,18 +86,74 @@ export default function App() {
   const [loadError, setLoadError] = useState("");
   const [listError, setListError] = useState("");
   const [actionError, setActionError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNoticeValue] = useState<{
+    id: number;
+    message: string;
+  } | null>(null);
+  const noticeSequence = useRef(0);
+  function setNotice(message: string) {
+    setNoticeValue(message ? { id: ++noticeSequence.current, message } : null);
+  }
+  const [localOnly, setLocalOnly] = useState(false);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState<Book | null>(null);
   const [dirty, setDirty] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Book | null>(null);
   const [showStorage, setShowStorage] = useState(false);
   const editing = view === "create" || view === "edit";
+  useEffect(() => {
+    Catalog.State()
+      .then(setCatalogState)
+      .catch(() => setCatalogState(null));
+  }, []);
+  useEffect(() => {
+    setRemoteWorks([]);
+    setRemoteError("");
+    if (
+      (view !== "list" && view !== "series") ||
+      currentMedium !== "books" ||
+      query.trim().length < 2 ||
+      status ||
+      !catalogState?.configured ||
+      localOnly
+    ) {
+      setRemoteLoading(false);
+      return;
+    }
+    let active = true;
+    setRemoteLoading(true);
+    const timer = setTimeout(() => {
+      Catalog.Search(query)
+        .then((result) => {
+          if (active) setRemoteWorks(result.works || []);
+        })
+        .catch((reason) => {
+          if (active) setRemoteError(errorMessage(reason));
+        })
+        .finally(() => {
+          if (active) setRemoteLoading(false);
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [view, query, currentMedium, status, catalogState?.configured, localOnly]);
 
   useEffect(() => {
     let active = true;
+    if (!reader) {
+      setLoading(false);
+      return () => {
+        active = false;
+      };
+    }
     setLoading(true);
-    Promise.all([Library.Info(), Library.Dashboard(), Library.ListSeries()])
+    Promise.all([
+      Library.Info(),
+      Library.Dashboard(currentMedium),
+      Library.ListSeries(currentMedium),
+    ])
       .then(([appInfo, overview, groups]) => {
         if (!active) return;
         setInfo(appInfo);
@@ -76,17 +170,17 @@ export default function App() {
     return () => {
       active = false;
     };
-  }, [revision]);
+  }, [revision, reader?.medium]);
 
   useEffect(() => {
-    if (view !== "list" && view !== "series") return;
+    if (!reader || (view !== "list" && view !== "series")) return;
     let active = true;
     setListLoading(true);
     setListError("");
     const timer = setTimeout(() => {
       (view === "series" && selectedSeries
-        ? Library.ListSeriesBooks(selectedSeries.id)
-        : Library.ListBooks(query, status)
+        ? Library.ListSeriesBooks(selectedSeries.id, currentMedium)
+        : Library.ListBooks(query, status, currentMedium)
       )
         .then((items) => {
           if (active) {
@@ -108,7 +202,7 @@ export default function App() {
       active = false;
       clearTimeout(timer);
     };
-  }, [view, query, status, revision, selectedSeries]);
+  }, [view, query, status, revision, selectedSeries, reader?.medium]);
 
   const canLeave = () =>
     !dirty ||
@@ -120,8 +214,16 @@ export default function App() {
   function navigate(key: string) {
     if (busy || deleteTarget || !canLeave()) return;
     setSection(key);
+    setSummary(null);
+    setBooks([]);
+    setSeries([]);
+    setLoadError("");
+    setListError("");
+    setRevision((value) => value + 1);
     setView("portal");
     setSelected(null);
+    setShowEditions(false);
+    setCatalogPreview(null);
     setQuery("");
     setSearchText("");
     setSelectedSeries(null);
@@ -146,8 +248,9 @@ export default function App() {
     setBusy(true);
     clearMessages();
     try {
-      const current = await Library.GetBook(book.id);
+      const current = await Library.GetBook(book.id, currentMedium);
       setSelected(current);
+      setShowEditions(false);
       setReturnTo(
         view === "series" ? "series" : view === "list" ? "list" : "portal",
       );
@@ -176,6 +279,70 @@ export default function App() {
     setView(view === "edit" ? "detail" : returnTo);
     clearMessages();
   }
+  async function openCandidate(work: Work, target: Book | null = null) {
+    if (currentMedium !== "books" || busy) return;
+    setBusy(true);
+    clearMessages();
+    try {
+      const preview = await (work.matchedEditionId
+        ? Catalog.Preview(work.matchedEditionId)
+        : Catalog.OpenWork(work.id));
+      showCatalogPreview(preview, target);
+    } catch (reason) {
+      setActionError(errorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function openEdition(id: string, target: Book | null) {
+    if (busy) return;
+    setBusy(true);
+    clearMessages();
+    try {
+      showCatalogPreview(await Catalog.Preview(id), target);
+    } catch (reason) {
+      setActionError(errorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+  function showCatalogPreview(preview: CatalogPreview, target: Book | null) {
+    if (
+      view === "detail" &&
+      preview.match?.kind === "existing" &&
+      preview.match.book.id === selected?.id
+    ) {
+      setShowEditions(false);
+      return;
+    }
+    if (!canLeave()) return;
+    if (view !== "catalog" && view !== "detail")
+      setReturnTo(
+        view === "series" ? "series" : view === "list" ? "list" : "portal",
+      );
+    if (preview.match?.kind === "existing") {
+      setSelected(preview.match.book);
+      setView("detail");
+      setDirty(false);
+      setShowEditions(false);
+      return;
+    }
+    setCatalogTarget(target);
+    setCatalogPreview(preview);
+    setCatalogReturn(
+      view === "detail"
+        ? "detail"
+        : view === "series"
+          ? "series"
+          : view === "list"
+            ? "list"
+            : "portal",
+    );
+    setDirty(false);
+    clearMessages();
+    setView("catalog");
+    setShowEditions(false);
+  }
   async function save(input: Input) {
     setBusy(true);
     clearMessages();
@@ -185,7 +352,7 @@ export default function App() {
       setDirty(false);
       setView("detail");
       setRevision((value) => value + 1);
-      setNotice("Libro guardado en la biblioteca local.");
+      setNotice(`${labels.itemName} guardado en la biblioteca local.`);
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -197,7 +364,11 @@ export default function App() {
     setBusy(true);
     clearMessages();
     try {
-      const result = await Library.ChangeBookStatus(book.id, value);
+      const result = await Library.ChangeBookStatus(
+        book.id,
+        value,
+        currentMedium,
+      );
       if (selected?.id === result.id) setSelected(result);
       setRevision((current) => current + 1);
       setNotice("Estado de lectura actualizado.");
@@ -218,8 +389,9 @@ export default function App() {
     setView("series");
     setReturnTo("series");
     setDirty(false);
-    setQuery("");
-    setSearchText("");
+    setStatus("");
+    setQuery(value.name);
+    setSearchText(value.name);
     clearMessages();
   }
   function allSearchResults(value: string) {
@@ -256,7 +428,7 @@ export default function App() {
     setBusy(true);
     setActionError("");
     try {
-      await Library.DeleteBook(deleteTarget.id);
+      await Library.DeleteBook(deleteTarget.id, currentMedium);
       if (selected?.id === deleteTarget.id) {
         setSelected(null);
         setView(returnTo);
@@ -264,7 +436,7 @@ export default function App() {
       }
       setDeleteTarget(null);
       setRevision((value) => value + 1);
-      setNotice("Libro eliminado de esta biblioteca.");
+      setNotice(`${labels.itemName} eliminado de esta biblioteca.`);
     } catch (error) {
       setActionError(errorMessage(error));
     } finally {
@@ -278,8 +450,10 @@ export default function App() {
       : view === "list"
         ? status && info
           ? labelFor(info.statuses, status)
-          : "Todos los libros"
-        : "Libros";
+          : query
+            ? `Resultados para «${query}»`
+            : `Todos los ${labels.plural}`
+        : labels.title;
 
   return (
     <div className="app-shell">
@@ -302,17 +476,17 @@ export default function App() {
             >
               <Icon name={item.icon} />
               {item.label}
-              {item.key === "books" && <span className="nav-dot" />}
+              {readingSection(item.key) && <span className="nav-dot" />}
             </button>
           ))}
         </nav>
         <div className="sidebar-bottom">
           <span className="connection-dot" />
-          Todo queda en tu PC<small>Sin cuentas. Sin proveedores.</small>
+          Todo queda en tu PC<small>Biblioteca local. Catálogo opcional.</small>
         </div>
       </aside>
       <main
-        className={`main-area ${section === "books" && view === "portal" ? "portal-main" : ""}`}
+        className={`main-area ${reader && view === "portal" ? "portal-main" : ""}`}
       >
         <header className="topbar">
           <span>
@@ -324,7 +498,7 @@ export default function App() {
             >
               {activeLabel}
             </button>
-            {section === "books" && view !== "portal" && (
+            {reader && view !== "portal" && (
               <>
                 <span className="breadcrumb">/</span>
                 <strong>
@@ -332,7 +506,7 @@ export default function App() {
                     ? view === "create"
                       ? "Añadir"
                       : "Editar"
-                    : view === "detail"
+                    : view === "catalog" || view === "detail"
                       ? "Detalle"
                       : title}
                 </strong>
@@ -340,7 +514,18 @@ export default function App() {
             )}
           </span>
           <div className="topbar-actions">
+            <ProviderHealth
+              disabled={!!deleteTarget}
+              configured={!!catalogState?.configured}
+              onLocalOnly={setLocalOnly}
+            />
+            <CatalogControl
+              state={catalogState}
+              disabled={busy || !!deleteTarget}
+              onState={setCatalogState}
+            />
             <BackupControl
+              onNotice={setNotice}
               disabled={busy || !!deleteTarget}
               canOpen={() => {
                 if (busy || deleteTarget || !canLeave()) return false;
@@ -352,8 +537,15 @@ export default function App() {
                 return true;
               }}
               onRestored={() => {
+                setSummary(null);
+                setBooks([]);
+                setSeries([]);
+                setLoading(true);
                 setDirty(false);
                 setSelected(null);
+                setCatalogPreview(null);
+                setCatalogTarget(null);
+                setShowEditions(false);
                 setSelectedSeries(null);
                 setQuery("");
                 setSearchText("");
@@ -402,19 +594,18 @@ export default function App() {
           </div>
         )}
         {notice && (
-          <div className="notice page-notice" role="status">
-            {notice}
-            <button aria-label="Cerrar aviso" onClick={() => setNotice("")}>
-              ×
-            </button>
-          </div>
+          <SuccessToast
+            key={notice.id}
+            message={notice.message}
+            onDismiss={() => setNotice("")}
+          />
         )}
         {actionError && !editing && !deleteTarget && (
           <div className="error-banner page-error" role="alert">
             {actionError}
           </div>
         )}
-        {section !== "books" ? (
+        {!reader ? (
           <section className="construction">
             <span className="construction-icon">
               <Icon
@@ -428,7 +619,8 @@ export default function App() {
             <p>
               Este espacio ya tiene su lugar.
               <br />
-              Por ahora, podés empezar a construir tu biblioteca de libros.
+              Por ahora, podés usar las bibliotecas locales de libros y novelas
+              ligeras.
             </p>
             <button className="primary" onClick={() => navigate("books")}>
               Ir a Libros <Icon name="chevron" size={16} />
@@ -442,7 +634,7 @@ export default function App() {
                   <div className="list-navigation">
                     <button
                       className="back-link list-back"
-                      onClick={() => navigate("books")}
+                      onClick={() => navigate(section)}
                     >
                       <Icon name="arrow" size={17} /> Volver al portal
                     </button>
@@ -474,31 +666,24 @@ export default function App() {
                 )}
                 <section className="page-heading">
                   <div>
-                    <p className="eyebrow">
-                      {view === "portal"
-                        ? "TU ESPACIO DE LECTURA"
-                        : "BIBLIOTECA LOCAL"}
-                    </p>
                     <h1>
                       {title}
                       <span className="heading-dot">.</span>
                     </h1>
-                    <p>
-                      {view === "portal"
-                        ? "Tus lecturas, tus pendientes y tu próxima historia."
-                        : "Elegí un libro para abrir su ficha o cambiá su estado directamente."}
-                    </p>
                   </div>
-                  <button
-                    className="primary"
-                    onClick={() => openEditor(null)}
-                    disabled={!info || busy}
-                  >
-                    <Icon name="plus" size={17} /> Añadir libro
-                  </button>
+                  <div className="catalog-actions">
+                    <button
+                      className="primary"
+                      onClick={() => openEditor(null)}
+                      disabled={!info || busy}
+                    >
+                      <Icon name="plus" size={17} /> {labels.add}
+                    </button>
+                  </div>
                 </section>
                 <div className="library-toolbar">
                   <BookSearch
+                    medium={currentMedium}
                     value={searchText}
                     disabled={busy}
                     onChange={(value) => {
@@ -506,6 +691,9 @@ export default function App() {
                       if (!value.trim() && view === "list") setQuery("");
                     }}
                     onBook={openBook}
+                    configured={!!catalogState?.configured}
+                    localOnly={localOnly}
+                    onWork={(work) => void openCandidate(work)}
                     onAll={allSearchResults}
                   />
                   <button
@@ -555,6 +743,10 @@ export default function App() {
                 )}
                 {!listError && (
                   <BookList
+                    compactEmpty={
+                      !!query && currentMedium === "books" && !status
+                    }
+                    medium={currentMedium}
                     books={books}
                     statuses={info?.statuses ?? []}
                     busy={busy || listLoading}
@@ -566,10 +758,65 @@ export default function App() {
                     onSeries={openSeries}
                   />
                 )}
+                {query && currentMedium === "books" && !status && (
+                  <section
+                    className="catalog-results"
+                    aria-label="Resultados de catálogo"
+                  >
+                    {remoteLoading && (
+                      <p role="status">Buscando en Hardcover…</p>
+                    )}
+                    {remoteError && <p role="alert">{remoteError}</p>}
+                    {remoteWorks
+                      .filter((work) => !representedInLibrary(work, books))
+                      .map((work) => (
+                        <button
+                          key={work.id}
+                          className="catalog-work"
+                          disabled={busy}
+                          onClick={() => void openCandidate(work)}
+                        >
+                          <span>
+                            <strong>{work.title}</strong>
+                            <small>{work.authors?.join(" · ")}</small>
+                          </span>
+                          <Icon name="chevron" size={17} />
+                        </button>
+                      ))}
+                  </section>
+                )}
               </>
             )}
+            {view === "catalog" &&
+              currentMedium === "books" &&
+              catalogPreview &&
+              info && (
+                <CatalogPage
+                  key={catalogPreview.token}
+                  initial={catalogPreview}
+                  info={info}
+                  configured={!!catalogState?.configured}
+                  localOnly={localOnly}
+                  target={catalogTarget}
+                  onSearch={allSearchResults}
+                  onBusy={setBusy}
+                  onBack={() => {
+                    setView(catalogReturn);
+                    clearMessages();
+                  }}
+                  onDone={(book, message) => {
+                    setSelected(book);
+                    setDirty(false);
+                    setView("detail");
+                    if (catalogReturn !== "detail") setReturnTo(catalogReturn);
+                    setRevision((value) => value + 1);
+                    setNotice(message);
+                  }}
+                />
+              )}
             {view === "detail" && selected && info && (
               <BookDetails
+                localOnly={localOnly}
                 book={selected}
                 info={info}
                 busy={busy}
@@ -583,30 +830,64 @@ export default function App() {
                 onDelete={requestDelete}
                 onStatus={changeStatus}
                 onSeries={openSeries}
+                onSearch={allSearchResults}
                 onFavorite={(book, value) =>
                   void updatePersonal(
-                    () => Library.SetBookFavorite(book.id, value),
+                    () =>
+                      Library.SetBookFavorite(book.id, value, currentMedium),
                     "Favorito actualizado.",
                   )
                 }
                 onOwned={(book, value) =>
                   void updatePersonal(
-                    () => Library.SetBookOwned(book.id, value),
+                    () => Library.SetBookOwned(book.id, value, currentMedium),
                     "Propiedad actualizada.",
                   )
                 }
                 onNotes={(book, notes) =>
                   updatePersonal(
-                    () => Library.SaveBookNotes(book.id, notes),
+                    () => Library.SaveBookNotes(book.id, notes, currentMedium),
                     "Notas guardadas.",
                   )
                 }
                 onDirty={setDirty}
+                onCatalog={() => setShowEditions((value) => !value)}
+                editions={
+                  showEditions ? (
+                    <EditionPicker
+                      configured={!!catalogState?.configured}
+                      localOnly={localOnly}
+                      workID={selected.edition.catalog?.work.id}
+                      disabled={busy}
+                      onClose={() => setShowEditions(false)}
+                      onEdition={(id) => void openEdition(id, selected)}
+                      onWork={(work) => void openCandidate(work, selected)}
+                    />
+                  ) : null
+                }
+                onRefresh={() =>
+                  void updatePersonal(
+                    () => Catalog.Refresh(selected.id),
+                    "Metadata de catálogo actualizada.",
+                  )
+                }
+                onUnlink={() => {
+                  if (
+                    window.confirm(
+                      "¿Quitar el vínculo y su metadata de catálogo? Tus datos personales se conservan.",
+                    )
+                  )
+                    void updatePersonal(
+                      () => Catalog.Unlink(selected.id),
+                      "Vínculo quitado. Tus datos personales se conservaron.",
+                    );
+                }}
               />
             )}
             {editing && info && (
               <BookEditor
-                key={view === "edit" ? selected?.id : "new"}
+                key={`${currentMedium}:${view === "edit" ? selected?.id : "new"}`}
+                medium={currentMedium}
                 book={view === "edit" ? selected : null}
                 info={info}
                 series={series}

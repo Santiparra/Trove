@@ -9,6 +9,7 @@ import Icon from "../components/Icon";
 import BookCover from "./BookCover";
 import StatusSelect from "./StatusSelect";
 import { labelFor, seriesLabel } from "./presentation";
+import { readingLabels } from "./readingMedia";
 
 export default function BookPortal({
   summary,
@@ -27,6 +28,7 @@ export default function BookPortal({
   onStatus: (book: Book, status: string) => void;
   onSeries: (series: Series) => void;
 }) {
+  const labels = readingLabels(summary.medium);
   const readingArea = useRef<HTMLDivElement>(null);
   const [preview, setPreview] = useState({ limit: 2, columns: 1 });
   useEffect(() => {
@@ -53,7 +55,9 @@ export default function BookPortal({
       <section className="portal-card states-card">
         <div className="card-heading">
           <h2>Tu biblioteca</h2>
-          <span>{summary.total} libros</span>
+          <span>
+            {summary.total} {summary.total === 1 ? labels.item : labels.plural}
+          </span>
         </div>
         <p className="card-subtitle">Cada historia tiene su momento.</p>
         <div className="state-links">
@@ -76,7 +80,7 @@ export default function BookPortal({
           onClick={() => onList("")}
           disabled={busy}
         >
-          <Icon name="list" size={16} /> Ver todos los libros{" "}
+          <Icon name="list" size={16} /> Ver todos los {labels.plural}{" "}
           <Icon name="chevron" size={15} />
         </button>
       </section>
@@ -165,10 +169,10 @@ export default function BookPortal({
           <h2>Tu recorrido</h2>
           <Icon name="chart" size={19} />
         </div>
-        <p className="card-subtitle">Una mirada a todos tus libros.</p>
+        <p className="card-subtitle">Una mirada a todos tus {labels.plural}.</p>
         <div className="distribution-total">
           <strong>{summary.total}</strong>
-          <span>libros en tu biblioteca</span>
+          <span>{labels.plural} en tu biblioteca</span>
         </div>
         <div
           className="distribution-bar"
@@ -213,7 +217,7 @@ export default function BookPortal({
 
       <section className="portal-card recent-card">
         <div className="card-heading">
-          <h2>Últimos libros leídos</h2>
+          <h2>Últimos {labels.plural} leídos</h2>
           <button
             className="text-action"
             onClick={() => onList("read")}
@@ -251,8 +255,8 @@ export default function BookPortal({
           <p className="card-footnote">
             {summary.readWithoutDate}{" "}
             {summary.readWithoutDate === 1
-              ? "libro leído sin fecha de finalización"
-              : "libros leídos sin fecha de finalización"}
+              ? `${labels.item} leído sin fecha de finalización`
+              : `${labels.plural} leídos sin fecha de finalización`}
             . Siguen en tu listado de leídos.
           </p>
         )}

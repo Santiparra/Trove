@@ -5,7 +5,12 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as catalog$0 from "../catalog/models.js";
+
 export class Book {
+    "medium": string;
     "id": string;
     "title": string;
     "authors": string[];
@@ -18,6 +23,9 @@ export class Book {
 
     /** Creates a new Book instance. */
     constructor($$source: Partial<Book> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -53,24 +61,57 @@ export class Book {
      * Creates a new Book instance from a string or object.
      */
     static createFrom($$source: any = {}): Book {
-        const $$createField2_0 = $$createType0;
-        const $$createField3_0 = $$createType2;
-        const $$createField4_0 = $$createType3;
-        const $$createField5_0 = $$createType4;
+        const $$createField3_0 = $$createType0;
+        const $$createField4_0 = $$createType2;
+        const $$createField5_0 = $$createType3;
+        const $$createField6_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
         }
         if ("series" in $$parsedSource) {
-            $$parsedSource["series"] = $$createField3_0($$parsedSource["series"]);
+            $$parsedSource["series"] = $$createField4_0($$parsedSource["series"]);
         }
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField4_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
         }
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField5_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
         }
         return new Book($$parsedSource as Partial<Book>);
+    }
+}
+
+export class CatalogResult {
+    "book": Book;
+    "kind": string;
+    "message": string;
+
+    /** Creates a new CatalogResult instance. */
+    constructor($$source: Partial<CatalogResult> = {}) {
+        if (!("book" in $$source)) {
+            this["book"] = (new Book());
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CatalogResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CatalogResult {
+        const $$createField0_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("book" in $$parsedSource) {
+            $$parsedSource["book"] = $$createField0_0($$parsedSource["book"]);
+        }
+        return new CatalogResult($$parsedSource as Partial<CatalogResult>);
     }
 }
 
@@ -111,6 +152,7 @@ export class Cycle {
 }
 
 export class Dashboard {
+    "medium": string;
     "total": number;
     "counts": StatusCount[];
     "currentlyReading": Book[];
@@ -119,6 +161,9 @@ export class Dashboard {
 
     /** Creates a new Dashboard instance. */
     constructor($$source: Partial<Dashboard> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("total" in $$source)) {
             this["total"] = 0;
         }
@@ -142,24 +187,26 @@ export class Dashboard {
      * Creates a new Dashboard instance from a string or object.
      */
     static createFrom($$source: any = {}): Dashboard {
-        const $$createField1_0 = $$createType6;
-        const $$createField2_0 = $$createType8;
+        const $$createField2_0 = $$createType7;
         const $$createField3_0 = $$createType8;
+        const $$createField4_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
-            $$parsedSource["counts"] = $$createField1_0($$parsedSource["counts"]);
+            $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
         }
         if ("currentlyReading" in $$parsedSource) {
-            $$parsedSource["currentlyReading"] = $$createField2_0($$parsedSource["currentlyReading"]);
+            $$parsedSource["currentlyReading"] = $$createField3_0($$parsedSource["currentlyReading"]);
         }
         if ("recentlyFinished" in $$parsedSource) {
-            $$parsedSource["recentlyFinished"] = $$createField3_0($$parsedSource["recentlyFinished"]);
+            $$parsedSource["recentlyFinished"] = $$createField4_0($$parsedSource["recentlyFinished"]);
         }
         return new Dashboard($$parsedSource as Partial<Dashboard>);
     }
 }
 
 export class Edition {
+    "identifiers": catalog$0.Identifier[];
+    "catalog": catalog$0.Snapshot | null;
     "id": string;
     "language": string;
     "format": string;
@@ -168,6 +215,12 @@ export class Edition {
 
     /** Creates a new Edition instance. */
     constructor($$source: Partial<Edition> = {}) {
+        if (!("identifiers" in $$source)) {
+            this["identifiers"] = [];
+        }
+        if (!("catalog" in $$source)) {
+            this["catalog"] = null;
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -191,7 +244,15 @@ export class Edition {
      * Creates a new Edition instance from a string or object.
      */
     static createFrom($$source: any = {}): Edition {
+        const $$createField0_0 = $$createType10;
+        const $$createField1_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("identifiers" in $$parsedSource) {
+            $$parsedSource["identifiers"] = $$createField0_0($$parsedSource["identifiers"]);
+        }
+        if ("catalog" in $$parsedSource) {
+            $$parsedSource["catalog"] = $$createField1_0($$parsedSource["catalog"]);
+        }
         return new Edition($$parsedSource as Partial<Edition>);
     }
 }
@@ -200,6 +261,7 @@ export class Edition {
  * Input intentionally excludes database, edition and cycle identifiers.
  */
 export class Input {
+    "medium": string;
     "id": string;
     "title": string;
     "authors": string[];
@@ -220,6 +282,9 @@ export class Input {
 
     /** Creates a new Input instance. */
     constructor($$source: Partial<Input> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -279,10 +344,10 @@ export class Input {
      * Creates a new Input instance from a string or object.
      */
     static createFrom($$source: any = {}): Input {
-        const $$createField2_0 = $$createType0;
+        const $$createField3_0 = $$createType0;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
         }
         return new Input($$parsedSource as Partial<Input>);
     }
@@ -318,12 +383,16 @@ export class SearchResults {
 }
 
 export class Series {
+    "medium": string;
     "id": string;
     "name": string;
     "position": number | null;
 
     /** Creates a new Series instance. */
     constructor($$source: Partial<Series> = {}) {
+        if (!("medium" in $$source)) {
+            this["medium"] = "";
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -377,7 +446,11 @@ const $$createType1 = Series.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = Edition.createFrom;
 const $$createType4 = Cycle.createFrom;
-const $$createType5 = StatusCount.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = Book.createFrom;
-const $$createType8 = $Create.Array($$createType7);
+const $$createType5 = Book.createFrom;
+const $$createType6 = StatusCount.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Array($$createType5);
+const $$createType9 = catalog$0.Identifier.createFrom;
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = catalog$0.Snapshot.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);

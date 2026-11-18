@@ -6,6 +6,7 @@ import {
 } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
+import { readingLabels } from "./readingMedia";
 
 type Draft = {
   id: string;
@@ -64,6 +65,7 @@ function initialDraft(book: Book | null): Draft {
 }
 
 export default function BookEditor({
+  medium,
   book,
   info,
   series,
@@ -73,6 +75,7 @@ export default function BookEditor({
   onSave,
   onDirty,
 }: {
+  medium: string;
   book: Book | null;
   info: Info;
   series: Series[];
@@ -82,6 +85,7 @@ export default function BookEditor({
   onSave: (input: Input) => Promise<void>;
   onDirty: (dirty: boolean) => void;
 }) {
+  const labels = readingLabels(medium);
   const [initial] = useState(() => JSON.stringify(initialDraft(book)));
   const [draft, setDraft] = useState(() => initialDraft(book));
   useEffect(() => {
@@ -95,6 +99,7 @@ export default function BookEditor({
     void onSave(
       new Input({
         ...draft,
+        medium,
         authors: draft.authors.split("\n"),
         seriesPosition:
           draft.seriesPosition === "" ? null : Number(draft.seriesPosition),
@@ -108,7 +113,7 @@ export default function BookEditor({
   return (
     <section
       className="editor-page"
-      aria-label={book ? "Editar libro" : "Añadir libro"}
+      aria-label={book ? labels.edit : labels.add}
     >
       <button className="back-link" onClick={onCancel} disabled={busy}>
         <Icon name="arrow" size={17} /> Volver
@@ -117,7 +122,7 @@ export default function BookEditor({
         <div>
           <p className="eyebrow">REGISTRO MANUAL · SIN PROVEEDOR</p>
           <h1>
-            {book ? "Editar libro" : "Añadir libro"}
+            {book ? labels.edit : labels.add}
             <span className="heading-dot">.</span>
           </h1>
           <p>
@@ -136,7 +141,7 @@ export default function BookEditor({
                 required
                 value={draft.title}
                 onChange={(e) => change("title", e.target.value)}
-                placeholder="Título del libro"
+                placeholder={`Título del ${labels.item}`}
               />
             </label>
             <label>
@@ -317,7 +322,7 @@ export default function BookEditor({
             Cancelar
           </button>
           <button type="submit" className="primary" disabled={busy}>
-            {busy ? "Guardando…" : "Guardar libro"}
+            {busy ? "Guardando…" : `Guardar ${labels.item}`}
           </button>
         </div>
       </form>

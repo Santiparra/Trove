@@ -8,6 +8,7 @@ param(
 if ($env:GITHUB_ACTIONS -ne 'true' -or $env:GITHUB_EVENT_NAME -ne 'push' -or $env:GITHUB_REF -ne 'refs/heads/main') { throw 'Publicación permitida solo en GitHub Actions por push a main.' }
 if ($Repository -ne $env:GITHUB_REPOSITORY -or $Revision -ne $env:GITHUB_SHA) { throw 'Repositorio o revisión no corresponden a la ejecución.' }
 $root = Split-Path $PSScriptRoot -Parent
+$notes = Get-ReleaseNotesPath $root
 $tag = "v$Version"
 $zip = Join-Path $root "artifacts\release\Trove-$Version-windows-x64.zip"
 $sum = Join-Path $root 'artifacts\release\SHA256SUMS.txt'
@@ -66,13 +67,13 @@ if ($null -eq $existing) {
     $reference = Read-OptionalGHJson @('api', "repos/$Repository/git/ref/tags/$tag")
     if ($null -eq $reference) { Invoke-Checked 'gh' @('api', '--method', 'POST', "repos/$Repository/git/refs", '-f', "ref=refs/tags/$tag", '-f', "sha=$Revision") }
     Assert-TagRevision
-    Invoke-Checked 'gh' @('release', 'create', $tag, $zip, $sum, '--repo', $Repository, '--target', $Revision, '--verify-tag', '--title', "Trove $tag", '--generate-notes', '--draft')
+    Invoke-Checked 'gh' @('release', 'create', $tag, $zip, $sum, '--repo', $Repository, '--target', $Revision, '--verify-tag', '--title', "Trove $tag", '--notes-file', $notes, '--draft')
 }
 else {
     Assert-TagRevision
     Invoke-Checked 'gh' @('release', 'upload', $tag, $zip, $sum, '--repo', $Repository, '--clobber')
 }
 Assert-TagRevision
-Invoke-Checked 'gh' @('release', 'edit', $tag, '--repo', $Repository, '--draft=false', '--latest')
+Invoke-Checked 'gh' @('release', 'edit', $tag, '--repo', $Repository, '--notes-file', $notes, '--draft=false', '--latest')
 Assert-TagRevision
 Invoke-Checked 'gh' @('release', 'view', $tag, '--repo', $Repository, '--json', 'url', '--jq', '.url')

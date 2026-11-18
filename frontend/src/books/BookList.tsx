@@ -5,8 +5,10 @@ import type {
 import type { Choice } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
 import StatusSelect from "./StatusSelect";
+import { readingLabels } from "./readingMedia";
 
 export default function BookList({
+  medium,
   books,
   statuses,
   busy,
@@ -16,7 +18,9 @@ export default function BookList({
   onDelete,
   onCreate,
   onSeries,
+  compactEmpty = false,
 }: {
+  medium: string;
   books: Book[];
   statuses: Choice[];
   busy: boolean;
@@ -26,24 +30,33 @@ export default function BookList({
   onDelete: (book: Book) => void;
   onCreate: () => void;
   onSeries: (series: Series) => void;
+  compactEmpty?: boolean;
 }) {
+  const labels = readingLabels(medium);
   return (
     <section
       className="book-list"
-      aria-label="Biblioteca de libros"
+      aria-label={labels.library}
       aria-busy={loading}
     >
       {!loading && !books.length ? (
-        <div className="empty-state">
-          <span className="empty-book">
-            <Icon name="books" size={32} />
-          </span>
-          <h2>No hay libros en este listado</h2>
-          <p>Probá otro estado o búsqueda, o añadí un libro manualmente.</p>
-          <button className="secondary" onClick={onCreate}>
-            <Icon name="plus" size={16} /> Añadir libro
-          </button>
-        </div>
+        compactEmpty ? (
+          <p className="search-feedback">No hay coincidencias locales.</p>
+        ) : (
+          <div className="empty-state">
+            <span className="empty-book">
+              <Icon name="books" size={32} />
+            </span>
+            <h2>No hay {labels.plural} en este listado</h2>
+            <p>
+              Probá otro estado o búsqueda, o añadí un {labels.item}{" "}
+              manualmente.
+            </p>
+            <button className="secondary" onClick={onCreate}>
+              <Icon name="plus" size={16} /> {labels.add}
+            </button>
+          </div>
+        )
       ) : (
         <>
           <div className="list-heading">
@@ -95,7 +108,7 @@ export default function BookList({
               />
               <button
                 className="icon-button danger-icon"
-                title="Eliminar libro"
+                title={`Eliminar ${labels.item}`}
                 aria-label={`Eliminar ${book.title}`}
                 onClick={() => onDelete(book)}
                 disabled={busy}

@@ -20,6 +20,11 @@
 **/.restore-*/
 **/backup-settings.json
 **/.backup-settings-*.json
+**/catalog-credentials.bin
+**/provider-network.json
+**/.provider-network-*
+**/.catalog-key-*
+**/catalog-covers/
 
 # Preferencias y planificación personales; se conservan solo en esta copia.
 /AGENTS.md

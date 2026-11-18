@@ -11,6 +11,7 @@ type StatusCount struct {
 }
 
 type Dashboard struct {
+	Medium           string        `json:"medium"`
 	Total            int           `json:"total"`
 	Counts           []StatusCount `json:"counts"`
 	CurrentlyReading []Book        `json:"currentlyReading"`
@@ -19,11 +20,11 @@ type Dashboard struct {
 }
 
 func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
-	items, err := s.repository.List(ctx, "")
+	items, err := s.List(ctx, "")
 	if err != nil {
 		return Dashboard{}, err
 	}
-	d := Dashboard{Total: len(items), Counts: make([]StatusCount, 0), CurrentlyReading: make([]Book, 0), RecentlyFinished: make([]Book, 0)}
+	d := Dashboard{Medium: s.medium, Total: len(items), Counts: make([]StatusCount, 0), CurrentlyReading: make([]Book, 0), RecentlyFinished: make([]Book, 0)}
 	counts := map[string]int{}
 	for _, b := range items {
 		counts[b.Cycle.Status]++

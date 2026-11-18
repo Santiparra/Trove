@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
+  act,
   fireEvent,
   render,
   screen,
@@ -9,6 +10,27 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import * as BackupService from "../bindings/github.com/Santiparra/Trove/internal/desktop/backups";
+const catalog = vi.hoisted(() => ({
+  State: vi.fn(),
+  ProviderHealth: vi.fn(),
+  CheckProviders: vi.fn(),
+  SetLocalOnly: vi.fn(),
+  SaveKey: vi.fn(),
+  ClearKey: vi.fn(),
+  Search: vi.fn(),
+  Editions: vi.fn(),
+  Preview: vi.fn(),
+  OpenWork: vi.fn(),
+  Add: vi.fn(),
+  Link: vi.fn(),
+  Refresh: vi.fn(),
+  Unlink: vi.fn(),
+  CoverDataURL: vi.fn(),
+}));
+vi.mock(
+  "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog",
+  () => catalog,
+);
 
 vi.mock(
   "../bindings/github.com/Santiparra/Trove/internal/desktop/backups",
@@ -25,6 +47,8 @@ vi.mock(
     ChooseFolder: vi.fn(),
     BackupNow: vi.fn(),
     ChooseRestore: vi.fn(),
+    RestoreChoices: vi.fn(),
+    PreviewGeneration: vi.fn(),
     CancelRestore: vi.fn(),
     ConfirmRestore: vi.fn(),
   }),
@@ -52,6 +76,7 @@ vi.mock(
 
 const sample = {
   id: "synthetic-book",
+  medium: "books",
   favorite: false,
   title: "Obra sintética",
   authors: ["Autor A"],
@@ -77,6 +102,7 @@ const statuses = [
 ];
 function overview(withBook = false) {
   return {
+    medium: "books",
     total: withBook ? 1 : 0,
     counts: statuses.map((option) => ({
       status: option.value,
@@ -90,6 +116,15 @@ function overview(withBook = false) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  vi.mocked(BackupService.RestoreChoices).mockResolvedValue([]);
+  catalog.State.mockResolvedValue({ configured: true });
+  catalog.ProviderHealth.mockResolvedValue({
+    providers: [],
+    checking: false,
+    nextCheckAt: "",
+  });
+  catalog.CoverDataURL.mockResolvedValue("");
+  catalog.Search.mockResolvedValue({ works: [], warnings: [] });
   vi.mocked(BackupService.State).mockResolvedValue({
     profile: "test",
     folder: "",
@@ -118,6 +153,484 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("Catálogo de Libros", () => {
+  const snapshot = {
+    provider: "hardcover",
+    fetchedAt: "2026-01-01T00:00:00Z",
+    work: {
+      id: "10",
+      title: "Obra externa",
+      authors: ["Autora externa"],
+      series: [],
+    },
+    edition: {
+      id: "20",
+      workId: "10",
+      title: "Edición externa",
+      language: "en",
+      format: "digital",
+      publisher: "Editorial sintética",
+      pages: 240,
+      publishedOn: "2020",
+      declared: [],
+    },
+    identifiers: [],
+    coverURL: "",
+    description: "Descripción guardada",
+    sources: {},
+    warnings: [],
+  };
+  const linked = {
+    ...sample,
+    edition: { ...sample.edition, catalog: snapshot },
+  };
+  async function enterCatalog() {
+    await screen.findByRole("button", { name: "Ver todos los libros" });
+  }
+  async function chooseEdition() {
+    fireEvent.change(
+      await screen.findByRole("searchbox", { name: "Buscar por título" }),
+      { target: { value: "9780547928227" } },
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Obra externa/ }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+  }
+  beforeEach(() => {
+    catalog.Search.mockResolvedValue({
+      works: [{ ...snapshot.work, matchedEditionId: "20" }],
+      warnings: [],
+    });
+    catalog.Preview.mockResolvedValue({ token: "synthetic-preview", snapshot });
+  });
+  it("consulta y revisa antes de agregar una edición y abre su snapshot local", async () => {
+    catalog.Add.mockResolvedValue({
+      kind: "added",
+      book: linked,
+      message: "Edición agregada.",
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(catalog.Add).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Agregar · Por leer" }));
+    await screen.findByRole("region", { name: "Detalle del libro" });
+    await waitFor(() =>
+      expect(catalog.Add).toHaveBeenCalledWith(
+        "synthetic-preview",
+        "",
+        "to-read",
+      ),
+    );
+    expect(screen.getByText("Descripción guardada")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: sample.title })).toBeTruthy();
+  });
+  it("pide revisar una coincidencia local antes de vincular, sin guardar un duplicado manual", async () => {
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot,
+      match: {
+        kind: "review",
+        book: sample,
+        message: "Revisá la coincidencia local.",
+      },
+    });
+    catalog.Link.mockResolvedValue(linked);
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Vincular con registro local",
+      }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+    expect(catalog.Link).toHaveBeenCalledWith(sample.id, "synthetic-preview");
+    expect(api.SaveBook).not.toHaveBeenCalled();
+    expect(catalog.Add).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Notas personales del libro")).toHaveProperty(
+      "value",
+      sample.notes,
+    );
+  });
+  it("conserva snapshot y borrador de notas ante un fallo de refresco y tras refrescar", async () => {
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.GetBook.mockResolvedValue(linked);
+    catalog.Refresh.mockRejectedValueOnce(
+      new Error("Catálogo no disponible"),
+    ).mockResolvedValueOnce(linked);
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Abrir ${sample.title}` }),
+    );
+    const notes = await screen.findByLabelText("Notas personales del libro");
+    fireEvent.change(notes, { target: { value: "Borrador sin guardar" } });
+    fireEvent.click(screen.getByRole("button", { name: "Refrescar metadata" }));
+    await screen.findByText("Catálogo no disponible");
+    expect(screen.getByText("Descripción guardada")).toBeTruthy();
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+    fireEvent.click(screen.getByRole("button", { name: "Refrescar metadata" }));
+    await screen.findByText("Metadata de catálogo actualizada.");
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+  });
+  it("en solo local muestra snapshots y permite gestión personal sin ofrecer refresco remoto", async () => {
+    catalog.ProviderHealth.mockResolvedValue({
+      providers: [],
+      localOnly: true,
+      checking: false,
+      nextCheckAt: "",
+    });
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.GetBook.mockResolvedValue(linked);
+    api.SetBookFavorite.mockResolvedValue({ ...linked, favorite: true });
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Abrir ${sample.title}` }),
+    );
+    expect(await screen.findByText("Descripción guardada")).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Refrescar metadata" }),
+    ).toHaveProperty("disabled", true);
+    expect(
+      screen.getByRole("button", { name: "Cambiar edición vinculada" }),
+    ).toHaveProperty("disabled", true);
+    expect(screen.getByLabelText("Notas personales del libro")).toHaveProperty(
+      "disabled",
+      false,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Favorito" }));
+    await waitFor(() =>
+      expect(api.SetBookFavorite).toHaveBeenCalledWith(
+        sample.id,
+        true,
+        "books",
+      ),
+    );
+    expect(catalog.Search).not.toHaveBeenCalled();
+    expect(catalog.Refresh).not.toHaveBeenCalled();
+  });
+  it("abre directamente una ficha desde una obra, sin interponer el selector de ediciones", async () => {
+    catalog.Search.mockResolvedValue({ works: [snapshot.work], warnings: [] });
+    catalog.OpenWork.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot,
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(catalog.OpenWork).toHaveBeenCalledWith("10");
+    expect(catalog.Editions).not.toHaveBeenCalled();
+    expect(screen.queryByRole("region", { name: "Ediciones" })).toBeNull();
+    expect(
+      screen.queryByText("HARDCOVER · EDICIONES · DATOS LOCALES"),
+    ).toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "Edición externa" }),
+    ).toBeTruthy();
+  });
+  it("reconoce una edición local antes de ofrecer agregar y muestra su gestión", async () => {
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot,
+      match: { kind: "existing", book: linked, message: "Ya existe" },
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(
+      await screen.findByLabelText("Notas personales del libro"),
+    ).toHaveProperty("value", sample.notes);
+    expect(screen.queryByRole("button", { name: /Agregar ·/ })).toBeNull();
+    expect(screen.getByLabelText(`Estado de ${sample.title}`)).toHaveProperty(
+      "value",
+      "reading",
+    );
+    expect(catalog.Add).not.toHaveBeenCalled();
+  });
+  it("mantiene visible un ISBN de otra edición aunque la obra esté en la biblioteca", async () => {
+    api.SearchBooks.mockResolvedValue({ matches: [linked], total: 1 });
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot: { ...snapshot, edition: { ...snapshot.edition, id: "21" } },
+      match: { kind: "review", book: linked, message: "Otra edición" },
+    });
+    catalog.Search.mockResolvedValue({
+      works: [{ ...snapshot.work, matchedEditionId: "21" }],
+      warnings: [],
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(catalog.Preview).toHaveBeenCalledWith("21");
+    expect(
+      screen.getByRole("button", { name: "Vincular con registro local" }),
+    ).toBeTruthy();
+    expect(catalog.Add).not.toHaveBeenCalled();
+  });
+  it("preselecciona una serie inequívoca y agrega directamente con el estado elegido", async () => {
+    const withSeries = {
+      ...snapshot,
+      work: {
+        ...snapshot.work,
+        series: [{ id: "40", name: "Serie externa", position: 1 }],
+      },
+    };
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot: withSeries,
+    });
+    catalog.Add.mockResolvedValue({
+      kind: "created",
+      book: linked,
+      message: "Agregado",
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(screen.getByLabelText("Serie al agregar")).toHaveProperty(
+      "value",
+      "40",
+    );
+    fireEvent.change(screen.getByLabelText("Estado al agregar"), {
+      target: { value: "read" },
+    });
+    await screen.findByLabelText("Notas personales del libro");
+    expect(catalog.Add).toHaveBeenCalledWith("synthetic-preview", "40", "read");
+    expect(catalog.Add).toHaveBeenCalledOnce();
+  });
+  it("mantiene los resultados locales utilizables mientras el proveedor demora", async () => {
+    api.SearchBooks.mockResolvedValue({ matches: [sample], total: 1 });
+    catalog.Search.mockImplementation(() => new Promise(() => {}));
+    render(<App />);
+    await enterCatalog();
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "sintética" },
+    });
+    const local = await screen.findByRole("button", {
+      name: `Abrir resultado ${sample.title}`,
+    });
+    await waitFor(() => expect(catalog.Search).toHaveBeenCalled());
+    fireEvent.click(local);
+    expect(
+      await screen.findByLabelText("Notas personales del libro"),
+    ).toHaveProperty("value", sample.notes);
+  });
+  it("busca también en catálogo al abrir una serie de una ficha remota", async () => {
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot: {
+        ...snapshot,
+        work: {
+          ...snapshot.work,
+          series: [{ id: "40", name: "Serie externa", position: 1 }],
+        },
+      },
+    });
+    api.ListBooks.mockResolvedValue([sample]);
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    catalog.Search.mockResolvedValue({
+      works: [{ ...snapshot.work, id: "11", title: "Otro libro de la serie" }],
+      warnings: [],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Serie externa · #1" }));
+    expect(
+      await screen.findByRole("button", { name: /Otro libro de la serie/ }),
+    ).toBeTruthy();
+    expect(api.ListBooks).toHaveBeenCalledWith("Serie externa", "", "books");
+    expect(catalog.Search).toHaveBeenLastCalledWith("Serie externa");
+    expect(
+      screen.getByRole("button", { name: `Abrir ${sample.title}` }),
+    ).toBeTruthy();
+  });
+  it("abre la búsqueda compartida al pulsar un autor de la ficha remota", async () => {
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    catalog.Search.mockResolvedValue({
+      works: [{ ...snapshot.work, id: "11", title: "Otro libro de la autora" }],
+      warnings: [],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Autora externa" }));
+    expect(
+      await screen.findByRole("button", { name: /Otro libro de la autora/ }),
+    ).toBeTruthy();
+    expect(api.ListBooks).toHaveBeenCalledWith("Autora externa", "", "books");
+    expect(catalog.Search).toHaveBeenLastCalledWith("Autora externa");
+  });
+  it("conserva el borrador al volver a elegir la edición local actual", async () => {
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.GetBook.mockResolvedValue(linked);
+    catalog.Editions.mockResolvedValue([snapshot.edition]);
+    catalog.Preview.mockResolvedValue({
+      token: "synthetic-preview",
+      snapshot,
+      match: { kind: "existing", book: linked, message: "Ya existe" },
+    });
+    const confirm = vi.spyOn(window, "confirm");
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Abrir ${sample.title}` }),
+    );
+    const notes = await screen.findByLabelText("Notas personales del libro");
+    fireEvent.change(notes, { target: { value: "Borrador sin guardar" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cambiar edición vinculada" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Edición externa/ }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("region", { name: "Ediciones" })).toBeNull(),
+    );
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+    expect(confirm).not.toHaveBeenCalled();
+  });
+  it("gestiona claves desde el encabezado sin ocupar la ficha", async () => {
+    catalog.State.mockResolvedValue({ configured: false });
+    catalog.SaveKey.mockResolvedValue({ configured: true });
+    render(<App />);
+    await enterCatalog();
+    expect(screen.queryByLabelText("Clave de catálogo")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Claves ·/ }));
+    fireEvent.change(screen.getByLabelText("Clave de catálogo"), {
+      target: { value: "synthetic-key" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar clave" }));
+    await screen.findByText("Hardcover · Configurado");
+    expect(screen.getByLabelText("Clave de catálogo")).toHaveProperty(
+      "value",
+      "",
+    );
+    expect(catalog.SaveKey).toHaveBeenCalledWith("synthetic-key");
+  });
+  it("permite seguir con alta manual sin clave y no ofrece catálogo en Novelas ligeras", async () => {
+    catalog.State.mockResolvedValue({ configured: false });
+    render(<App />);
+    await enterCatalog();
+    fireEvent.click(screen.getByRole("button", { name: "Añadir libro" }));
+    await screen.findByRole("button", { name: "Guardar libro" });
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Añadir volumen" });
+    expect(
+      screen.queryByRole("button", { name: "Buscar en catálogo" }),
+    ).toBeNull();
+    expect(catalog.Search).not.toHaveBeenCalled();
+  });
+});
+
+describe("Novelas ligeras locales", () => {
+  const novel = {
+    ...sample,
+    id: "synthetic-volume",
+    medium: "light-novels",
+    title: "Volumen sintético",
+  };
+  const novelSummary = () => ({
+    ...overview(true),
+    medium: "light-novels",
+    currentlyReading: [novel],
+  });
+  async function openNovels() {
+    api.Dashboard.mockImplementation((medium: string) =>
+      Promise.resolve(
+        medium === "light-novels" ? novelSummary() : overview(true),
+      ),
+    );
+    render(<App />);
+    await screen.findByRole("heading", { name: "Tu biblioteca" });
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Ver todos los volúmenes" });
+  }
+  it("crea un volumen en su medio usando el formulario común y abre su ficha", async () => {
+    const saved = {
+      ...novel,
+      id: "saved-volume",
+      title: "Volumen nuevo",
+      cycle: { ...novel.cycle, status: "to-read" },
+    };
+    api.SaveBook.mockResolvedValue(saved);
+    await openNovels();
+    expect(
+      screen.queryByRole("button", { name: "Abrir Obra sintética" }),
+    ).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Añadir volumen" }));
+    fireEvent.change(screen.getByLabelText(/Título/), {
+      target: { value: "Volumen nuevo" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar volumen" }));
+    await waitFor(() => expect(api.SaveBook).toHaveBeenCalledOnce());
+    expect(api.SaveBook.mock.calls[0][0]).toMatchObject({
+      medium: "light-novels",
+      title: "Volumen nuevo",
+    });
+    expect(
+      await screen.findByRole("region", { name: "Detalle del volumen" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Editar volumen" })).toBeTruthy();
+  });
+  it("busca, lista y cambia estados con el contexto explícito de novelas ligeras", async () => {
+    api.SearchBooks.mockResolvedValue({ matches: [novel], total: 1 });
+    api.ListBooks.mockResolvedValue([novel]);
+    const updated = { ...novel, cycle: { ...novel.cycle, status: "up-next" } };
+    api.ChangeBookStatus.mockResolvedValue(updated);
+    await openNovels();
+    fireEvent.change(screen.getByRole("searchbox"), {
+      target: { value: "Volumen" },
+    });
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Ver todos los resultados (1)",
+      }),
+    );
+    await waitFor(() =>
+      expect(api.SearchBooks).toHaveBeenCalledWith("Volumen", "light-novels"),
+    );
+    await waitFor(() =>
+      expect(api.ListBooks).toHaveBeenCalledWith("Volumen", "", "light-novels"),
+    );
+    const list = screen.getByRole("region", {
+      name: "Biblioteca de novelas ligeras",
+    });
+    const select = await within(list).findByLabelText(
+      "Estado de Volumen sintético",
+    );
+    api.ListBooks.mockResolvedValue([updated]);
+    fireEvent.change(select, { target: { value: "up-next" } });
+    await waitFor(() =>
+      expect(api.ChangeBookStatus).toHaveBeenCalledWith(
+        novel.id,
+        "up-next",
+        "light-novels",
+      ),
+    );
+    await waitFor(() => expect(select).toHaveProperty("value", "up-next"));
+  });
+  it("ignora una respuesta tardía de Libros después de cambiar de sección", async () => {
+    let finishBooks!: (value: ReturnType<typeof overview>) => void;
+    const delayed = new Promise<ReturnType<typeof overview>>((resolve) => {
+      finishBooks = resolve;
+    });
+    api.Dashboard.mockImplementation((medium: string) =>
+      medium === "books" ? delayed : Promise.resolve(novelSummary()),
+    );
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Abrir Volumen sintético" });
+    await act(async () => {
+      finishBooks(overview(true));
+    });
+    expect(
+      screen.queryByRole("button", { name: "Abrir Obra sintética" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Abrir Volumen sintético" }),
+    ).toBeTruthy();
+  });
+});
+
 describe("portal y navegación de libros", () => {
   it("abre el portal, no el listado, y el estado elegido define la consulta al backend", async () => {
     api.Dashboard.mockResolvedValue(overview(true));
@@ -130,7 +643,7 @@ describe("portal y navegación de libros", () => {
     ).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Leyendo: 1" }));
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("", "reading"),
+      expect(api.ListBooks).toHaveBeenCalledWith("", "reading", "books"),
     );
     fireEvent.click(
       await screen.findByRole("button", { name: "Abrir Obra sintética" }),
@@ -158,7 +671,11 @@ describe("portal y navegación de libros", () => {
       "No se pudo cambiar el estado.",
     );
     expect(select).toHaveProperty("value", "reading");
-    expect(api.ChangeBookStatus).toHaveBeenCalledWith(sample.id, "read");
+    expect(api.ChangeBookStatus).toHaveBeenCalledWith(
+      sample.id,
+      "read",
+      "books",
+    );
     expect(api.SaveBook).not.toHaveBeenCalled();
   });
 
@@ -195,7 +712,7 @@ describe("portal y navegación de libros", () => {
       target: { value: "sintética" },
     });
     await waitFor(() =>
-      expect(api.SearchBooks).toHaveBeenCalledWith("sintética"),
+      expect(api.SearchBooks).toHaveBeenCalledWith("sintética", "books"),
     );
     expect(api.ListBooks).not.toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "Tu biblioteca" })).toBeTruthy();
@@ -205,7 +722,7 @@ describe("portal y navegación de libros", () => {
       }),
     );
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("sintética", ""),
+      expect(api.ListBooks).toHaveBeenCalledWith("sintética", "", "books"),
     );
     expect(
       screen.getByRole("region", { name: "Biblioteca de libros" }),
@@ -224,7 +741,7 @@ describe("navegación y datos personales", () => {
       within(tabs).getByRole("button", { name: "A continuación" }),
     );
     await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("", "up-next"),
+      expect(api.ListBooks).toHaveBeenCalledWith("", "up-next", "books"),
     );
     expect(screen.queryByLabelText("Filtrar por estado")).toBeNull();
   });
@@ -260,7 +777,7 @@ describe("navegación y datos personales", () => {
     );
     await screen.findByRole("region", { name: "Detalle del libro" });
   }
-  it("abre una página local de serie usando su identidad y conserva controles de lectura", async () => {
+  it("abre una serie con registros locales ordenados y libros adicionales de catálogo", async () => {
     const series = {
       id: "synthetic-series",
       name: "Serie sintética",
@@ -272,18 +789,47 @@ describe("navegación y datos personales", () => {
       currentlyReading: [book],
     });
     api.ListSeriesBooks.mockResolvedValue([book]);
+    catalog.Search.mockResolvedValue({
+      works: [
+        { id: "11", title: "Libro aún no agregado", authors: ["Autor A"] },
+      ],
+      warnings: [],
+    });
     render(<App />);
     fireEvent.click(
       await screen.findByRole("button", { name: "Serie sintética · #1" }),
     );
     await waitFor(() =>
-      expect(api.ListSeriesBooks).toHaveBeenCalledWith(series.id),
+      expect(api.ListSeriesBooks).toHaveBeenCalledWith(series.id, "books"),
     );
     expect(
       await screen.findByLabelText("Estado de Obra sintética"),
     ).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: /Serie sintética/ }),
+    ).toBeTruthy();
+    expect(
+      await screen.findByRole("button", { name: /Libro aún no agregado/ }),
+    ).toBeTruthy();
+    expect(catalog.Search).toHaveBeenCalledWith(series.name);
+  });
+  it("abre resultados locales y remotos al pulsar el autor de un libro local", async () => {
+    api.ListBooks.mockResolvedValue([sample]);
+    catalog.Search.mockResolvedValue({
+      works: [
+        { id: "11", title: "Otro libro del autor", authors: ["Autor A"] },
+      ],
+      warnings: [],
+    });
+    await detail();
+    fireEvent.click(screen.getByRole("button", { name: "Autor A" }));
+    expect(
+      await screen.findByRole("button", { name: /Otro libro del autor/ }),
+    ).toBeTruthy();
+    expect(api.ListBooks).toHaveBeenCalledWith("Autor A", "", "books");
+    expect(catalog.Search).toHaveBeenCalledWith("Autor A");
+    expect(
+      screen.getByRole("button", { name: `Abrir ${sample.title}` }),
     ).toBeTruthy();
   });
   it("guarda notas desde la ficha sin reenviar el formulario completo", async () => {
@@ -294,7 +840,11 @@ describe("navegación y datos personales", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Guardar notas" }));
     await waitFor(() =>
-      expect(api.SaveBookNotes).toHaveBeenCalledWith(sample.id, "Nueva nota"),
+      expect(api.SaveBookNotes).toHaveBeenCalledWith(
+        sample.id,
+        "Nueva nota",
+        "books",
+      ),
     );
     expect((await screen.findByRole("status")).textContent).toContain(
       "Notas guardadas.",
@@ -332,7 +882,7 @@ describe("navegación y datos personales", () => {
     await detail();
     fireEvent.click(screen.getByRole("button", { name: "En propiedad" }));
     await waitFor(() =>
-      expect(api.SetBookOwned).toHaveBeenCalledWith(sample.id, true),
+      expect(api.SetBookOwned).toHaveBeenCalledWith(sample.id, true, "books"),
     );
     expect(
       screen
@@ -426,7 +976,9 @@ describe("eliminar libros", () => {
         name: "Eliminar definitivamente",
       }),
     );
-    await waitFor(() => expect(api.DeleteBook).toHaveBeenCalledWith(sample.id));
+    await waitFor(() =>
+      expect(api.DeleteBook).toHaveBeenCalledWith(sample.id, "books"),
+    );
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(
       screen.queryByRole("region", { name: "Detalle del libro" }),

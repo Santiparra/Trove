@@ -20,6 +20,28 @@ func NewBackups(manager *backup.Manager, library *Library, folder, file func() (
 	return &Backups{manager: manager, library: library, folderPicker: folder, filePicker: file}
 }
 func (b *Backups) State() backup.Status { return b.manager.State() }
+func (b *Backups) RestoreChoices() ([]backup.RestoreChoice, error) {
+	b.library.gate.RLock()
+	defer b.library.gate.RUnlock()
+	if b.library.closing {
+		return nil, errors.New("Trove se está cerrando")
+	}
+	return b.manager.RestoreChoices()
+}
+func (b *Backups) PreviewGeneration(id string) (*backup.Preview, error) {
+	b.library.gate.RLock()
+	defer b.library.gate.RUnlock()
+	if b.library.closing {
+		return nil, errors.New("Trove se está cerrando")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	preview, err := b.manager.PreviewGeneration(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &preview, nil
+}
 func (b *Backups) ChooseFolder() (backup.Status, error) {
 	path, err := b.folderPicker()
 	if err != nil || path == "" {

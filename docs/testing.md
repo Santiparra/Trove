@@ -1,6 +1,6 @@
 # Contratos y pruebas
 
-La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **32 escenarios core** actuales. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test.
+La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **35 escenarios core**, complementados por los contratos de catálogo, proveedores, modo solo local e interacción descritos más abajo. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test ni el total de pruebas de la aplicación.
 
 ## Catálogo de aceptación
 
@@ -38,8 +38,13 @@ La verificación se organiza por objetivos observables, no por porcentaje de cob
 | C30 | Mantener el contrato Go/Wails/TypeScript generado | `tools/verify.ps1 -CheckBindings` y compilación TypeScript |
 | C31 | Compilar sin Git y consultar identidad desde carpeta vacía | `tools/verify-without-git.ps1` sobre fuentes y portable |
 | C32 | Distribuir solo archivos explícitos con versión/perfil/checksums correctos | `tools/build.ps1`, `tools/package.ps1` |
+| C33 | Aislar lecturas, series, búsquedas y todas las mutaciones entre Libros y Novelas ligeras | `TestAdmission_C33_ReadingMediaAreIsolatedAcrossAllOperations` + interfaz |
+| C34 | Recuperar ambos medios desde JSON o SQLite sin perder identidades | `TestAdmission_C34_MixedLibraryRestoresFromEitherRepresentation` |
+| C35 | Admitir respaldos anteriores y migrar sin fabricar fechas ni mezclar bibliotecas | `TestAdmission_C35_LegacyJSONRestoresAsBooksWithoutInventingDates`, `TestSchemaTwoMigrationKeepsBookAndSeriesIdentities`, `TestLegacyDocumentKeepsOriginalContentHash` |
 
 ## Ejecución
+
+La entrega de catálogo añade pruebas focalizadas en `internal/catalog`, `internal/providers`, `internal/credentials`, `internal/desktop/catalog_test.go` e `internal/storage/sqlite/catalog_test.go`: validación de ISBN/equivalencias, cascada por edición, protección de credenciales, seguridad de portadas, conservación de datos personales, detección de coincidencias y round-trip de snapshots. También comprueba prioridad de edición exacta, selección inicial informativa y alta con estado/serie sin fechas ficticias. `frontend/src/App.test.tsx` verifica búsqueda flotante local/remota, apertura directa de ficha, reconocimiento local antes del alta, configuración de claves, fallback manual, aislamiento de Novelas ligeras y conservación de borradores ante refrescos exitosos o fallidos. Las pruebas de proveedores usan respuestas sintéticas; no necesitan claves reales ni conectividad.
 
 ```powershell
 powershell -NoProfile -File tools/verify.ps1
@@ -56,3 +61,11 @@ La compilación sin Git usa fuentes y frontend ya generado en una copia donde Gi
 GitHub Actions ejecuta el check **Windows x64** solo en PR hacia `main` o push a `main`. Una suite verde habilita la integración, pero no reemplaza comprobar interacción real, WebView2 y diálogos nativos en una PC. Los artefactos de PR permiten esa validación antes del merge.
 
 La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resuelven antes de convertirlos en expectativas; casos negativos y recuperación se añaden por el riesgo que protegen, no para aumentar el número de tests.
+
+`frontend/src/books/BookSearch.test.tsx` verifica con reloj controlado la pausa de escritura, la cancelación de temporizadores pendientes y el orden local → proveedor, sin solicitudes reales. Los recorridos de autoría/serie desde fichas locales y remotas y el alta inmediata al elegir estado se verifican en `frontend/src/App.test.tsx`.
+
+`internal/providers/health_test.go` verifica pausa tras fallos, una única recuperación concurrente, solicitudes en cola, invalidación al cambiar credenciales, cancelaciones, latencia sin espera local, 404/429, comprobaciones acotadas, respuestas incompatibles y cierre con cancelación. Usa reloj controlado y servidores HTTP sintéticos, sin claves reales ni servicios externos. `frontend/src/catalog/ProviderHealth.test.tsx` comprueba resumen, estados diferenciados, acción manual y refresco exclusivamente local.
+
+`internal/providers/network_test.go` verifica persistencia por perfil, bloqueo de ambos catálogos y portadas, caché offline y cancelación durante una respuesta en curso. `internal/backup/manager_test.go` verifica selección exacta Actual/Anterior, revalidación ante alteraciones y copia previa al reemplazo. Las pruebas de interfaz cubren selección por fecha, modo solo local sin impedir la gestión personal y expiración/pausa de los toasts.
+
+Antes de los tests, `tools/verify.ps1` comprueba la sintaxis de los scripts, los enlaces Markdown locales y el documento de novedades elegido por `docs/releases/current.txt`. Una publicación usa esas notas y el artefacto ya validado; el PR no publica ni crea tags. Ver [publicaciones y artefactos](releases/README.md).

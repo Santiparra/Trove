@@ -13,24 +13,24 @@ import * as books$0 from "../books/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function ChangeBookStatus(id: string, status: string): $CancellablePromise<books$0.Book> {
-    return $Call.ByID(357787081, id, status).then(($result: any) => {
+export function ChangeBookStatus(id: string, status: string, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(357787081, id, status, medium).then(($result: any) => {
         return $$createType0($result);
     });
 }
 
-export function Dashboard(): $CancellablePromise<books$0.Dashboard> {
-    return $Call.ByID(3216558974).then(($result: any) => {
+export function Dashboard(medium: string): $CancellablePromise<books$0.Dashboard> {
+    return $Call.ByID(3216558974, medium).then(($result: any) => {
         return $$createType1($result);
     });
 }
 
-export function DeleteBook(id: string): $CancellablePromise<void> {
-    return $Call.ByID(1878318572, id);
+export function DeleteBook(id: string, medium: string): $CancellablePromise<void> {
+    return $Call.ByID(1878318572, id, medium);
 }
 
-export function GetBook(id: string): $CancellablePromise<books$0.Book> {
-    return $Call.ByID(306599199, id).then(($result: any) => {
+export function GetBook(id: string, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(306599199, id, medium).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -41,20 +41,20 @@ export function Info(): $CancellablePromise<$models.Info> {
     });
 }
 
-export function ListBooks(query: string, status: string): $CancellablePromise<books$0.Book[]> {
-    return $Call.ByID(2449189540, query, status).then(($result: any) => {
+export function ListBooks(query: string, status: string, medium: string): $CancellablePromise<books$0.Book[]> {
+    return $Call.ByID(2449189540, query, status, medium).then(($result: any) => {
         return $$createType3($result);
     });
 }
 
-export function ListSeries(): $CancellablePromise<books$0.Series[]> {
-    return $Call.ByID(693241907).then(($result: any) => {
+export function ListSeries(medium: string): $CancellablePromise<books$0.Series[]> {
+    return $Call.ByID(693241907, medium).then(($result: any) => {
         return $$createType5($result);
     });
 }
 
-export function ListSeriesBooks(id: string): $CancellablePromise<books$0.Book[]> {
-    return $Call.ByID(152299271, id).then(($result: any) => {
+export function ListSeriesBooks(id: string, medium: string): $CancellablePromise<books$0.Book[]> {
+    return $Call.ByID(152299271, id, medium).then(($result: any) => {
         return $$createType3($result);
     });
 }
@@ -65,26 +65,26 @@ export function SaveBook(input: books$0.Input): $CancellablePromise<books$0.Book
     });
 }
 
-export function SaveBookNotes(id: string, notes: string): $CancellablePromise<books$0.Book> {
-    return $Call.ByID(3460747587, id, notes).then(($result: any) => {
+export function SaveBookNotes(id: string, notes: string, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(3460747587, id, notes, medium).then(($result: any) => {
         return $$createType0($result);
     });
 }
 
-export function SearchBooks(query: string): $CancellablePromise<books$0.SearchResults> {
-    return $Call.ByID(4091989264, query).then(($result: any) => {
+export function SearchBooks(query: string, medium: string): $CancellablePromise<books$0.SearchResults> {
+    return $Call.ByID(4091989264, query, medium).then(($result: any) => {
         return $$createType6($result);
     });
 }
 
-export function SetBookFavorite(id: string, value: boolean): $CancellablePromise<books$0.Book> {
-    return $Call.ByID(4096650963, id, value).then(($result: any) => {
+export function SetBookFavorite(id: string, value: boolean, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(4096650963, id, value, medium).then(($result: any) => {
         return $$createType0($result);
     });
 }
 
-export function SetBookOwned(id: string, value: boolean): $CancellablePromise<books$0.Book> {
-    return $Call.ByID(588332708, id, value).then(($result: any) => {
+export function SetBookOwned(id: string, value: boolean, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(588332708, id, value, medium).then(($result: any) => {
         return $$createType0($result);
     });
 }

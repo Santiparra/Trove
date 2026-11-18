@@ -4,6 +4,7 @@ import type {
   Preview,
   RestoreResult,
   Status,
+  RestoreChoice,
 } from "../../bindings/github.com/Santiparra/Trove/internal/backup/models";
 import Icon from "../components/Icon";
 import { errorMessage } from "../books/presentation";
@@ -33,17 +34,53 @@ export default function BackupPanel({
   onState,
   onClose,
   onRestored,
+  onNotice,
 }: {
   state: Status | null;
   onState: (value: Status) => void;
   onClose: () => void;
   onRestored: () => void;
+  onNotice?: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<Preview | null>(null);
   const [approved, setApproved] = useState(false);
   const [result, setResult] = useState<RestoreResult | null>(null);
+  const [choices, setChoices] = useState<RestoreChoice[]>([]);
+  const [selectedGeneration, setSelectedGeneration] = useState("");
+  const [choicesLoading, setChoicesLoading] = useState(true);
+  const [choicesError, setChoicesError] = useState("");
+  const [choicesRevision, setChoicesRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setChoicesLoading(true);
+    setChoicesError("");
+    Backups.RestoreChoices()
+      .then((items) => {
+        if (active) {
+          setChoices(items);
+          setSelectedGeneration((current) =>
+            items.some((item) => item.generation === current)
+              ? current
+              : items[0]?.generation || "",
+          );
+        }
+      })
+      .catch((reason) => {
+        if (active) {
+          setChoices([]);
+          setSelectedGeneration("");
+          setChoicesError(errorMessage(reason));
+        }
+      })
+      .finally(() => {
+        if (active) setChoicesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [state?.folder, state?.generation, choicesRevision]);
   const closeButton = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -69,7 +106,7 @@ export default function BackupPanel({
     }
     if (event.key === "Tab") {
       const items = panel.current?.querySelectorAll<HTMLElement>(
-        "button:not(:disabled),input:not(:disabled)",
+        "button:not(:disabled),input:not(:disabled),select:not(:disabled)",
       );
       if (!items?.length) {
         event.preventDefault();
@@ -183,7 +220,10 @@ export default function BackupPanel({
               className="quiet"
               disabled={busy || !state?.folder}
               onClick={() =>
-                void action(async () => onState(await Backups.BackupNow()))
+                void action(async () => {
+                  onState(await Backups.BackupNow());
+                  onNotice?.("Respaldo completo y verificado.");
+                })
               }
             >
               <Icon name="backup" size={16} />
@@ -193,6 +233,61 @@ export default function BackupPanel({
         </section>
         <section className="backup-section">
           <h3>Recuperar una biblioteca</h3>
+          {!preview && (
+            <>
+              <label className="restore-choice-label">
+                Respaldo
+                <select
+                  aria-label="Generación a restaurar"
+                  disabled={busy || choicesLoading || !choices.length}
+                  value={selectedGeneration}
+                  onChange={(event) =>
+                    setSelectedGeneration(event.target.value)
+                  }
+                >
+                  {choices.map((choice) => (
+                    <option key={choice.generation} value={choice.generation}>
+                      {choice.label} · {timestamp(choice.createdAt)}
+                    </option>
+                  ))}
+                  {!choices.length && (
+                    <option value="">
+                      {choicesLoading
+                        ? "Comprobando respaldos…"
+                        : "Sin generaciones válidas en la carpeta configurada"}
+                    </option>
+                  )}
+                </select>
+              </label>
+              {choicesError && <p role="alert">{choicesError}</p>}
+              <div className="backup-actions">
+                <button
+                  className="secondary"
+                  disabled={busy || choicesLoading || !selectedGeneration}
+                  onClick={() =>
+                    void action(async () => {
+                      const value =
+                        await Backups.PreviewGeneration(selectedGeneration);
+                      if (value) {
+                        setApproved(false);
+                        setPreview(value);
+                        setResult(null);
+                      }
+                    })
+                  }
+                >
+                  Revisar respaldo seleccionado
+                </button>
+                <button
+                  className="quiet"
+                  disabled={busy || choicesLoading}
+                  onClick={() => setChoicesRevision((value) => value + 1)}
+                >
+                  Actualizar lista
+                </button>
+              </div>
+            </>
+          )}
           <p>
             Seleccioná un archivo <strong>trove.sqlite</strong> o{" "}
             <strong>trove.json</strong> generado por Trove. Se validará y
@@ -200,7 +295,7 @@ export default function BackupPanel({
             importación de StoryGraph, MAL u otros servicios.
           </p>
           <button
-            className="secondary"
+            className="quiet"
             disabled={busy}
             onClick={() =>
               void action(async () => {
@@ -225,6 +320,20 @@ export default function BackupPanel({
           {preview && (
             <div className="restore-preview">
               <h4>Biblioteca validada para restaurar</h4>
+              <button
+                className="quiet"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    await Backups.CancelRestore(preview.token);
+                    setPreview(null);
+                    setApproved(false);
+                    setResult(null);
+                  })
+                }
+              >
+                Cambiar selección
+              </button>
               <dl>
                 <dt>Archivo</dt>
                 <dd>{preview.kind}</dd>
