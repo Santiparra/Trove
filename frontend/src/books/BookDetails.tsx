@@ -23,6 +23,9 @@ export default function BookDetails({
   onOwned,
   onNotes,
   onDirty,
+  onCatalog,
+  onRefresh,
+  onUnlink,
 }: {
   book: Book;
   info: Info;
@@ -36,6 +39,9 @@ export default function BookDetails({
   onOwned: (book: Book, value: boolean) => void;
   onNotes: (book: Book, notes: string) => Promise<void>;
   onDirty: (value: boolean) => void;
+  onCatalog: () => void;
+  onRefresh: () => void;
+  onUnlink: () => void;
 }) {
   const [notes, setNotes] = useState(book.notes);
   const labels = readingLabels(book.medium);
@@ -158,6 +164,115 @@ export default function BookDetails({
             </dd>
           </dl>
         </section>
+        {book.medium === "books" && (
+          <section
+            className="portal-card full-width-card"
+            aria-label="Metadata de catálogo"
+          >
+            <div className="card-heading">
+              <h2>Catálogo externo</h2>
+            </div>
+            <div className="catalog-actions">
+              <button className="secondary" disabled={busy} onClick={onCatalog}>
+                {book.edition.catalog
+                  ? "Cambiar edición vinculada"
+                  : "Vincular edición de catálogo"}
+              </button>
+              {book.edition.catalog && (
+                <>
+                  <button className="quiet" disabled={busy} onClick={onRefresh}>
+                    Refrescar metadata
+                  </button>
+                  <button
+                    className="quiet danger-text"
+                    disabled={busy}
+                    onClick={onUnlink}
+                  >
+                    Desvincular catálogo
+                  </button>
+                </>
+              )}
+            </div>
+            {book.edition.catalog ? (
+              <>
+                <p>
+                  Snapshot local de {book.edition.catalog.provider} ·{" "}
+                  {new Date(book.edition.catalog.fetchedAt).toLocaleString(
+                    "es",
+                  )}
+                </p>
+                <dl className="book-facts">
+                  <dt>Obra / edición remota</dt>
+                  <dd>
+                    {book.edition.catalog.work.id} /{" "}
+                    {book.edition.catalog.edition.id}
+                  </dd>
+                  <dt>Título de catálogo</dt>
+                  <dd>{book.edition.catalog.edition.title}</dd>
+                  <dt>Idioma / formato de catálogo</dt>
+                  <dd>
+                    {book.edition.catalog.edition.language || "Sin especificar"}{" "}
+                    / {book.edition.catalog.edition.format || "Sin especificar"}
+                  </dd>
+                  <dt>Fuente de portada</dt>
+                  <dd>
+                    {book.edition.catalog.sources?.cover?.provider ||
+                      "Sin portada informada"}
+                  </dd>
+                  <dt>Editorial</dt>
+                  <dd>
+                    {book.edition.catalog.edition.publisher ||
+                      "Sin especificar"}
+                  </dd>
+                  <dt>Páginas</dt>
+                  <dd>
+                    {book.edition.catalog.edition.pages ?? "Sin especificar"}
+                  </dd>
+                  <dt>Publicación</dt>
+                  <dd>
+                    {book.edition.catalog.edition.publishedOn ||
+                      "Sin especificar"}
+                  </dd>
+                </dl>
+                {book.edition.catalog.description && (
+                  <div className="catalog-description">
+                    <h3>
+                      Descripción{" "}
+                      <small>
+                        Fuente:{" "}
+                        {book.edition.catalog.sources?.description?.provider ||
+                          book.edition.catalog.provider}
+                      </small>
+                    </h3>
+                    <p>{book.edition.catalog.description}</p>
+                  </div>
+                )}
+                {!!book.edition.catalog.warnings?.length && (
+                  <ul className="catalog-warnings">
+                    {book.edition.catalog.warnings.map((warning, index) => (
+                      <li key={index}>{warning}</li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p>
+                Podés vincular una edición sin reemplazar tus datos personales.
+                El registro manual sigue disponible sin conexión.
+              </p>
+            )}
+            {!!book.edition.identifiers?.length && (
+              <div className="catalog-identifiers">
+                {book.edition.identifiers.map((identifier) => (
+                  <span key={`${identifier.scheme}:${identifier.value}`}>
+                    {identifier.scheme}: {identifier.value}
+                    {identifier.derived ? " (equivalente)" : ""}
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
         <section className="portal-card full-width-card">
           <div className="card-heading">
             <h2>Notas personales</h2>

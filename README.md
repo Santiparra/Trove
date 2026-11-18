@@ -10,7 +10,9 @@ Biblioteca y bitácora multimedia local para **Windows x64**. Los datos personal
 - Respaldo automático SQLite + JSON y restauración completa con validación y copia previa.
 - Perfiles separados de desarrollo, prueba y uso habitual.
 
-Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos, proveedores de metadata, portadas reales ni puntajes. Listados, búsquedas, series y operaciones se acotan al medio seleccionado.
+Libros incorpora un catálogo opcional: Hardcover principal, Open Library como complemento por ISBN de la edición elegida, snapshots bibliográficos persistentes y portadas cacheadas localmente. Permite agregar o vincular ediciones sin reemplazar datos personales; el alta manual sigue disponible sin conexión. Ver [uso y configuración](docs/usage.md).
+
+Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos ni puntajes. Listados, búsquedas, series y operaciones se acotan al medio seleccionado.
 
 ## Descargar y ejecutar
 

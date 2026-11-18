@@ -19,12 +19,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/Santiparra/Trove/internal/books"
+	"github.com/Santiparra/Trove/internal/catalog"
 )
 
 const Format = "trove-library"
-const Version = 2
+const Version = 3
 
-func SupportedVersion(version int) bool { return version == 1 || version == Version }
+func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 
 const MaxFileSize int64 = 256 << 20
 
@@ -45,12 +46,14 @@ type Work struct {
 	Favorite bool     `json:"favorite"`
 }
 type Edition struct {
-	ID         string `json:"id"`
-	WorkID     string `json:"workId"`
-	Language   string `json:"language"`
-	Format     string `json:"format"`
-	Identifier string `json:"identifier"`
-	Owned      bool   `json:"owned"`
+	ID          string               `json:"id"`
+	WorkID      string               `json:"workId"`
+	Language    string               `json:"language"`
+	Format      string               `json:"format"`
+	Identifier  string               `json:"identifier"`
+	Owned       bool                 `json:"owned"`
+	Identifiers []catalog.Identifier `json:"identifiers,omitempty"`
+	Catalog     *catalog.Snapshot    `json:"catalog,omitempty"`
 }
 type Cycle struct {
 	ID         string `json:"id"`
@@ -89,6 +92,7 @@ func (d *Document) Validate() error {
 	seriesMedia := map[string]string{}
 	names := map[string]bool{}
 	works := map[string]bool{}
+	workMedia := map[string]string{}
 	editions := map[string]string{}
 	cycles := map[string]bool{}
 	add := func(ids map[string]bool, id string) error {
@@ -130,6 +134,7 @@ func (d *Document) Validate() error {
 		if err := add(works, v.ID); err != nil {
 			return err
 		}
+		workMedia[v.ID] = v.Medium
 		if !books.ValidMedium(v.Medium) || (d.Version == 1 && v.Medium != books.MediumBooks) {
 			return errors.New("el respaldo contiene un medio que esta versión no admite")
 		}
@@ -154,6 +159,22 @@ func (d *Document) Validate() error {
 		}
 		if !books.ValidFormat(v.Format) {
 			return errors.New("formato de edición no admitido")
+		}
+		if d.Version < 3 && (len(v.Identifiers) > 0 || v.Catalog != nil) {
+			return errors.New("el formato anterior no admite snapshots ni identificadores extendidos")
+		}
+		for _, id := range v.Identifiers {
+			if !catalog.ValidIdentifier(id) {
+				return errors.New("identificador de edición inválido")
+			}
+		}
+		if v.Catalog != nil {
+			if workMedia[v.WorkID] != books.MediumBooks {
+				return errors.New("snapshot no admitido para este medio")
+			}
+			if err := v.Catalog.Validate(); err != nil {
+				return err
+			}
 		}
 		editions[v.ID] = v.WorkID
 		workEditions[v.WorkID]++
@@ -181,6 +202,13 @@ func (d *Document) Validate() error {
 }
 
 func (d *Document) Canonicalize() {
+	if d.Version >= 3 {
+		for i := range d.Catalog.Editions {
+			if len(d.Catalog.Editions[i].Identifiers) == 0 {
+				d.Catalog.Editions[i].Identifiers = catalog.NormalizeIdentifier(d.Catalog.Editions[i].Identifier, "manual")
+			}
+		}
+	}
 	if d.Catalog.Series == nil {
 		d.Catalog.Series = []Series{}
 	}

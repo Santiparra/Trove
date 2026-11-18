@@ -17,6 +17,8 @@ import DeleteDialog from "./books/DeleteDialog";
 import { errorMessage, labelFor } from "./books/presentation";
 import BackupControl from "./backup/BackupControl";
 import { readingSection, readingLabels } from "./books/readingMedia";
+import CatalogPage from "./catalog/CatalogPage";
+import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
 
 const media: { key: string; label: string; icon: IconName }[] = [
   { key: "books", label: "Libros", icon: "books" },
@@ -27,7 +29,14 @@ const media: { key: string; label: string; icon: IconName }[] = [
   { key: "tv", label: "Series de TV", icon: "tv" },
   { key: "movies", label: "Películas", icon: "movies" },
 ];
-type View = "portal" | "list" | "series" | "detail" | "create" | "edit";
+type View =
+  | "portal"
+  | "list"
+  | "series"
+  | "detail"
+  | "create"
+  | "edit"
+  | "catalog";
 
 export default function App() {
   const [section, setSection] = useState("books");
@@ -35,6 +44,10 @@ export default function App() {
   const currentMedium = reader?.medium || "books";
   const labels = readingLabels(currentMedium);
   const [view, setView] = useState<View>("portal");
+  const [catalogTarget, setCatalogTarget] = useState<Book | null>(null);
+  const [catalogReturn, setCatalogReturn] = useState<
+    "portal" | "list" | "series" | "detail"
+  >("portal");
   const [returnTo, setReturnTo] = useState<"portal" | "list" | "series">(
     "portal",
   );
@@ -196,6 +209,22 @@ export default function App() {
     setView(view === "edit" ? "detail" : returnTo);
     clearMessages();
   }
+  function openCatalog(book: Book | null) {
+    if (currentMedium !== "books" || busy || !canLeave()) return;
+    setCatalogTarget(book);
+    setCatalogReturn(
+      view === "detail"
+        ? "detail"
+        : view === "series"
+          ? "series"
+          : view === "list"
+            ? "list"
+            : "portal",
+    );
+    setDirty(false);
+    clearMessages();
+    setView("catalog");
+  }
   async function save(input: Input) {
     setBusy(true);
     clearMessages();
@@ -332,7 +361,7 @@ export default function App() {
         </nav>
         <div className="sidebar-bottom">
           <span className="connection-dot" />
-          Todo queda en tu PC<small>Sin cuentas. Sin proveedores.</small>
+          Todo queda en tu PC<small>Biblioteca local. Catálogo opcional.</small>
         </div>
       </aside>
       <main
@@ -356,9 +385,11 @@ export default function App() {
                     ? view === "create"
                       ? "Añadir"
                       : "Editar"
-                    : view === "detail"
-                      ? "Detalle"
-                      : title}
+                    : view === "catalog"
+                      ? "Catálogo"
+                      : view === "detail"
+                        ? "Detalle"
+                        : title}
                 </strong>
               </>
             )}
@@ -518,13 +549,24 @@ export default function App() {
                         : "Elegí un libro para abrir su ficha o cambiá su estado directamente."}
                     </p>
                   </div>
-                  <button
-                    className="primary"
-                    onClick={() => openEditor(null)}
-                    disabled={!info || busy}
-                  >
-                    <Icon name="plus" size={17} /> {labels.add}
-                  </button>
+                  <div className="catalog-actions">
+                    {currentMedium === "books" && (
+                      <button
+                        className="secondary"
+                        disabled={!info || busy}
+                        onClick={() => openCatalog(null)}
+                      >
+                        <Icon name="search" size={17} /> Buscar en catálogo
+                      </button>
+                    )}
+                    <button
+                      className="primary"
+                      onClick={() => openEditor(null)}
+                      disabled={!info || busy}
+                    >
+                      <Icon name="plus" size={17} /> {labels.add}
+                    </button>
+                  </div>
                 </section>
                 <div className="library-toolbar">
                   <BookSearch
@@ -599,6 +641,35 @@ export default function App() {
                 )}
               </>
             )}
+            {view === "catalog" && currentMedium === "books" && (
+              <CatalogPage
+                target={catalogTarget}
+                onBusy={setBusy}
+                onBack={() => {
+                  setView(catalogReturn);
+                  clearMessages();
+                }}
+                onManual={() => {
+                  if (catalogTarget) {
+                    setView("detail");
+                    return;
+                  }
+                  setReturnTo(
+                    catalogReturn === "detail" ? returnTo : catalogReturn,
+                  );
+                  setSelected(null);
+                  setView("create");
+                }}
+                onDone={(book, message) => {
+                  setSelected(book);
+                  setDirty(false);
+                  setView("detail");
+                  if (catalogReturn !== "detail") setReturnTo(catalogReturn);
+                  setRevision((value) => value + 1);
+                  setNotice(message);
+                }}
+              />
+            )}
             {view === "detail" && selected && info && (
               <BookDetails
                 book={selected}
@@ -634,6 +705,24 @@ export default function App() {
                   )
                 }
                 onDirty={setDirty}
+                onCatalog={() => openCatalog(selected)}
+                onRefresh={() =>
+                  void updatePersonal(
+                    () => Catalog.Refresh(selected.id),
+                    "Metadata de catálogo actualizada.",
+                  )
+                }
+                onUnlink={() => {
+                  if (
+                    window.confirm(
+                      "¿Quitar el vínculo y su metadata de catálogo? Tus datos personales se conservan.",
+                    )
+                  )
+                    void updatePersonal(
+                      () => Catalog.Unlink(selected.id),
+                      "Vínculo quitado. Tus datos personales se conservaron.",
+                    );
+                }}
               />
             )}
             {editing && info && (

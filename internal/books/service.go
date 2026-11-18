@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"github.com/Santiparra/Trove/internal/catalog"
 	"sort"
 	"time"
 )
@@ -19,6 +20,7 @@ type Repository interface {
 	UpdateNotes(context.Context, string, string) error
 	UpdateFavorite(context.Context, string, bool) error
 	UpdateOwned(context.Context, string, string, bool) error
+	UpdateCatalog(context.Context, string, string, *catalog.Snapshot, []catalog.Identifier) error
 }
 
 type Service struct {
@@ -172,6 +174,10 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResults, erro
 }
 
 func (s *Service) Save(ctx context.Context, input Input) (Book, error) {
+	return s.save(ctx, input, nil)
+}
+
+func (s *Service) save(ctx context.Context, input Input, snapshot *catalog.Snapshot) (Book, error) {
 	in, err := input.Normalize(s.today())
 	if err != nil {
 		return Book{}, err
@@ -189,6 +195,17 @@ func (s *Service) Save(ctx context.Context, input Input) (Book, error) {
 	book.Title, book.Authors, book.AddedOn, book.Notes = in.Title, in.Authors, in.AddedOn, in.Notes
 	book.Favorite, book.Edition.Owned = in.Favorite, in.Owned
 	book.Edition.Language, book.Edition.Format, book.Edition.Identifier = in.Language, in.Format, in.Identifier
+	retained := []catalog.Identifier{}
+	for _, v := range book.Edition.Identifiers {
+		if v.Source != "manual" {
+			retained = append(retained, v)
+		}
+	}
+	book.Edition.Identifiers = catalog.MergeIdentifiers(catalog.NormalizeIdentifier(in.Identifier, "manual"), retained)
+	if snapshot != nil {
+		book.Edition.Catalog = snapshot
+		book.Edition.Identifiers = catalog.MergeIdentifiers(book.Edition.Identifiers, snapshot.Identifiers)
+	}
 	book.Cycle.StartedOn, book.Cycle.FinishedOn = in.StartedOn, in.FinishedOn
 	book.Cycle, err = book.Cycle.Transition(in.Status, s.today(), in.StartedOnEdited, in.FinishedOnEdited)
 	if err != nil {

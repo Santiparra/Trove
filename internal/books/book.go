@@ -3,6 +3,7 @@ package books
 
 import (
 	"errors"
+	"github.com/Santiparra/Trove/internal/catalog"
 	"math"
 	"strings"
 	"time"
@@ -39,11 +40,13 @@ type Series struct {
 }
 
 type Edition struct {
-	ID         string `json:"id"`
-	Language   string `json:"language"`
-	Format     string `json:"format"`
-	Identifier string `json:"identifier"`
-	Owned      bool   `json:"owned"`
+	Identifiers []catalog.Identifier `json:"identifiers"`
+	Catalog     *catalog.Snapshot    `json:"catalog"`
+	ID          string               `json:"id"`
+	Language    string               `json:"language"`
+	Format      string               `json:"format"`
+	Identifier  string               `json:"identifier"`
+	Owned       bool                 `json:"owned"`
 }
 
 // Cycle is a single reading. A future rereading will create a new cycle, not reset this one.

@@ -3,6 +3,7 @@
 
 export {
     Book,
+    CatalogResult,
     Cycle,
     Dashboard,
     Edition,

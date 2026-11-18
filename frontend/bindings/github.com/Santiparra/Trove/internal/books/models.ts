@@ -5,6 +5,10 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as catalog$0 from "../catalog/models.js";
+
 export class Book {
     "medium": string;
     "id": string;
@@ -75,6 +79,39 @@ export class Book {
             $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
         }
         return new Book($$parsedSource as Partial<Book>);
+    }
+}
+
+export class CatalogResult {
+    "book": Book;
+    "kind": string;
+    "message": string;
+
+    /** Creates a new CatalogResult instance. */
+    constructor($$source: Partial<CatalogResult> = {}) {
+        if (!("book" in $$source)) {
+            this["book"] = (new Book());
+        }
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CatalogResult instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CatalogResult {
+        const $$createField0_0 = $$createType5;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("book" in $$parsedSource) {
+            $$parsedSource["book"] = $$createField0_0($$parsedSource["book"]);
+        }
+        return new CatalogResult($$parsedSource as Partial<CatalogResult>);
     }
 }
 
@@ -150,7 +187,7 @@ export class Dashboard {
      * Creates a new Dashboard instance from a string or object.
      */
     static createFrom($$source: any = {}): Dashboard {
-        const $$createField2_0 = $$createType6;
+        const $$createField2_0 = $$createType7;
         const $$createField3_0 = $$createType8;
         const $$createField4_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
@@ -168,6 +205,8 @@ export class Dashboard {
 }
 
 export class Edition {
+    "identifiers": catalog$0.Identifier[];
+    "catalog": catalog$0.Snapshot | null;
     "id": string;
     "language": string;
     "format": string;
@@ -176,6 +215,12 @@ export class Edition {
 
     /** Creates a new Edition instance. */
     constructor($$source: Partial<Edition> = {}) {
+        if (!("identifiers" in $$source)) {
+            this["identifiers"] = [];
+        }
+        if (!("catalog" in $$source)) {
+            this["catalog"] = null;
+        }
         if (!("id" in $$source)) {
             this["id"] = "";
         }
@@ -199,7 +244,15 @@ export class Edition {
      * Creates a new Edition instance from a string or object.
      */
     static createFrom($$source: any = {}): Edition {
+        const $$createField0_0 = $$createType10;
+        const $$createField1_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("identifiers" in $$parsedSource) {
+            $$parsedSource["identifiers"] = $$createField0_0($$parsedSource["identifiers"]);
+        }
+        if ("catalog" in $$parsedSource) {
+            $$parsedSource["catalog"] = $$createField1_0($$parsedSource["catalog"]);
+        }
         return new Edition($$parsedSource as Partial<Edition>);
     }
 }
@@ -393,7 +446,11 @@ const $$createType1 = Series.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = Edition.createFrom;
 const $$createType4 = Cycle.createFrom;
-const $$createType5 = StatusCount.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = Book.createFrom;
-const $$createType8 = $Create.Array($$createType7);
+const $$createType5 = Book.createFrom;
+const $$createType6 = StatusCount.createFrom;
+const $$createType7 = $Create.Array($$createType6);
+const $$createType8 = $Create.Array($$createType5);
+const $$createType9 = catalog$0.Identifier.createFrom;
+const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = catalog$0.Snapshot.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);

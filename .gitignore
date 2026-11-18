@@ -20,6 +20,9 @@
 **/.restore-*/
 **/backup-settings.json
 **/.backup-settings-*.json
+**/catalog-credentials.bin
+**/.catalog-key-*
+**/catalog-covers/
 
 # Preferencias y planificación personales; se conservan solo en esta copia.
 /AGENTS.md

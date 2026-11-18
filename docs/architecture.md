@@ -8,11 +8,15 @@ Trove es una aplicación modular local: interfaz React/TypeScript en Wails v3, c
 | --- | --- |
 | `frontend/src/books` | Presentación, formularios, navegación y estado de interacción |
 | `frontend/src/backup` | Configuración visible, estado y confirmación de recuperación |
+| `frontend/src/catalog` | Consulta, revisión de edición, vinculación y presentación de portadas locales |
 | `internal/desktop` | Adaptadores Wails, contratos de entrada/salida y diálogos nativos |
 | `internal/books` | Identidad, validaciones y casos de uso de biblioteca |
 | `internal/storage/sqlite` | SQL, transacciones, migraciones y adaptación de snapshots |
 | `internal/backup` | Formato lógico, validación, generaciones y restauración mediante un contrato de backend |
 | `internal/config` | Resolución de perfiles y ubicación de datos |
+| `internal/catalog` | Contratos bibliográficos, ISBN, cascada y procedencia independientes de proveedores |
+| `internal/providers` | Adaptadores Hardcover/Open Library y caché local de portadas |
+| `internal/credentials` | Protección DPAPI de la clave de catálogo por perfil |
 | `main.go` | Composición de dependencias y ciclo de vida nativo |
 
 El frontend no accede a SQL. Los tipos externos o específicos del driver no definen el dominio. Los bindings se generan desde Go, se versionan y se verifican en CI junto con sus consumidores TypeScript.
@@ -37,7 +41,9 @@ Restaurar valida el archivo, prepara una base nueva, conserva una copia de la bi
 
 Las secciones tienen identidad y reglas propias. Compartir mecanismos no implica imponer la misma estructura a todos los medios. Importar archivos externos, vincular metadata y restaurar respaldos son operaciones distintas.
 
-Las integraciones de proveedores e importadores externos aún no están implementadas. Su incorporación debe mantener independientes los registros propios y extender explícitamente formatos, contratos y compatibilidad. No se implementa un framework genérico de plugins.
+Libros usa Hardcover como catálogo principal. Open Library complementa campos faltantes de la edición seleccionada mediante ISBN seguro; no se promueve automáticamente a principal ni se consulta por cada candidato. El snapshot conserva referencias, fuentes y advertencias por separado del registro personal. Refrescar no pisa título, autoría, serie, notas, estado ni fechas; un fallo conserva el snapshot anterior.
+
+La selección se prepara en Go y se confirma mediante un token temporal, sin aceptar un snapshot inventado desde el frontend. Las coincidencias locales exigen revisión antes de vincular; una edición ya vinculada se abre sin duplicarla. El catálogo remoto no está habilitado para Novelas ligeras. Los importadores externos siguen pendientes.
 
 ## Distribución
 

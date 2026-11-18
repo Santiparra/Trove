@@ -10,6 +10,23 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 import * as BackupService from "../bindings/github.com/Santiparra/Trove/internal/desktop/backups";
+const catalog = vi.hoisted(() => ({
+  State: vi.fn(),
+  SaveKey: vi.fn(),
+  ClearKey: vi.fn(),
+  Search: vi.fn(),
+  Editions: vi.fn(),
+  Preview: vi.fn(),
+  Add: vi.fn(),
+  Link: vi.fn(),
+  Refresh: vi.fn(),
+  Unlink: vi.fn(),
+  CoverDataURL: vi.fn(),
+}));
+vi.mock(
+  "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog",
+  () => catalog,
+);
 
 vi.mock(
   "../bindings/github.com/Santiparra/Trove/internal/desktop/backups",
@@ -93,6 +110,8 @@ function overview(withBook = false) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  catalog.State.mockResolvedValue({ configured: true });
+  catalog.CoverDataURL.mockResolvedValue("");
   vi.mocked(BackupService.State).mockResolvedValue({
     profile: "test",
     folder: "",
@@ -119,6 +138,153 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+describe("Catálogo de Libros", () => {
+  const snapshot = {
+    provider: "hardcover",
+    fetchedAt: "2026-01-01T00:00:00Z",
+    work: {
+      id: "10",
+      title: "Obra externa",
+      authors: ["Autora externa"],
+      series: [],
+    },
+    edition: {
+      id: "20",
+      workId: "10",
+      title: "Edición externa",
+      language: "en",
+      format: "digital",
+      publisher: "Editorial sintética",
+      pages: 240,
+      publishedOn: "2020",
+      declared: [],
+    },
+    identifiers: [],
+    coverURL: "",
+    description: "Descripción guardada",
+    sources: {},
+    warnings: [],
+  };
+  const linked = {
+    ...sample,
+    edition: { ...sample.edition, catalog: snapshot },
+  };
+  async function enterCatalog() {
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Buscar en catálogo" }),
+      ).toHaveProperty("disabled", false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Buscar en catálogo" }));
+  }
+  async function chooseEdition() {
+    fireEvent.change(
+      await screen.findByRole("searchbox", { name: "Buscar en Hardcover" }),
+      { target: { value: "9780547928227" } },
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Buscar catálogo" }),
+      ).toHaveProperty("disabled", false),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Buscar catálogo" }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Obra externa/ }),
+    );
+    await screen.findByRole("region", { name: "Revisión de edición" });
+  }
+  beforeEach(() => {
+    catalog.Search.mockResolvedValue({
+      works: [{ ...snapshot.work, matchedEditionId: "20" }],
+      warnings: [],
+    });
+    catalog.Preview.mockResolvedValue({ token: "synthetic-preview", snapshot });
+  });
+  it("consulta y revisa antes de agregar una edición y abre su snapshot local", async () => {
+    catalog.Add.mockResolvedValue({
+      kind: "added",
+      book: linked,
+      message: "Edición agregada.",
+    });
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    expect(catalog.Add).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Agregar edición a Libros" }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+    expect(catalog.Add).toHaveBeenCalledWith("synthetic-preview", "");
+    expect(screen.getByText("Descripción guardada")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: sample.title })).toBeTruthy();
+  });
+  it("pide revisar una coincidencia local antes de vincular, sin guardar un duplicado manual", async () => {
+    catalog.Add.mockResolvedValue({
+      kind: "review",
+      book: sample,
+      message: "Revisá la coincidencia local.",
+    });
+    catalog.Link.mockResolvedValue(linked);
+    render(<App />);
+    await enterCatalog();
+    await chooseEdition();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Agregar edición a Libros" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Vincular con registro local",
+      }),
+    );
+    await screen.findByRole("region", { name: "Detalle del libro" });
+    expect(catalog.Link).toHaveBeenCalledWith(sample.id, "synthetic-preview");
+    expect(api.SaveBook).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Notas personales del libro")).toHaveProperty(
+      "value",
+      sample.notes,
+    );
+  });
+  it("conserva snapshot y borrador de notas ante un fallo de refresco y tras refrescar", async () => {
+    api.Dashboard.mockResolvedValue(overview(true));
+    api.GetBook.mockResolvedValue(linked);
+    catalog.Refresh.mockRejectedValueOnce(
+      new Error("Catálogo no disponible"),
+    ).mockResolvedValueOnce(linked);
+    render(<App />);
+    fireEvent.click(
+      await screen.findByRole("button", { name: `Abrir ${sample.title}` }),
+    );
+    const notes = await screen.findByLabelText("Notas personales del libro");
+    fireEvent.change(notes, { target: { value: "Borrador sin guardar" } });
+    fireEvent.click(screen.getByRole("button", { name: "Refrescar metadata" }));
+    await screen.findByText("Catálogo no disponible");
+    expect(screen.getByText("Descripción guardada")).toBeTruthy();
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+    fireEvent.click(screen.getByRole("button", { name: "Refrescar metadata" }));
+    await screen.findByText("Metadata de catálogo actualizada.");
+    expect(notes).toHaveProperty("value", "Borrador sin guardar");
+  });
+  it("permite seguir con alta manual sin clave y no ofrece catálogo en Novelas ligeras", async () => {
+    catalog.State.mockResolvedValue({ configured: false });
+    render(<App />);
+    await enterCatalog();
+    expect(
+      await screen.findByRole("button", { name: "Crear manualmente" }),
+    ).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Buscar catálogo" }),
+    ).toHaveProperty("disabled", true);
+    fireEvent.click(screen.getByRole("button", { name: "Crear manualmente" }));
+    await screen.findByRole("button", { name: "Guardar libro" });
+    fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
+    await screen.findByRole("button", { name: "Añadir volumen" });
+    expect(
+      screen.queryByRole("button", { name: "Buscar en catálogo" }),
+    ).toBeNull();
+    expect(catalog.Search).not.toHaveBeenCalled();
+  });
 });
 
 describe("Novelas ligeras locales", () => {

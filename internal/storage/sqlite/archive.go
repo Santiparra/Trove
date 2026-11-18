@@ -15,6 +15,7 @@ import (
 
 	"github.com/Santiparra/Trove/internal/backup"
 	"github.com/Santiparra/Trove/internal/books"
+	"github.com/Santiparra/Trove/internal/catalog"
 )
 
 func readonly(path string) (*sql.DB, error) {
@@ -92,7 +93,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 3 {
+	if version < 1 || version > 4 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
 	medium := "'books'"
@@ -156,15 +157,39 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err != nil {
 		return doc, err
 	}
-	rows, err = db.QueryContext(ctx, "SELECT id,book_id,language,format,identifier,"+owned+" FROM editions ORDER BY id")
+	identifiers, metadata := "'[]'", "NULL"
+	if version >= 4 {
+		identifiers = "identifiers_json"
+		metadata = "catalog_json"
+	}
+	rows, err = db.QueryContext(ctx, "SELECT id,book_id,language,format,identifier,"+owned+","+identifiers+","+metadata+" FROM editions ORDER BY id")
 	if err != nil {
 		return doc, err
 	}
 	for rows.Next() {
 		var v backup.Edition
-		if err = rows.Scan(&v.ID, &v.WorkID, &v.Language, &v.Format, &v.Identifier, &v.Owned); err != nil {
+		var rawIDs string
+		var rawMetadata sql.NullString
+		if err = rows.Scan(&v.ID, &v.WorkID, &v.Language, &v.Format, &v.Identifier, &v.Owned, &rawIDs, &rawMetadata); err != nil {
 			rows.Close()
 			return doc, err
+		}
+		if err = json.Unmarshal([]byte(rawIDs), &v.Identifiers); err != nil {
+			rows.Close()
+			return doc, err
+		}
+		if rawMetadata.Valid {
+			if err = json.Unmarshal([]byte(rawMetadata.String), &v.Catalog); err != nil {
+				rows.Close()
+				return doc, err
+			}
+		}
+		if doc.Version < 3 && (len(v.Identifiers) > 0 || v.Catalog != nil) {
+			rows.Close()
+			return doc, errors.New("el respaldo usa un formato antiguo para datos extendidos")
+		}
+		if doc.Version >= 3 && len(v.Identifiers) == 0 {
+			v.Identifiers = catalog.NormalizeIdentifier(v.Identifier, "manual")
 		}
 		doc.Catalog.Editions = append(doc.Catalog.Editions, v)
 	}
@@ -260,7 +285,13 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 		}
 	}
 	for _, v := range doc.Catalog.Editions {
-		if _, err = tx.ExecContext(ctx, "INSERT INTO editions(id,book_id,language,format,identifier,owned) VALUES(?,?,?,?,?,?)", v.ID, v.WorkID, v.Language, v.Format, v.Identifier, v.Owned); err != nil {
+		ids, _ := json.Marshal(v.Identifiers)
+		var metadata any
+		if v.Catalog != nil {
+			data, _ := json.Marshal(v.Catalog)
+			metadata = string(data)
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO editions(id,book_id,language,format,identifier,owned,identifiers_json,catalog_json) VALUES(?,?,?,?,?,?,?,?)", v.ID, v.WorkID, v.Language, v.Format, v.Identifier, v.Owned, string(ids), metadata); err != nil {
 			return err
 		}
 	}

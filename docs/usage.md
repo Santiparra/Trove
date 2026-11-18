@@ -14,6 +14,17 @@ Cada volumen de novela ligera se registra individualmente y puede vincularse a u
 - En Novelas ligeras se usa «Añadir volumen», con la misma edición mínima y datos personales. La ficha permite editar, marcar favorito/propiedad, guardar notas y cambiar estados, incluida A continuación.
 - Eliminar exige confirmación y elimina los datos asociados al libro, no otros libros de su serie.
 
+## Catálogo opcional de Libros
+
+1. Abrir **Buscar en catálogo** y configurar una clave de lectura de Hardcover para este perfil. Guardar la clave no consulta ni sincroniza la biblioteca personal del proveedor.
+2. Buscar por título, autor, serie o ISBN; elegir una obra y revisar su edición. El listado muestra hasta 20 ediciones; un ISBN concreto permite localizar otra edición directamente.
+3. Revisar idioma, formato, editorial, identificadores, fuentes y advertencias antes de agregar. La asignación de serie es explícita. Consultar y revisar no agrega registros.
+4. Si existe una coincidencia local, revisar antes de vincular o abrir el registro existente. No se fusionan automáticamente ediciones distintas.
+
+Desde la ficha se puede vincular o cambiar edición, refrescar metadata y desvincular. Estas operaciones conservan los datos personales; el refresco fallido conserva el snapshot anterior. La descripción y demás metadata guardada se pueden leer offline. Las portadas ya descargadas se reutilizan localmente; las no disponibles muestran un marcador. Open Library solo complementa campos faltantes con un ISBN seguro de la edición elegida.
+
+El alta manual sigue disponible sin clave ni conexión. Novelas ligeras conserva su flujo manual. La clave y las imágenes cacheadas no se exportan: tras restaurar en otra ubicación puede ser necesario configurar la clave y descargar portadas nuevamente.
+
 ## Estados y fechas
 
 Estados: Por leer, A continuación, Leyendo, Leído, Pausado y Sin terminar. A continuación se asigna manualmente.
@@ -70,4 +81,4 @@ Si una base dañada impide iniciar, abrir una raíz nueva y restaurar allí sin 
 
 Los formatos compatibles, límites y relaciones están en [formato de respaldo](backup-format.md).
 
-El esquema local actual es 3. Al abrir datos de las versiones previas se deja una copia `before-schema-3-*.sqlite` antes de incorporar el medio; los registros y series existentes siguen siendo Libros con las mismas identidades. Los respaldos nuevos contienen ambos medios; las copias de formato 1 siguen siendo recuperables como Libros. Restaurar siempre reemplaza el perfil completo, no mezcla su contenido con novelas ligeras posteriores.
+El esquema local actual es 4. La migración deja una copia `before-schema-4-*.sqlite` antes de incorporar identificadores normalizados y snapshots bibliográficos; conserva el identificador original, identidades y fechas desconocidas. Los respaldos nuevos usan formato 3 y contienen ambos medios y la metadata vinculada. Se pueden recuperar formatos 1 y 2; el formato 1 se interpreta como Libros. Restaurar siempre reemplaza el perfil completo, sin mezclar entradas posteriores.

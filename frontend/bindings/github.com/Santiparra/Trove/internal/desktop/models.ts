@@ -5,6 +5,64 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as catalog$0 from "../catalog/models.js";
+
+export class CatalogPreview {
+    "token": string;
+    "snapshot": catalog$0.Snapshot;
+
+    /** Creates a new CatalogPreview instance. */
+    constructor($$source: Partial<CatalogPreview> = {}) {
+        if (!("token" in $$source)) {
+            this["token"] = "";
+        }
+        if (!("snapshot" in $$source)) {
+            this["snapshot"] = (new catalog$0.Snapshot());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CatalogPreview instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CatalogPreview {
+        const $$createField1_0 = $$createType0;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("snapshot" in $$parsedSource) {
+            $$parsedSource["snapshot"] = $$createField1_0($$parsedSource["snapshot"]);
+        }
+        return new CatalogPreview($$parsedSource as Partial<CatalogPreview>);
+    }
+}
+
+export class CatalogState {
+    "provider": string;
+    "configured": boolean;
+
+    /** Creates a new CatalogState instance. */
+    constructor($$source: Partial<CatalogState> = {}) {
+        if (!("provider" in $$source)) {
+            this["provider"] = "";
+        }
+        if (!("configured" in $$source)) {
+            this["configured"] = false;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CatalogState instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CatalogState {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new CatalogState($$parsedSource as Partial<CatalogState>);
+    }
+}
+
 export class Choice {
     "value": string;
     "label": string;
@@ -70,8 +128,8 @@ export class Info {
      * Creates a new Info instance from a string or object.
      */
     static createFrom($$source: any = {}): Info {
-        const $$createField5_0 = $$createType1;
-        const $$createField6_0 = $$createType1;
+        const $$createField5_0 = $$createType2;
+        const $$createField6_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("statuses" in $$parsedSource) {
             $$parsedSource["statuses"] = $$createField5_0($$parsedSource["statuses"]);
@@ -84,5 +142,6 @@ export class Info {
 }
 
 // Private type creation functions
-const $$createType0 = Choice.createFrom;
-const $$createType1 = $Create.Array($$createType0);
+const $$createType0 = catalog$0.Snapshot.createFrom;
+const $$createType1 = Choice.createFrom;
+const $$createType2 = $Create.Array($$createType1);

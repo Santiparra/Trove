@@ -1,6 +1,6 @@
 # Seguridad y privacidad
 
-Trove mantiene la biblioteca local. La versión actual no tiene cuentas propias, telemetría, integración de IA ni llamadas a proveedores de metadata. El frontend empaquetado no carga scripts o imágenes remotas arbitrarias.
+Trove mantiene la biblioteca local. No tiene cuentas propias, telemetría ni integración de IA. El catálogo opcional de Libros consulta Hardcover y complementa metadata con Open Library. El frontend empaquetado no carga scripts o imágenes remotas arbitrarias.
 
 SQLite y los respaldos no tienen cifrado propio: quien acceda a los archivos puede leerlos. La protección del dispositivo y de la cuenta de almacenamiento corresponde al entorno Windows y al servicio configurado. No se distribuyen credenciales, bibliotecas ni rutas personales dentro del ejecutable.
 
@@ -12,7 +12,13 @@ SQLite y los respaldos no tienen cifrado propio: quien acceda a los archivos pue
 - Rutas de respaldo, logs, cachés y credenciales quedan fuera del modelo portable.
 - El estado local de un respaldo no garantiza que un sincronizador de nube lo haya subido.
 
-Importar futuras fuentes externas no debe ejecutar HTML o SQL aportado por ellas ni convertir metadata en identidad local. Las consultas a proveedores, cuando se incorporen, transmiten al menos la consulta/ID y exponen la IP al servicio; no equivalen a funcionamiento sin tráfico externo.
+## Catálogo opcional
+
+Las búsquedas transmiten consulta o ISBN a Hardcover. Al seleccionar o refrescar una edición se consultan sus referencias y, cuando corresponde, el ISBN en Open Library. Las descargas de portadas exponen la IP al host de imágenes. No se consulta ni sincroniza la biblioteca personal de Hardcover.
+
+La clave se introduce en un campo protegido y se guarda por perfil en `catalog-credentials.bin`, cifrada con DPAPI para la cuenta Windows. No se devuelve al frontend ni se incluye en respaldos. Guardarla no comprueba su validez hasta la consulta. Quitarla conserva la biblioteca y sus snapshots.
+
+Go limita endpoints, HTTPS, redirecciones, tamaños y tiempos de espera; no devuelve cuerpos de error con credenciales. Las portadas se admiten solo desde `assets.hardcover.app`, `images.hardcover.app` y `covers.openlibrary.org`, se validan como imágenes raster y se sirven a React como data URL desde una caché local por perfil. No se envía la clave al descargar imágenes ni a Open Library. La metadata se presenta como texto, sin ejecutar HTML o SQL externo.
 
 ## Automatización
 
