@@ -6,7 +6,7 @@ Cada sección abre su portal con estados, lecturas actuales, últimas finalizaci
 
 Cada volumen de novela ligera se registra individualmente y puede vincularse a una serie y número de orden. Una serie con el mismo nombre en Libros y Novelas ligeras no se fusiona automáticamente. Cambiar de pestaña no reclasifica ni modifica registros existentes.
 
-- Buscar por título muestra sugerencias locales; Enter o «Ver todos los resultados» abre el listado completo.
+- La búsqueda muestra primero resultados locales por título, autoría, serie o identificador. En Libros agrega candidatos de Hardcover en el mismo flotante cuando hay clave configurada, sin bloquear las coincidencias locales. Enter o «Ver todos los resultados» abre el listado completo.
 - Elegir un estado abre sus registros. Los botones superiores cambian el filtro.
 - La serie aparece sobre el título y abre sus libros ordenados por posición; los que no tienen posición quedan al final.
 - La ficha permite guardar notas y modificar favorito, propiedad y estado sin abrir el formulario completo.
@@ -16,10 +16,13 @@ Cada volumen de novela ligera se registra individualmente y puede vincularse a u
 
 ## Catálogo opcional de Libros
 
-1. Abrir **Buscar en catálogo** y configurar una clave de lectura de Hardcover para este perfil. Guardar la clave no consulta ni sincroniza la biblioteca personal del proveedor.
-2. Buscar por título, autor, serie o ISBN; elegir una obra y revisar su edición. El listado muestra hasta 20 ediciones; un ISBN concreto permite localizar otra edición directamente.
-3. Revisar idioma, formato, editorial, identificadores, fuentes y advertencias antes de agregar. La asignación de serie es explícita. Consultar y revisar no agrega registros.
-4. Si existe una coincidencia local, revisar antes de vincular o abrir el registro existente. No se fusionan automáticamente ediciones distintas.
+1. Configurar una clave de lectura de Hardcover desde **Claves**, junto al indicador de respaldos. Guardarla no consulta ni sincroniza la biblioteca personal del proveedor.
+2. Usar la búsqueda principal por título, autor, serie o ISBN. Elegir un resultado abre directamente la ficha compartida, con portada, información y gestión. Una obra abre preferentemente la edición local vinculada; si no existe, se elige la edición con más campos informados entre las devueltas por el proveedor. Buscar un ISBN concreto respeta esa edición.
+3. Desde la ficha, usar **Elegir otra edición** o **Cambiar edición vinculada** para ver hasta 20 ediciones y buscar otra por ISBN. Consultar y revisar no agrega registros.
+4. El botón **Agregar · Por leer** permite elegir otro estado en su desplegable y agregar directamente. Una única serie bibliográfica se preselecciona; se puede quitar, y varias asociaciones requieren elección. Agregar como Leído no fabrica fechas de consumo.
+5. Una edición ya vinculada abre su registro local con estado y acciones, sin ofrecer agregar. Coincidencias por ISBN o por otra edición de la obra se revisan antes de vincular. No se fusionan automáticamente ediciones distintas.
+
+La ficha distribuye portada, información y gestión en tres columnas cuando hay espacio, sin deformar la imagen. La descripción extensa se expande con **Leer más**. Los identificadores y fuentes están en un bloque desplegable al pie.
 
 Desde la ficha se puede vincular o cambiar edición, refrescar metadata y desvincular. Estas operaciones conservan los datos personales; el refresco fallido conserva el snapshot anterior. La descripción y demás metadata guardada se pueden leer offline. Las portadas ya descargadas se reutilizan localmente; las no disponibles muestran un marcador. Open Library solo complementa campos faltantes con un ISBN seguro de la edición elegida.
 

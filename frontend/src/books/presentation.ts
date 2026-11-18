@@ -1,5 +1,18 @@
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Choice } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type { Work } from "../../bindings/github.com/Santiparra/Trove/internal/catalog/models";
+
+export function representedInLibrary(work: Work, books: Book[]) {
+  return books.some((book) => {
+    const snapshot = book.edition.catalog;
+    return (
+      snapshot?.provider === "hardcover" &&
+      (work.matchedEditionId
+        ? snapshot.edition.id === work.matchedEditionId
+        : snapshot.work.id === work.id)
+    );
+  });
+}
 
 export function labelFor(options: Choice[], value: string) {
   return options.find((item) => item.value === value)?.label ?? value;

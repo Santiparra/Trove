@@ -13,32 +13,51 @@ type CatalogResult struct {
 	Message string `json:"message"`
 }
 
-func (s *Service) AddCatalog(ctx context.Context, snapshot catalog.Snapshot, seriesID string) (CatalogResult, error) {
+// MatchCatalog only inspects identity. Exact editions take precedence over other editions of a work.
+func (s *Service) MatchCatalog(ctx context.Context, snapshot catalog.Snapshot) (*CatalogResult, error) {
 	if s.medium != MediumBooks {
-		return CatalogResult{}, errors.New("el catálogo remoto de esta entrega es solo para Libros")
+		return nil, errors.New("el catálogo remoto de esta entrega es solo para Libros")
 	}
 	if err := snapshot.Validate(); err != nil {
-		return CatalogResult{}, err
+		return nil, err
 	}
 	items, err := s.List(ctx, "")
 	if err != nil {
-		return CatalogResult{}, err
+		return nil, err
 	}
 	isbn := catalog.PreferredISBN(snapshot.Identifiers)
 	for _, item := range items {
 		if old := item.Edition.Catalog; old != nil && old.Provider == snapshot.Provider {
 			if old.Edition.ID == snapshot.Edition.ID {
-				return CatalogResult{item, "existing", "Esta edición ya está en tu biblioteca; no se creó un duplicado."}, nil
+				return &CatalogResult{item, "existing", "Esta edición ya está en tu biblioteca."}, nil
 			}
-			if old.Work.ID == snapshot.Work.ID {
-				return CatalogResult{item, "review", "Esta obra ya existe con otra edición. Revisá su ficha antes de cambiar la vinculación; no se fusionaron datos."}, nil
-			}
-		}
-		if isbn != "" && catalog.PreferredISBN(item.Edition.Identifiers) == isbn {
-			return CatalogResult{item, "review", "Hay una edición local con el mismo ISBN. Podés vincularla explícitamente sin perder su seguimiento."}, nil
 		}
 	}
-	input := Input{Medium: MediumBooks, Title: snapshot.Edition.Title, Authors: snapshot.Work.Authors, Language: snapshot.Edition.Language, Format: snapshot.Edition.Format, Identifier: isbn, Status: "to-read"}
+	for _, item := range items {
+		if isbn != "" && catalog.PreferredISBN(item.Edition.Identifiers) == isbn {
+			return &CatalogResult{item, "review", "Hay una edición local con el mismo ISBN. Podés vincularla sin perder su seguimiento."}, nil
+		}
+	}
+	for _, item := range items {
+		if old := item.Edition.Catalog; old != nil && old.Provider == snapshot.Provider && old.Work.ID == snapshot.Work.ID {
+			return &CatalogResult{item, "review", "Esta obra ya existe con otra edición. Revisá la vinculación antes de cambiarla."}, nil
+		}
+	}
+	return nil, nil
+}
+
+func (s *Service) AddCatalog(ctx context.Context, snapshot catalog.Snapshot, seriesID, status string) (CatalogResult, error) {
+	if !ValidStatus(status) {
+		return CatalogResult{}, errors.New("el estado de lectura no es válido")
+	}
+	match, err := s.MatchCatalog(ctx, snapshot)
+	if err != nil {
+		return CatalogResult{}, err
+	}
+	if match != nil {
+		return *match, nil
+	}
+	input := Input{Medium: MediumBooks, Title: snapshot.Edition.Title, Authors: snapshot.Work.Authors, Language: snapshot.Edition.Language, Format: snapshot.Edition.Format, Identifier: catalog.PreferredISBN(snapshot.Identifiers), Status: status}
 	if seriesID != "" {
 		found := false
 		for _, v := range snapshot.Work.Series {

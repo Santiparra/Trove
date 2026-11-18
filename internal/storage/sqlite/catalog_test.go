@@ -37,7 +37,7 @@ func TestLinkAndArchivePreservePersonalDataAndCatalogIdentity(t *testing.T) {
 	if linked.Title != b.Title || linked.Notes != b.Notes || linked.Cycle != b.Cycle || linked.Edition.ID != b.Edition.ID || linked.Series.ID != b.Series.ID || !linked.Favorite || !linked.Edition.Owned || linked.Edition.Catalog == nil {
 		t.Fatal("vincular alteró datos propios")
 	}
-	result, err := service.AddCatalog(ctx, selectedSnapshot(), "")
+	result, err := service.AddCatalog(ctx, selectedSnapshot(), "", "to-read")
 	if err != nil || result.Kind != "existing" || result.Book.ID != b.ID {
 		t.Fatal("se duplicó una edición ya vinculada")
 	}
@@ -82,7 +82,7 @@ func TestCatalogAdditionAndLinkingDoNotSilentlyMergeEditions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	result, err := service.AddCatalog(ctx, snapshot, "")
+	result, err := service.AddCatalog(ctx, snapshot, "", "to-read")
 	if err != nil || result.Kind != "review" || result.Book.ID != manual.ID {
 		t.Fatal("el ISBN local se duplicó o vinculó sin revisión")
 	}
@@ -100,11 +100,11 @@ func TestCatalogAdditionAndLinkingDoNotSilentlyMergeEditions(t *testing.T) {
 	changed.Edition.ID = "21"
 	changed.Edition.Declared = nil
 	changed.Identifiers = nil
-	if result, err = service.AddCatalog(ctx, changed, ""); err != nil || result.Kind != "review" {
+	if result, err = service.AddCatalog(ctx, changed, "", "to-read"); err != nil || result.Kind != "review" {
 		t.Fatal("otra edición de la misma obra se fusionó/duplicó automáticamente")
 	}
 	novels, _ := service.ForMedium(books.MediumLightNovels)
-	if _, err = novels.AddCatalog(ctx, snapshot, ""); err == nil {
+	if _, err = novels.AddCatalog(ctx, snapshot, "", "to-read"); err == nil {
 		t.Fatal("se habilitó proveedor de novelas fuera de alcance")
 	}
 }
@@ -141,5 +141,81 @@ func TestSchemaThreeUpgradeNormalizesIdentifiersWithoutChangingRawData(t *testin
 	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-4-*.sqlite"))
 	if err != nil || len(paths) != 1 {
 		t.Fatal("falta copia previa")
+	}
+}
+
+func TestCatalogInspectionPrefersExactEditionAndDoesNotWrite(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "test.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	service := books.NewService(s)
+	other, err := service.Save(ctx, books.Input{Title: "A otra edición", Status: "to-read"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherSnapshot := selectedSnapshot()
+	otherSnapshot.Edition.ID = "21"
+	otherSnapshot.Identifiers = nil
+	if _, err = service.LinkCatalog(ctx, other.ID, otherSnapshot); err != nil {
+		t.Fatal(err)
+	}
+	exact, err := service.Save(ctx, books.Input{Title: "Z edición exacta", Status: "read", Notes: "Conservar"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = service.LinkCatalog(ctx, exact.ID, selectedSnapshot()); err != nil {
+		t.Fatal(err)
+	}
+	match, err := service.MatchCatalog(ctx, selectedSnapshot())
+	if err != nil || match == nil || match.Kind != "existing" || match.Book.ID != exact.ID {
+		t.Fatalf("no priorizó edición exacta: %+v %v", match, err)
+	}
+	items, err := service.List(ctx, "")
+	if err != nil || len(items) != 2 || match.Book.Notes != "Conservar" || match.Book.Cycle.FinishedOn != "" {
+		t.Fatal("inspeccionar modificó datos")
+	}
+}
+
+func TestCatalogAddsChosenStatusAndSeriesWithoutInventingReadDates(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "test.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	service := books.NewService(s)
+	ctx := context.Background()
+	result, err := service.AddCatalog(ctx, selectedSnapshot(), "40", "read")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b := result.Book
+	if b.Cycle.Status != "read" || b.Cycle.StartedOn != "" || b.Cycle.FinishedOn != "" || b.Series == nil || b.Series.Name != "Serie externa" {
+		t.Fatalf("alta incorrecta: %+v", b)
+	}
+	if _, err = service.AddCatalog(ctx, selectedSnapshot(), "40", "invalid"); err == nil {
+		t.Fatal("aceptó estado inválido")
+	}
+}
+
+func TestLocalSearchFindsAuthorSeriesAndEquivalentISBN(t *testing.T) {
+	s, err := Open(filepath.Join(t.TempDir(), "test.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	ctx := context.Background()
+	service := books.NewService(s)
+	b, err := service.Save(ctx, books.Input{Title: "Título sintético", Authors: []string{"Autora sintética"}, SeriesName: "Serie inventada", Identifier: "0-547-92822-X", Status: "to-read"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []string{"Autora sintética", "Serie inventada", "978-0-547-92822-7"} {
+		items, err := service.Search(ctx, query)
+		if err != nil || len(items.Matches) != 1 || items.Matches[0].ID != b.ID {
+			t.Fatalf("búsqueda local %q: %+v %v", query, items, err)
+		}
 	}
 }

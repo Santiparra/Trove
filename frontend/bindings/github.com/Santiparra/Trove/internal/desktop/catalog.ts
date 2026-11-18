@@ -16,8 +16,8 @@ import * as catalog$0 from "../catalog/models.js";
 // @ts-ignore: Unused imports
 import * as $models from "./models.js";
 
-export function Add(token: string, seriesID: string): $CancellablePromise<books$0.CatalogResult> {
-    return $Call.ByID(2007301581, token, seriesID).then(($result: any) => {
+export function Add(token: string, seriesID: string, status: string): $CancellablePromise<books$0.CatalogResult> {
+    return $Call.ByID(2007301581, token, seriesID, status).then(($result: any) => {
         return $$createType0($result);
     });
 }
@@ -41,6 +41,15 @@ export function Editions(workID: string): $CancellablePromise<catalog$0.Edition[
 export function Link(bookID: string, token: string): $CancellablePromise<books$0.Book> {
     return $Call.ByID(3506587910, bookID, token).then(($result: any) => {
         return $$createType4($result);
+    });
+}
+
+/**
+ * OpenWork opens an owned edition first, otherwise the most informative returned edition.
+ */
+export function OpenWork(workID: string): $CancellablePromise<$models.CatalogPreview> {
+    return $Call.ByID(1163671795, workID).then(($result: any) => {
+        return $$createType5($result);
     });
 }
 

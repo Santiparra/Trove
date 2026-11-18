@@ -44,7 +44,7 @@ La verificación se organiza por objetivos observables, no por porcentaje de cob
 
 ## Ejecución
 
-La entrega de catálogo añade pruebas focalizadas en `internal/catalog`, `internal/providers`, `internal/credentials`, `internal/desktop/catalog_test.go` e `internal/storage/sqlite/catalog_test.go`: validación de ISBN/equivalencias, cascada por edición, protección de credenciales, seguridad de portadas, conservación de datos personales, detección de coincidencias y round-trip de snapshots. `frontend/src/App.test.tsx` verifica revisión antes de agregar/vincular, fallback manual, aislamiento de Novelas ligeras y conservación de borradores ante refrescos exitosos o fallidos. Las pruebas de proveedores usan respuestas sintéticas; no necesitan claves reales ni conectividad.
+La entrega de catálogo añade pruebas focalizadas en `internal/catalog`, `internal/providers`, `internal/credentials`, `internal/desktop/catalog_test.go` e `internal/storage/sqlite/catalog_test.go`: validación de ISBN/equivalencias, cascada por edición, protección de credenciales, seguridad de portadas, conservación de datos personales, detección de coincidencias y round-trip de snapshots. También comprueba prioridad de edición exacta, selección inicial informativa y alta con estado/serie sin fechas ficticias. `frontend/src/App.test.tsx` verifica búsqueda flotante local/remota, apertura directa de ficha, reconocimiento local antes del alta, configuración de claves, fallback manual, aislamiento de Novelas ligeras y conservación de borradores ante refrescos exitosos o fallidos. Las pruebas de proveedores usan respuestas sintéticas; no necesitan claves reales ni conectividad.
 
 ```powershell
 powershell -NoProfile -File tools/verify.ps1

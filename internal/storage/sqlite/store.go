@@ -170,13 +170,25 @@ func (s *Store) List(ctx context.Context, query, medium string) ([]books.Book, e
 	defer rows.Close()
 	result := make([]books.Book, 0)
 	query = strings.ToLower(strings.TrimSpace(query))
+	queryISBN := catalog.ISBN13(query)
 	for rows.Next() {
 		b, err := scanBook(rows)
 		if err != nil {
 			return nil, err
 		}
-		// Go case folding avoids SQLite's ASCII-only LOWER for non-English titles.
-		if query == "" || strings.Contains(strings.ToLower(b.Title), query) {
+		// Go case folding avoids SQLite's ASCII-only LOWER for non-English text.
+		text := b.Title + " " + strings.Join(b.Authors, " ") + " " + b.Edition.Identifier
+		if b.Series != nil {
+			text += " " + b.Series.Name
+		}
+		isbnMatch := false
+		for _, id := range b.Edition.Identifiers {
+			text += " " + id.Value
+			if queryISBN != "" && catalog.ISBN13(id.Value) == queryISBN {
+				isbnMatch = true
+			}
+		}
+		if query == "" || strings.Contains(strings.ToLower(text), query) || isbnMatch {
 			result = append(result, b)
 		}
 	}

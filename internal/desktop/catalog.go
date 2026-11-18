@@ -24,8 +24,9 @@ type CatalogState struct {
 	Configured bool   `json:"configured"`
 }
 type CatalogPreview struct {
-	Token    string       `json:"token"`
-	Snapshot cat.Snapshot `json:"snapshot"`
+	Token    string               `json:"token"`
+	Snapshot cat.Snapshot         `json:"snapshot"`
+	Match    *books.CatalogResult `json:"match"`
 }
 type previewEntry struct {
 	snapshot cat.Snapshot
@@ -81,6 +82,59 @@ func (c *Catalog) Preview(editionID string) (CatalogPreview, error) {
 	if err != nil {
 		return CatalogPreview{}, err
 	}
+	return c.prepare(snapshot)
+}
+
+// OpenWork opens an owned edition first, otherwise the most informative returned edition.
+func (c *Catalog) OpenWork(workID string) (CatalogPreview, error) {
+	if !cat.ValidID(cat.Hardcover, workID) {
+		return CatalogPreview{}, errors.New("obra de catálogo inválida")
+	}
+	items, err := c.library.ListBooks("", "", books.MediumBooks)
+	if err != nil {
+		return CatalogPreview{}, err
+	}
+	for _, item := range items {
+		if snapshot := item.Edition.Catalog; snapshot != nil && snapshot.Provider == cat.Hardcover && snapshot.Work.ID == workID {
+			return c.prepare(*snapshot)
+		}
+	}
+	editions, err := c.Editions(workID)
+	if err != nil {
+		return CatalogPreview{}, err
+	}
+	if len(editions) == 0 {
+		return CatalogPreview{}, errors.New("no hay ediciones disponibles para esta obra")
+	}
+	best, score := editions[0], -1
+	for _, edition := range editions {
+		n := 0
+		for _, value := range []string{edition.Language, edition.Format, edition.Publisher, edition.PublishedOn, edition.CoverURL} {
+			if value != "" {
+				n++
+			}
+		}
+		if edition.Pages != nil {
+			n++
+		}
+		if len(edition.Declared) > 0 {
+			n++
+		}
+		if n > score {
+			best, score = edition, n
+		}
+	}
+	return c.Preview(best.ID)
+}
+
+func (c *Catalog) prepare(snapshot cat.Snapshot) (CatalogPreview, error) {
+	c.library.gate.RLock()
+	defer c.library.gate.RUnlock()
+	s, _ := c.library.service.ForMedium(books.MediumBooks)
+	match, err := s.MatchCatalog(context.Background(), snapshot)
+	if err != nil {
+		return CatalogPreview{}, err
+	}
 	token := rand.Text()
 	now := time.Now()
 	c.mu.Lock()
@@ -101,7 +155,7 @@ func (c *Catalog) Preview(editionID string) (CatalogPreview, error) {
 		delete(c.previews, oldest)
 	}
 	c.previews[token] = previewEntry{snapshot, now}
-	return CatalogPreview{token, snapshot}, nil
+	return CatalogPreview{Token: token, Snapshot: snapshot, Match: match}, nil
 }
 func (c *Catalog) prepared(token string) (cat.Snapshot, error) {
 	c.mu.Lock()
@@ -112,7 +166,7 @@ func (c *Catalog) prepared(token string) (cat.Snapshot, error) {
 	}
 	return v.snapshot, nil
 }
-func (c *Catalog) Add(token, seriesID string) (books.CatalogResult, error) {
+func (c *Catalog) Add(token, seriesID, status string) (books.CatalogResult, error) {
 	snapshot, err := c.prepared(token)
 	if err != nil {
 		return books.CatalogResult{}, err
@@ -126,7 +180,7 @@ func (c *Catalog) Add(token, seriesID string) (books.CatalogResult, error) {
 	if err != nil {
 		return books.CatalogResult{}, err
 	}
-	return s.AddCatalog(context.Background(), snapshot, seriesID)
+	return s.AddCatalog(context.Background(), snapshot, seriesID, status)
 }
 func (c *Catalog) Link(bookID, token string) (books.Book, error) {
 	snapshot, err := c.prepared(token)

@@ -7,11 +7,15 @@ import { Create as $Create } from "@wailsio/runtime";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as books$0 from "../books/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as catalog$0 from "../catalog/models.js";
 
 export class CatalogPreview {
     "token": string;
     "snapshot": catalog$0.Snapshot;
+    "match": books$0.CatalogResult | null;
 
     /** Creates a new CatalogPreview instance. */
     constructor($$source: Partial<CatalogPreview> = {}) {
@@ -20,6 +24,9 @@ export class CatalogPreview {
         }
         if (!("snapshot" in $$source)) {
             this["snapshot"] = (new catalog$0.Snapshot());
+        }
+        if (!("match" in $$source)) {
+            this["match"] = null;
         }
 
         Object.assign(this, $$source);
@@ -30,9 +37,13 @@ export class CatalogPreview {
      */
     static createFrom($$source: any = {}): CatalogPreview {
         const $$createField1_0 = $$createType0;
+        const $$createField2_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("snapshot" in $$parsedSource) {
             $$parsedSource["snapshot"] = $$createField1_0($$parsedSource["snapshot"]);
+        }
+        if ("match" in $$parsedSource) {
+            $$parsedSource["match"] = $$createField2_0($$parsedSource["match"]);
         }
         return new CatalogPreview($$parsedSource as Partial<CatalogPreview>);
     }
@@ -128,8 +139,8 @@ export class Info {
      * Creates a new Info instance from a string or object.
      */
     static createFrom($$source: any = {}): Info {
-        const $$createField5_0 = $$createType2;
-        const $$createField6_0 = $$createType2;
+        const $$createField5_0 = $$createType4;
+        const $$createField6_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("statuses" in $$parsedSource) {
             $$parsedSource["statuses"] = $$createField5_0($$parsedSource["statuses"]);
@@ -143,5 +154,7 @@ export class Info {
 
 // Private type creation functions
 const $$createType0 = catalog$0.Snapshot.createFrom;
-const $$createType1 = Choice.createFrom;
-const $$createType2 = $Create.Array($$createType1);
+const $$createType1 = books$0.CatalogResult.createFrom;
+const $$createType2 = $Create.Nullable($$createType1);
+const $$createType3 = Choice.createFrom;
+const $$createType4 = $Create.Array($$createType3);

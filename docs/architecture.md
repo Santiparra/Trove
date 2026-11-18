@@ -45,6 +45,8 @@ Libros usa Hardcover como catálogo principal. Open Library complementa campos f
 
 La selección se prepara en Go y se confirma mediante un token temporal, sin aceptar un snapshot inventado desde el frontend. Las coincidencias locales exigen revisión antes de vincular; una edición ya vinculada se abre sin duplicarla. El catálogo remoto no está habilitado para Novelas ligeras. Los importadores externos siguen pendientes.
 
+`BookSearch` presenta primero coincidencias locales y después candidatos remotos en el mismo flotante. `BookProfile` comparte la presentación de fichas locales y remotas; la gestión depende de si existe registro personal. Go reconoce coincidencias antes del alta y prioriza la edición local o la más informativa al abrir una obra. Cambiar de edición se gestiona desde la propia ficha. La configuración de claves queda en el encabezado, separada del contenido bibliográfico.
+
 ## Distribución
 
 El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).

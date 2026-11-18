@@ -18,6 +18,7 @@ export default function BookList({
   onDelete,
   onCreate,
   onSeries,
+  compactEmpty = false,
 }: {
   medium: string;
   books: Book[];
@@ -29,6 +30,7 @@ export default function BookList({
   onDelete: (book: Book) => void;
   onCreate: () => void;
   onSeries: (series: Series) => void;
+  compactEmpty?: boolean;
 }) {
   const labels = readingLabels(medium);
   return (
@@ -38,18 +40,23 @@ export default function BookList({
       aria-busy={loading}
     >
       {!loading && !books.length ? (
-        <div className="empty-state">
-          <span className="empty-book">
-            <Icon name="books" size={32} />
-          </span>
-          <h2>No hay {labels.plural} en este listado</h2>
-          <p>
-            Probá otro estado o búsqueda, o añadí un {labels.item} manualmente.
-          </p>
-          <button className="secondary" onClick={onCreate}>
-            <Icon name="plus" size={16} /> {labels.add}
-          </button>
-        </div>
+        compactEmpty ? (
+          <p className="search-feedback">No hay coincidencias locales.</p>
+        ) : (
+          <div className="empty-state">
+            <span className="empty-book">
+              <Icon name="books" size={32} />
+            </span>
+            <h2>No hay {labels.plural} en este listado</h2>
+            <p>
+              Probá otro estado o búsqueda, o añadí un {labels.item}{" "}
+              manualmente.
+            </p>
+            <button className="secondary" onClick={onCreate}>
+              <Icon name="plus" size={16} /> {labels.add}
+            </button>
+          </div>
+        )
       ) : (
         <>
           <div className="list-heading">

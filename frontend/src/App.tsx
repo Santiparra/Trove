@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import * as Library from "../bindings/github.com/Santiparra/Trove/internal/desktop/library";
-import type { Info } from "../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type {
+  Info,
+  CatalogPreview,
+  CatalogState,
+} from "../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type { Work } from "../bindings/github.com/Santiparra/Trove/internal/catalog/models";
 import type {
   Book,
   Dashboard,
@@ -14,11 +19,17 @@ import BookDetails from "./books/BookDetails";
 import BookEditor from "./books/BookEditor";
 import BookSearch from "./books/BookSearch";
 import DeleteDialog from "./books/DeleteDialog";
-import { errorMessage, labelFor } from "./books/presentation";
+import {
+  errorMessage,
+  labelFor,
+  representedInLibrary,
+} from "./books/presentation";
 import BackupControl from "./backup/BackupControl";
 import { readingSection, readingLabels } from "./books/readingMedia";
 import CatalogPage from "./catalog/CatalogPage";
 import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
+import CatalogControl from "./catalog/CatalogControl";
+import EditionPicker from "./catalog/EditionPicker";
 
 const media: { key: string; label: string; icon: IconName }[] = [
   { key: "books", label: "Libros", icon: "books" },
@@ -45,6 +56,14 @@ export default function App() {
   const labels = readingLabels(currentMedium);
   const [view, setView] = useState<View>("portal");
   const [catalogTarget, setCatalogTarget] = useState<Book | null>(null);
+  const [catalogPreview, setCatalogPreview] = useState<CatalogPreview | null>(
+    null,
+  );
+  const [catalogState, setCatalogState] = useState<CatalogState | null>(null);
+  const [showEditions, setShowEditions] = useState(false);
+  const [remoteWorks, setRemoteWorks] = useState<Work[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState("");
   const [catalogReturn, setCatalogReturn] = useState<
     "portal" | "list" | "series" | "detail"
   >("portal");
@@ -72,6 +91,43 @@ export default function App() {
   const [deleteTarget, setDeleteTarget] = useState<Book | null>(null);
   const [showStorage, setShowStorage] = useState(false);
   const editing = view === "create" || view === "edit";
+  useEffect(() => {
+    Catalog.State()
+      .then(setCatalogState)
+      .catch(() => setCatalogState(null));
+  }, []);
+  useEffect(() => {
+    setRemoteWorks([]);
+    setRemoteError("");
+    if (
+      view !== "list" ||
+      currentMedium !== "books" ||
+      query.trim().length < 2 ||
+      status ||
+      !catalogState?.configured
+    ) {
+      setRemoteLoading(false);
+      return;
+    }
+    let active = true;
+    setRemoteLoading(true);
+    const timer = setTimeout(() => {
+      Catalog.Search(query)
+        .then((result) => {
+          if (active) setRemoteWorks(result.works || []);
+        })
+        .catch((reason) => {
+          if (active) setRemoteError(errorMessage(reason));
+        })
+        .finally(() => {
+          if (active) setRemoteLoading(false);
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [view, query, currentMedium, status, catalogState?.configured]);
 
   useEffect(() => {
     let active = true;
@@ -155,6 +211,8 @@ export default function App() {
     setRevision((value) => value + 1);
     setView("portal");
     setSelected(null);
+    setShowEditions(false);
+    setCatalogPreview(null);
     setQuery("");
     setSearchText("");
     setSelectedSeries(null);
@@ -181,6 +239,7 @@ export default function App() {
     try {
       const current = await Library.GetBook(book.id, currentMedium);
       setSelected(current);
+      setShowEditions(false);
       setReturnTo(
         view === "series" ? "series" : view === "list" ? "list" : "portal",
       );
@@ -209,9 +268,56 @@ export default function App() {
     setView(view === "edit" ? "detail" : returnTo);
     clearMessages();
   }
-  function openCatalog(book: Book | null) {
-    if (currentMedium !== "books" || busy || !canLeave()) return;
-    setCatalogTarget(book);
+  async function openCandidate(work: Work, target: Book | null = null) {
+    if (currentMedium !== "books" || busy) return;
+    setBusy(true);
+    clearMessages();
+    try {
+      const preview = await (work.matchedEditionId
+        ? Catalog.Preview(work.matchedEditionId)
+        : Catalog.OpenWork(work.id));
+      showCatalogPreview(preview, target);
+    } catch (reason) {
+      setActionError(errorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function openEdition(id: string, target: Book | null) {
+    if (busy) return;
+    setBusy(true);
+    clearMessages();
+    try {
+      showCatalogPreview(await Catalog.Preview(id), target);
+    } catch (reason) {
+      setActionError(errorMessage(reason));
+    } finally {
+      setBusy(false);
+    }
+  }
+  function showCatalogPreview(preview: CatalogPreview, target: Book | null) {
+    if (
+      view === "detail" &&
+      preview.match?.kind === "existing" &&
+      preview.match.book.id === selected?.id
+    ) {
+      setShowEditions(false);
+      return;
+    }
+    if (!canLeave()) return;
+    if (view !== "catalog" && view !== "detail")
+      setReturnTo(
+        view === "series" ? "series" : view === "list" ? "list" : "portal",
+      );
+    if (preview.match?.kind === "existing") {
+      setSelected(preview.match.book);
+      setView("detail");
+      setDirty(false);
+      setShowEditions(false);
+      return;
+    }
+    setCatalogTarget(target);
+    setCatalogPreview(preview);
     setCatalogReturn(
       view === "detail"
         ? "detail"
@@ -224,6 +330,7 @@ export default function App() {
     setDirty(false);
     clearMessages();
     setView("catalog");
+    setShowEditions(false);
   }
   async function save(input: Input) {
     setBusy(true);
@@ -385,16 +492,19 @@ export default function App() {
                     ? view === "create"
                       ? "Añadir"
                       : "Editar"
-                    : view === "catalog"
-                      ? "Catálogo"
-                      : view === "detail"
-                        ? "Detalle"
-                        : title}
+                    : view === "catalog" || view === "detail"
+                      ? "Detalle"
+                      : title}
                 </strong>
               </>
             )}
           </span>
           <div className="topbar-actions">
+            <CatalogControl
+              state={catalogState}
+              disabled={busy || !!deleteTarget}
+              onState={setCatalogState}
+            />
             <BackupControl
               disabled={busy || !!deleteTarget}
               canOpen={() => {
@@ -413,6 +523,9 @@ export default function App() {
                 setLoading(true);
                 setDirty(false);
                 setSelected(null);
+                setCatalogPreview(null);
+                setCatalogTarget(null);
+                setShowEditions(false);
                 setSelectedSeries(null);
                 setQuery("");
                 setSearchText("");
@@ -502,7 +615,7 @@ export default function App() {
                   <div className="list-navigation">
                     <button
                       className="back-link list-back"
-                      onClick={() => navigate("books")}
+                      onClick={() => navigate(section)}
                     >
                       <Icon name="arrow" size={17} /> Volver al portal
                     </button>
@@ -534,31 +647,12 @@ export default function App() {
                 )}
                 <section className="page-heading">
                   <div>
-                    <p className="eyebrow">
-                      {view === "portal"
-                        ? "TU ESPACIO DE LECTURA"
-                        : "BIBLIOTECA LOCAL"}
-                    </p>
                     <h1>
                       {title}
                       <span className="heading-dot">.</span>
                     </h1>
-                    <p>
-                      {view === "portal"
-                        ? "Tus lecturas, tus pendientes y tu próxima historia."
-                        : "Elegí un libro para abrir su ficha o cambiá su estado directamente."}
-                    </p>
                   </div>
                   <div className="catalog-actions">
-                    {currentMedium === "books" && (
-                      <button
-                        className="secondary"
-                        disabled={!info || busy}
-                        onClick={() => openCatalog(null)}
-                      >
-                        <Icon name="search" size={17} /> Buscar en catálogo
-                      </button>
-                    )}
                     <button
                       className="primary"
                       onClick={() => openEditor(null)}
@@ -578,6 +672,8 @@ export default function App() {
                       if (!value.trim() && view === "list") setQuery("");
                     }}
                     onBook={openBook}
+                    configured={!!catalogState?.configured}
+                    onWork={(work) => void openCandidate(work)}
                     onAll={allSearchResults}
                   />
                   <button
@@ -627,6 +723,9 @@ export default function App() {
                 )}
                 {!listError && (
                   <BookList
+                    compactEmpty={
+                      !!query && currentMedium === "books" && !status
+                    }
                     medium={currentMedium}
                     books={books}
                     statuses={info?.statuses ?? []}
@@ -639,37 +738,60 @@ export default function App() {
                     onSeries={openSeries}
                   />
                 )}
+                {query && currentMedium === "books" && !status && (
+                  <section
+                    className="catalog-results"
+                    aria-label="Resultados de catálogo"
+                  >
+                    {remoteLoading && (
+                      <p role="status">Buscando en Hardcover…</p>
+                    )}
+                    {remoteError && <p role="alert">{remoteError}</p>}
+                    {remoteWorks
+                      .filter((work) => !representedInLibrary(work, books))
+                      .map((work) => (
+                        <button
+                          key={work.id}
+                          className="catalog-work"
+                          disabled={busy}
+                          onClick={() => void openCandidate(work)}
+                        >
+                          <span>
+                            <strong>{work.title}</strong>
+                            <small>{work.authors?.join(" · ")}</small>
+                          </span>
+                          <Icon name="chevron" size={17} />
+                        </button>
+                      ))}
+                  </section>
+                )}
               </>
             )}
-            {view === "catalog" && currentMedium === "books" && (
-              <CatalogPage
-                target={catalogTarget}
-                onBusy={setBusy}
-                onBack={() => {
-                  setView(catalogReturn);
-                  clearMessages();
-                }}
-                onManual={() => {
-                  if (catalogTarget) {
+            {view === "catalog" &&
+              currentMedium === "books" &&
+              catalogPreview &&
+              info && (
+                <CatalogPage
+                  key={catalogPreview.token}
+                  initial={catalogPreview}
+                  info={info}
+                  configured={!!catalogState?.configured}
+                  target={catalogTarget}
+                  onBusy={setBusy}
+                  onBack={() => {
+                    setView(catalogReturn);
+                    clearMessages();
+                  }}
+                  onDone={(book, message) => {
+                    setSelected(book);
+                    setDirty(false);
                     setView("detail");
-                    return;
-                  }
-                  setReturnTo(
-                    catalogReturn === "detail" ? returnTo : catalogReturn,
-                  );
-                  setSelected(null);
-                  setView("create");
-                }}
-                onDone={(book, message) => {
-                  setSelected(book);
-                  setDirty(false);
-                  setView("detail");
-                  if (catalogReturn !== "detail") setReturnTo(catalogReturn);
-                  setRevision((value) => value + 1);
-                  setNotice(message);
-                }}
-              />
-            )}
+                    if (catalogReturn !== "detail") setReturnTo(catalogReturn);
+                    setRevision((value) => value + 1);
+                    setNotice(message);
+                  }}
+                />
+              )}
             {view === "detail" && selected && info && (
               <BookDetails
                 book={selected}
@@ -705,7 +827,19 @@ export default function App() {
                   )
                 }
                 onDirty={setDirty}
-                onCatalog={() => openCatalog(selected)}
+                onCatalog={() => setShowEditions((value) => !value)}
+                editions={
+                  showEditions ? (
+                    <EditionPicker
+                      configured={!!catalogState?.configured}
+                      workID={selected.edition.catalog?.work.id}
+                      disabled={busy}
+                      onClose={() => setShowEditions(false)}
+                      onEdition={(id) => void openEdition(id, selected)}
+                      onWork={(work) => void openCandidate(work, selected)}
+                    />
+                  ) : null
+                }
                 onRefresh={() =>
                   void updatePersonal(
                     () => Catalog.Refresh(selected.id),
