@@ -144,10 +144,10 @@ INSERT INTO reading_cycles(id,edition_id,status) VALUES('cycle','edition','read'
 		t.Fatal("migración alteró datos previos")
 	}
 	var version int
-	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 4 {
+	if err = s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil || version != 5 {
 		t.Fatal("versión de esquema incorrecta")
 	}
-	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-4-*.sqlite"))
+	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-5-*.sqlite"))
 	if err != nil || len(paths) != 1 {
 		t.Fatal("falta copia previa")
 	}

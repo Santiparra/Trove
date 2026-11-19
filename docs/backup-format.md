@@ -1,6 +1,6 @@
 # Trove backup format
 
-Backup format **version 3** is independent of the SQLite schema (currently 4) and the public application version. Reading and restoration of format 1 and 2 backups remain supported.
+Backup format **version 4** is independent of the SQLite schema (currently 5) and the public application version. Existing support for formats 1 through 3 remains; earlier standalone volume entries are not converted into grouped novels.
 
 ## File layout
 
@@ -21,19 +21,19 @@ The two most recent complete, valid generations are retained. `complete.json` co
 
 A generation is published after its files are finished. External synchronization may download them separately: **a valid Trove JSON or SQLite file works independently**, without the other representation or manifest. An incomplete synchronization copy is not a completed generation.
 
-## Logical JSON, version 3
+## Logical JSON, version 4
 
 Encoding is UTF-8. Root fields:
 
 | Field | Type / meaning |
 | --- | --- |
 | `format` | Constant string `trove-library` |
-| `version` | Integer `3` in new generations |
+| `version` | Integer `4` in new generations |
 | `generation` | Text generation identifier, not a work ID |
 | `createdAt` | Generation timestamp in UTC, RFC 3339 |
 | `catalog` | Logical content described below |
 
-`catalog` contains four arrays. Empty collections are written as empty arrays. IDs are strings, not array positions or engine-specific auto-increment sequences.
+`catalog` always contains the four base arrays below, with empty arrays for empty collections. Format 4 adds an optional `novels` array, omitted when empty. IDs are strings, not array positions or engine-specific auto-increment sequences.
 
 | Collection | Fields |
 | --- | --- |
@@ -41,6 +41,11 @@ Encoding is UTF-8. Root fields:
 | `works` | `id`, `medium`, `title`, `authors` (string array), `notes`, `addedOn`, `favorite`; optional `seriesId` and `position` |
 | `editions` | `id`, `workId`, `language`, `format`, `identifier`, `owned`; optional `identifiers` and `catalog` |
 | `cycles` | `id`, `editionId`, `status`, `startedOn`, `finishedOn` |
+| `novels` | `id`, `title`, `authors`, `status`, nullable `total`/`completed`, `notes`, `favorite`, `addedOn`, and `volumes` |
+
+A grouped novel has its own identity and personal state. Each `volumes` entry contains `id`, positive integer `number`, optional-title text `title`, `description`, `edition`, `cycle`, `notes`, and `favorite`. Editions preserve ID, language, format, raw/normalized identifiers, and ownership; cycles preserve ID, status, and known start/completion dates. These nested entities are independent of the base Books collections. The current novel workflow is manual and does not accept remote catalog snapshots.
+
+`total = null` means an unknown total, and `completed = null` means an unknown completed quantity. Zero is a known count, not unknown. Known completion history includes records numbered 1 through n; unknown quantity does not generate records. Known totals, progress, unique volume numbers/identities, dates, and relationships are validated. The `volumes` collection must be present, even as an empty array. A read novel with a known total has N/N progress; a read novel with unknown quantity can have no volumes at all.
 
 Supported `medium` values are `books` and `light-novels`. Status values are `to-read`, `up-next`, `reading`, `read`, `paused`, and `did-not-finish`. Edition formats are an empty string (unknown), `paperback`, `hardcover`, `digital`, `audio`, and `other`.
 
@@ -57,7 +62,7 @@ Abbreviated **synthetic** example of an older work with unknown reading dates:
 ```json
 {
   "format": "trove-library",
-  "version": 3,
+  "version": 4,
   "generation": "synthetic-generation",
   "createdAt": "2026-01-01T00:00:00Z",
   "catalog": {
@@ -71,9 +76,9 @@ Abbreviated **synthetic** example of an older work with unknown reading dates:
 
 ## Earlier format support
 
-Format 1 contains only `works.medium = books`; series lack `medium` and are interpreted as Books. Format 2 adds both reading media without bibliographic snapshots. IDs, relationships, unknown dates, and the original logical hash are preserved: validating an older backup does not rewrite it as format 3 or invalidate its manifest.
+Format 1 contains only `works.medium = books`; series lack `medium` and are interpreted as Books. Format 2 adds both reading media without bibliographic snapshots; format 3 adds book catalog metadata. Grouped novels are introduced in format 4. IDs, relationships, unknown dates, and the original logical hash of existing supported formats are preserved. Restoring earlier standalone volumes does not group or convert them.
 
-New backups use format 3. Older restorations are prepared on the current schema without applying live reading-date behavior. Native snapshots identified as SQLite schemas 1, 2, 3, or 4 with a supported format are accepted. Older application versions may not accept schema 4 or format 3.
+New backups use format 4. Existing supported older restorations are prepared on the current schema without applying live reading-date behavior. Native snapshots identified as SQLite schemas 1 through 5 with a supported format are accepted. Older application versions may not accept schema 5 or format 4.
 
 Restoring an earlier backup recovers exactly that state: format 1 contains no light novels, and format 2 contains no bibliographic snapshots. Later entries are not retained by merging. The pre-replacement safety copy preserves the complete current state.
 

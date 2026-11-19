@@ -4,9 +4,9 @@ The application currently uses Spanish UI labels, which are preserved below so y
 
 ## Books and Light Novels libraries
 
-Each section opens a dashboard with reading states, current reads, recently finished entries with known dates, and a visual distribution. Both sections share navigation patterns, but their lists, searches, and series are independent. Previews fit the available space; complete lists remain accessible.
+Books opens a dashboard with reading states, current reads, recently finished entries with known dates, and a visual distribution. Light Novels opens a novel-level library focused on current and upcoming reads, with access to all novels and status filters. Both sections keep their records and operations independent.
 
-Each light novel volume is registered separately and may belong to a series at a given position. Matching series names in Books and Light Novels are not merged automatically. Switching sections does not reclassify or change existing records.
+Light Novels displays one entry per novel, with its volumes inside the detail page. Its title and authors belong to the novel; individual volume titles are optional. Switching sections does not reclassify or change existing records. The following catalog and popover-search instructions apply to Books; see [novel-level tracking](#novel-level-tracking) for Light Novels.
 
 - Search first shows local matches by title, author, series, or identifier. In Books, it adds Hardcover candidates in the same popover when a key is configured, without blocking local matches. Enter or **Ver todos los resultados** opens the full list.
 - Selecting a reading state opens its entries. The buttons above the list change the filter.
@@ -14,7 +14,7 @@ Each light novel volume is registered separately and may belong to a series at a
 - Clicking an author on a local or remote detail page opens the shared search for their books. Remote results require a configured key; local matches remain available without one.
 - The detail page allows saving notes and changing favorites, ownership, and status without opening the full editor.
 - Only the title is required when creating a book. ISBN, authors, and dates can be added later.
-- Light Novels uses **Añadir volumen**, with the same minimal edition and personal fields. Its detail page supports editing, favorites/ownership, notes, and all reading states, including **A continuación**.
+- Light Novels uses **Añadir novela**, with volume editing available from its detail page.
 - Deletion requires confirmation and removes the entry's associated data, not other entries in its series.
 
 ## Optional Books catalog
@@ -31,7 +31,7 @@ Popover search waits for a 140 ms pause before searching locally, then another 3
 
 From a detail page, you can link or change an edition, refresh metadata, and unlink it. These actions preserve personal data; a failed refresh keeps the previous snapshot. Saved descriptions and metadata can be read offline. Downloaded covers are reused locally, while unavailable ones display a placeholder. Open Library only supplements missing fields for the selected edition using a safe ISBN match.
 
-Manual entry creation remains available without a key or connection. Light Novels keeps its manual workflow. Keys and cached image bytes are not exported: restoring elsewhere may require configuring the key and downloading covers again.
+Manual entry creation remains available without a key or connection. Light Novels has no remote provider in this release. Keys and cached image bytes are not exported: restoring elsewhere may require configuring the key and downloading covers again.
 
 ## Provider health
 
@@ -64,6 +64,23 @@ Entering Reading records a start date if missing. Entering Read from another sta
 Dates are editable. Completion cannot precede the start, but both may be the same day. Explicitly setting or clearing a date takes precedence over automatic behavior for that edit. Restoration does not apply live reading-date rules.
 
 Recently finished entries need a completion date for chronological ordering. Entries without one remain in the Read list.
+
+## Novel-level tracking
+
+Use **Añadir novela** to create the main entry. **Editar novela y progreso** edits its title, authors, state, total, completed count, notes, favorite flag, and added date. The library displays one card per novel with progress and its current/next volume; volumes are not separate library cards.
+
+- Progress is completed volumes: **7/?** means seven finished volumes and a next/current number of **8**, with an unknown total. **Voy por el volumen** is a shortcut that writes X-1 into the same completed count, not a second independent counter.
+- Totals may be unknown. Clearing the completed count also allows **?/?** when the quantity is unknown. A novel can be marked **Leída** with unknown quantity or a known count and unknown total (**n/?**), without inventing volumes or dates.
+- A known historical count creates the corresponding completed volume records without fabricated titles or dates. Existing edition/cycle IDs, notes, ownership, favorites, and known dates are preserved. Reducing progress changes completion states but retains registered volume data and dates.
+- **Empezar volumen** starts the pending volume, changes the novel to **Leyendo**, and fills its missing start date. **Volumen terminado** finishes the active/pending volume and leaves the novel in **A continuación**. It only fills completion when a start date exists and completion is missing; it does not start the next volume.
+- At a known final volume, the action explicitly reads **Terminar último volumen y marcar leída**. It reaches N/N without creating N+1. Manual N/N progress also offers **Marcar novela como leída**. Completion is a personal reading state, not a claim that publication has ended.
+- Marking a novel read with a known total completes its volume records to N/N while preserving existing dates and leaving unknown historical dates empty. Unknown quantity does not generate a fictional set of volumes. Starting a specific volume requires a known completed count and a pending number.
+
+**Registrar volumen** adds numbered volume data; existing records open through their cards. **Guardar volumen** preserves the volume's identity and reading cycle. Its title is optional; language, format, identifier, ownership, favorite, synopsis, notes, and reading dates are independent. Existing numbers cannot be reassigned through this editor. Manual volume numbers and counts are whole numbers, bounded at 10,000; a known total must be positive and cannot exclude registered volumes.
+
+Novel notes and volume notes are separate. Unsaved novel notes remain while starting or finishing a volume. Leaving an edited form requires the usual discard confirmation. Deleting a novel requires confirmation and removes its volumes, without affecting Books.
+
+This development change does **not** convert or delete records from the previous standalone-volume model. Those records remain in stored data and backups but are not presented as grouped novels. Create new novel entries for the new model. Books is unchanged.
 
 ## Profiles
 
@@ -119,4 +136,4 @@ If a damaged database prevents startup, open a new data root and restore there w
 
 Supported formats, limits, and relationships are documented in the [backup format](backup-format.md).
 
-The current local schema is 4. Migration creates a `before-schema-4-*.sqlite` safety copy before adding normalized identifiers and bibliographic snapshots, preserving raw identifiers, identities, and unknown dates. New backups use format 3 and contain both reading media and linked metadata. Formats 1 and 2 can be recovered; format 1 is interpreted as Books. Restoration replaces the entire profile library without merging later entries.
+The current local schema is 5, including separate novel and volume storage. Adding the new tables does not convert old volume records; the existing schema initializer retains a pre-change safety copy. New backups use format 4 and preserve Books, grouped novels, their volumes, and linked book metadata. Supported earlier backups retain their original contents rather than converting standalone volumes into novels. Restoration replaces the entire profile library without merging later entries.

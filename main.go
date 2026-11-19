@@ -15,6 +15,7 @@ import (
 	"github.com/Santiparra/Trove/internal/config"
 	"github.com/Santiparra/Trove/internal/credentials"
 	"github.com/Santiparra/Trove/internal/desktop"
+	"github.com/Santiparra/Trove/internal/novels"
 	"github.com/Santiparra/Trove/internal/providers"
 	"github.com/Santiparra/Trove/internal/storage/sqlite"
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -72,7 +73,7 @@ func main() {
 	app := application.New(application.Options{
 		Name: "Trove", Description: "Biblioteca personal multimedia local",
 		Windows:  application.WindowsOptions{WebviewUserDataPath: filepath.Join(cfg.DataDir, "webview")},
-		Services: []application.Service{application.NewService(library), application.NewService(catalogService)},
+		Services: []application.Service{application.NewService(library), application.NewService(catalogService), application.NewService(desktop.NewNovels(novels.NewService(store), library))},
 		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 	})
 	app.RegisterService(application.NewService(desktop.NewBackups(backups, library,

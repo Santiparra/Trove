@@ -9,8 +9,10 @@ Trove is a modular local application: a React/TypeScript interface hosted by Wai
 | `frontend/src/books` | Presentation, forms, navigation, and interaction state |
 | `frontend/src/backup` | Visible backup settings, status, and recovery confirmation |
 | `frontend/src/catalog` | Catalog search, edition review, linking, and local cover presentation |
+| `frontend/src/novels` | Novel-level library, progress editing, and volume detail forms |
 | `internal/desktop` | Wails adapters, input/output contracts, and native dialogs |
 | `internal/books` | Library identities, validation, and use cases |
+| `internal/novels` | Novel aggregates, numbered volumes, progress, and reading actions |
 | `internal/storage/sqlite` | SQL, transactions, migrations, and snapshot adaptation |
 | `internal/backup` | Logical format, validation, generations, and restoration through a backend contract |
 | `internal/config` | Profile and data-location resolution |
@@ -27,7 +29,11 @@ A work has its own identity and may belong to a series at a given position. An e
 
 Books and Light Novels share the reading model, with an explicit `books` / `light-novels` discriminator. Services are scoped per request; the backend has no mutable global "current medium." The adapter requires a medium for queries and mutations. An ID from another section does not grant access to read, edit, or delete it in the wrong context. Editing an edition does not change the entry's medium. Series also have medium-specific identities, even when their names match.
 
-The current interface works with one edition/cycle per reading entry. Backups preserve all stored entities, not just the projection selected for a list. Unknown dates are not reconstructed from import or backup timestamps.
+Books works with one edition/cycle per displayed reading entry. Light Novels uses one entry per novel with independent numbered volume entities, editions/cycles, notes, and personal flags. Its completed count and optional total describe aggregate progress; live start/finish actions operate on the next numbered volume. Historical progress does not fabricate dates, and unknown quantities do not materialize volumes. Backups preserve all stored entities, not just a list projection.
+
+The novel model has its own repository and Wails service rather than reinterpreting a Books series as a novel. SQLite stores separate `novels` and `novel_volumes` rows, with a foreign key and unique per-novel volume numbers. Typed Go records are serialized in row payloads, and row IDs/numbers are checked against them on reads. Aggregate writes replace parent/volume data within one transaction and notify the existing backup mechanism. The shared library gate serializes novel mutations against restoration and shutdown.
+
+No conversion of the earlier standalone-volume model is performed. Existing Books and standalone volume rows remain intact; the novel-level interface reads the new aggregate storage.
 
 ## Persistence and recovery
 

@@ -64,7 +64,7 @@ func (s *Store) initialize(path string) error {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql"}
+	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql", "migrations/005_novels.sql"}
 	if version > len(files) {
 		return errors.New("la base pertenece a una versión más nueva de Trove")
 	}

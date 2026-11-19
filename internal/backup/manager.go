@@ -538,7 +538,11 @@ func (m *Manager) previewRestore(ctx context.Context, source string, expected *m
 	if err != nil {
 		return Preview{}, err
 	}
-	p := Preview{Token: rand.Text(), Source: source, Kind: kind, CreatedAt: doc.CreatedAt, Generation: doc.Generation, Profile: m.profile, DataDir: m.dir, Works: len(doc.Catalog.Works), Editions: len(doc.Catalog.Editions), Cycles: len(doc.Catalog.Cycles)}
+	p := Preview{Token: rand.Text(), Source: source, Kind: kind, CreatedAt: doc.CreatedAt, Generation: doc.Generation, Profile: m.profile, DataDir: m.dir, Works: len(doc.Catalog.Works) + len(doc.Catalog.Novels), Editions: len(doc.Catalog.Editions), Cycles: len(doc.Catalog.Cycles)}
+	for _, n := range doc.Catalog.Novels {
+		p.Editions += len(n.Volumes)
+		p.Cycles += len(n.Volumes)
+	}
 	m.prepared = &restoreJob{preview: p, dir: dir, path: path, hash: hash, expires: time.Now().Add(10 * time.Minute)}
 	ok = true
 	return p, nil

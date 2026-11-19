@@ -31,6 +31,7 @@ import * as Catalog from "../bindings/github.com/Santiparra/Trove/internal/deskt
 import CatalogControl from "./catalog/CatalogControl";
 import ProviderHealth from "./catalog/ProviderHealth";
 import SuccessToast from "./components/SuccessToast";
+import NovelWorkspace from "./novels/NovelWorkspace";
 import EditionPicker from "./catalog/EditionPicker";
 
 const media: { key: string; label: string; icon: IconName }[] = [
@@ -151,8 +152,12 @@ export default function App() {
     setLoading(true);
     Promise.all([
       Library.Info(),
-      Library.Dashboard(currentMedium),
-      Library.ListSeries(currentMedium),
+      currentMedium === "books"
+        ? Library.Dashboard(currentMedium)
+        : Promise.resolve(null),
+      currentMedium === "books"
+        ? Library.ListSeries(currentMedium)
+        : Promise.resolve([]),
     ])
       .then(([appInfo, overview, groups]) => {
         if (!active) return;
@@ -533,6 +538,7 @@ export default function App() {
                   setDirty(false);
                   setView("portal");
                   setSelected(null);
+                  setRevision((value) => value + 1);
                 }
                 return true;
               }}
@@ -595,7 +601,7 @@ export default function App() {
         )}
         {notice && (
           <SuccessToast
-            key={notice.id}
+            key={`notice:${notice.id}`}
             message={notice.message}
             onDismiss={() => setNotice("")}
           />
@@ -626,6 +632,19 @@ export default function App() {
               Ir a Libros <Icon name="chevron" size={16} />
             </button>
           </section>
+        ) : currentMedium === "light-novels" ? (
+          info ? (
+            <NovelWorkspace
+              key={`novels:${revision}`}
+              info={info}
+              onBusy={setBusy}
+              onDirty={setDirty}
+              canLeave={canLeave}
+              onNotice={setNotice}
+            />
+          ) : (
+            <p role="status">Cargando biblioteca de novelas…</p>
+          )
         ) : (
           <>
             {(view === "portal" || view === "list" || view === "series") && (

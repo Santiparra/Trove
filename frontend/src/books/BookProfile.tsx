@@ -17,6 +17,9 @@ export default function BookProfile({
   onSearch,
   management,
   children,
+  ariaLabel,
+  subtitle,
+  description,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -26,19 +29,27 @@ export default function BookProfile({
   onSearch: (query: string) => void;
   management: ReactNode;
   children?: ReactNode;
+  ariaLabel?: string;
+  subtitle?: string;
+  description?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
-  useEffect(() => setExpanded(false), [book?.id, snapshot?.edition.id]);
+  useEffect(
+    () => setExpanded(false),
+    [book?.id, snapshot?.edition.id, description],
+  );
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
   const identifiers = book?.edition.identifiers || snapshot?.identifiers || [];
+  const synopsis = description ?? snapshot?.description;
   return (
     <section
       className="book-page unified-book-page"
       aria-label={
-        book?.medium === "light-novels"
+        ariaLabel ||
+        (book?.medium === "light-novels"
           ? "Detalle del volumen"
-          : "Detalle del libro"
+          : "Detalle del libro")
       }
     >
       <button className="back-link" onClick={onBack} disabled={busy}>
@@ -86,6 +97,7 @@ export default function BookProfile({
             )
           )}
           <h1>{title}</h1>
+          {subtitle && <p className="novel-subtitle">{subtitle}</p>}
           <p className="hero-author">
             {authors.length
               ? authors.map((author, index) => (
@@ -146,18 +158,18 @@ export default function BookProfile({
               </>
             )}
           </dl>
-          {snapshot?.description && (
+          {synopsis && (
             <div className="profile-description">
               <p
                 className={
-                  !expanded && snapshot.description.length > 600
+                  !expanded && synopsis.length > 600
                     ? "description-collapsed"
                     : ""
                 }
               >
-                {snapshot.description}
+                {synopsis}
               </p>
-              {snapshot.description.length > 600 && (
+              {synopsis.length > 600 && (
                 <button
                   className="text-action"
                   aria-expanded={expanded}

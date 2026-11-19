@@ -93,7 +93,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 4 {
+	if version < 1 || version > 5 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
 	medium := "'books'"
@@ -215,6 +215,12 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err != nil {
 		return doc, err
 	}
+	if version >= 5 {
+		doc.Catalog.Novels, err = readNovels(ctx, db)
+		if err != nil {
+			return doc, err
+		}
+	}
 	return doc, doc.Validate()
 }
 
@@ -297,6 +303,11 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 	}
 	for _, v := range doc.Catalog.Cycles {
 		if _, err = tx.ExecContext(ctx, "INSERT INTO reading_cycles(id,edition_id,status,started_on,finished_on) VALUES(?,?,?,?,?)", v.ID, v.EditionID, v.Status, v.StartedOn, v.FinishedOn); err != nil {
+			return err
+		}
+	}
+	for _, n := range doc.Catalog.Novels {
+		if err = writeNovel(ctx, tx, n); err != nil {
 			return err
 		}
 	}

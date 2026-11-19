@@ -1,0 +1,266 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import {
+  Novel,
+  Volume,
+} from "../../bindings/github.com/Santiparra/Trove/internal/novels/models";
+import {
+  Edition,
+  Cycle,
+} from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
+import NovelWorkspace from "./NovelWorkspace";
+
+const api = vi.hoisted(() => ({
+  List: vi.fn(),
+  Get: vi.fn(),
+  Save: vi.fn(),
+  ChangeStatus: vi.fn(),
+  StartVolume: vi.fn(),
+  FinishVolume: vi.fn(),
+  SaveVolume: vi.fn(),
+  Delete: vi.fn(),
+}));
+vi.mock(
+  "../../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
+  () => api,
+);
+const info = new Info({
+  statuses: [
+    { value: "to-read", label: "Por leer" },
+    { value: "up-next", label: "A continuación" },
+    { value: "reading", label: "Leyendo" },
+    { value: "read", label: "Leído" },
+    { value: "paused", label: "Pausado" },
+    { value: "did-not-finish", label: "Sin terminar" },
+  ],
+  formats: [
+    { value: "", label: "Sin especificar" },
+    { value: "digital", label: "Digital" },
+  ],
+});
+const volume = (number: number, status = "read") =>
+  new Volume({
+    id: `volume-${number}`,
+    number,
+    title: "",
+    edition: new Edition({ id: `edition-${number}` }),
+    cycle: new Cycle({
+      id: `cycle-${number}`,
+      status,
+      startedOn: "",
+      finishedOn: "",
+    }),
+  });
+const novel = (values: Partial<Novel> = {}) =>
+  new Novel({
+    id: "novel-1",
+    title: "Novela sintética",
+    authors: ["Autora"],
+    status: "reading",
+    completed: 0,
+    total: null,
+    notes: "Nota de novela",
+    addedOn: "2026-01-01",
+    volumes: [volume(1, "reading")],
+    ...values,
+  });
+const onDirty = vi.fn();
+const onNotice = vi.fn();
+function mount() {
+  return render(
+    <NovelWorkspace
+      info={info}
+      onBusy={vi.fn()}
+      onDirty={onDirty}
+      canLeave={() => true}
+      onNotice={onNotice}
+    />,
+  );
+}
+async function open(n: Novel) {
+  api.List.mockResolvedValue([n]);
+  api.Get.mockResolvedValue(n);
+  mount();
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
+  );
+  await screen.findByRole("region", { name: "Detalle de novela" });
+}
+beforeEach(() => {
+  vi.resetAllMocks();
+  api.List.mockResolvedValue([]);
+});
+afterEach(cleanup);
+
+it("lista una novela y su progreso, no una entrada por volumen", async () => {
+  const n = novel({
+    completed: 7,
+    volumes: Array.from({ length: 7 }, (_, index) => volume(index + 1)),
+  });
+  api.List.mockResolvedValue([n]);
+  mount();
+  expect(
+    await screen.findByRole("button", {
+      name: "Abrir novela Novela sintética",
+    }),
+  ).toBeTruthy();
+  expect(screen.getAllByRole("button", { name: /^Abrir novela/ })).toHaveLength(
+    1,
+  );
+  expect(screen.getByText("7/?")).toBeTruthy();
+  expect(screen.getByText("Volumen 8")).toBeTruthy();
+});
+
+it("el atajo Voy por el volumen X guarda X-1 y la creación no exige títulos de volumen", async () => {
+  api.Save.mockResolvedValue(
+    novel({
+      status: "to-read",
+      completed: 7,
+      volumes: Array.from({ length: 7 }, (_, index) => volume(index + 1)),
+    }),
+  );
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "Añadir novela" }));
+  fireEvent.change(screen.getByLabelText("Título de la novela"), {
+    target: { value: "Novela sintética" },
+  });
+  fireEvent.change(screen.getByLabelText("Voy por el volumen"), {
+    target: { value: "8" },
+  });
+  expect(screen.getByLabelText("Volúmenes completados")).toHaveProperty(
+    "value",
+    "7",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Guardar novela" }));
+  await screen.findByRole("region", { name: "Detalle de novela" });
+  expect(api.Save.mock.calls[0][0]).toMatchObject({
+    title: "Novela sintética",
+    completed: 7,
+    total: null,
+  });
+  expect(
+    screen.getByRole("button", { name: "Empezar volumen 8" }),
+  ).toBeTruthy();
+});
+
+it("guarda Leída con cantidad desconocida sin dibujar volúmenes ficticios", async () => {
+  api.Save.mockResolvedValue(
+    novel({ status: "read", completed: null, total: null, volumes: [] }),
+  );
+  mount();
+  fireEvent.click(screen.getByRole("button", { name: "Añadir novela" }));
+  fireEvent.change(screen.getByLabelText("Título de la novela"), {
+    target: { value: "Novela sintética" },
+  });
+  fireEvent.change(screen.getByLabelText("Estado de la novela"), {
+    target: { value: "read" },
+  });
+  fireEvent.change(screen.getByLabelText("Volúmenes completados"), {
+    target: { value: "" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Guardar novela" }));
+  await screen.findByRole("region", { name: "Detalle de novela" });
+  expect(api.Save.mock.calls[0][0]).toMatchObject({
+    status: "read",
+    completed: null,
+    total: null,
+  });
+  expect(screen.getByText("?/?")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Editar volumen 1" })).toBeNull();
+});
+
+it("terminar deja el siguiente pendiente sin iniciarlo y conserva el borrador de notas", async () => {
+  const n = novel();
+  const updated = novel({
+    status: "up-next",
+    completed: 1,
+    volumes: [
+      volume(1),
+      new Volume({
+        ...volume(2, "to-read"),
+        description: "Sinopsis del siguiente volumen",
+      }),
+    ],
+  });
+  api.FinishVolume.mockResolvedValue(updated);
+  await open(n);
+  const notes = screen.getByLabelText("Notas de la novela");
+  fireEvent.change(notes, {
+    target: { value: "Borrador todavía sin guardar" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Volumen terminado" }));
+  await screen.findByRole("button", { name: "Empezar volumen 2" });
+  expect(api.FinishVolume).toHaveBeenCalledExactlyOnceWith(n.id);
+  expect(api.StartVolume).not.toHaveBeenCalled();
+  expect(screen.getByText("Sinopsis del siguiente volumen")).toBeTruthy();
+  expect(notes).toHaveProperty("value", "Borrador todavía sin guardar");
+  expect(onDirty).toHaveBeenLastCalledWith(true);
+});
+
+it("al terminar N/N ofrece la acción explícita y no presenta un volumen N+1", async () => {
+  const n = novel({
+    completed: 1,
+    total: 2,
+    volumes: [volume(1), volume(2, "reading")],
+  });
+  api.FinishVolume.mockResolvedValue(
+    novel({
+      status: "read",
+      completed: 2,
+      total: 2,
+      volumes: [volume(1), volume(2)],
+    }),
+  );
+  await open(n);
+  fireEvent.click(
+    screen.getByRole("button", {
+      name: "Terminar último volumen y marcar leída",
+    }),
+  );
+  await waitFor(() =>
+    expect(screen.getByLabelText(`Estado de ${n.title}`)).toHaveProperty(
+      "value",
+      "read",
+    ),
+  );
+  expect(screen.queryByText(/Volumen 3/)).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Empezar volumen" }),
+  ).toHaveProperty("disabled", true);
+});
+
+it("edita datos de un volumen con título opcional, conserva errores y no pierde el formulario", async () => {
+  api.SaveVolume.mockRejectedValue(
+    new Error("La finalización precede al inicio"),
+  );
+  await open(novel());
+  fireEvent.click(screen.getByRole("button", { name: "Editar volumen 1" }));
+  expect(screen.getByLabelText("Número de volumen")).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(screen.getByLabelText("Título del volumen")).toHaveProperty(
+    "required",
+    false,
+  );
+  fireEvent.change(screen.getByLabelText("Notas del volumen"), {
+    target: { value: "Nota por conservar" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Guardar volumen" }));
+  await screen.findByText("La finalización precede al inicio");
+  expect(screen.getByLabelText("Notas del volumen")).toHaveProperty(
+    "value",
+    "Nota por conservar",
+  );
+  expect(api.SaveVolume.mock.calls[0]).toMatchObject([
+    "novel-1",
+    { id: "volume-1", number: 1, title: "", notes: "Nota por conservar" },
+  ]);
+});

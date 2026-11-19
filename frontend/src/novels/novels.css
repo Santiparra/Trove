@@ -1,0 +1,123 @@
+.novel-library-grid {
+  display: grid;
+  gap: 14px;
+  margin: 24px 0;
+}
+.novel-workspace .status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.novel-workspace .status-tabs button {
+  background: #1b2723;
+  color: #b4c7bc;
+  border: 1px solid #34453c;
+  border-radius: 6px;
+  padding: 9px 13px;
+  font-size: 12px;
+}
+.novel-workspace .status-tabs button.active {
+  background: #344d36;
+  color: #dfecd9;
+  border-color: #6f8a62;
+}
+.novel-library-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 20px;
+  text-align: left;
+  border: 1px solid #34453c;
+  border-radius: 8px;
+  background: #1b2723;
+}
+.novel-library-card:hover:not(:disabled),
+.novel-volume:hover:not(:disabled) {
+  background: #25372c;
+  border-color: #5c7c60;
+}
+.novel-library-card > div {
+  display: grid;
+  gap: 7px;
+}
+.novel-library-card span,
+.novel-library-card small {
+  font-size: 12px;
+  color: #9eb5aa;
+}
+.novel-library-card .novel-card-progress {
+  margin-left: auto;
+  text-align: right;
+}
+.novel-card-progress > strong,
+.novel-progress {
+  font-size: 25px;
+  color: #c3d9b9;
+}
+.novel-subtitle {
+  margin: 12px 0;
+  font-size: 14px;
+  color: #b6ccaa;
+}
+.novel-form {
+  padding: 24px;
+  display: grid;
+  gap: 20px;
+}
+.novel-form label {
+  display: grid;
+  gap: 8px;
+  color: #b3c7bb;
+  font-size: 12px;
+}
+.novel-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.novel-form .novel-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.novel-checkbox input {
+  width: auto;
+}
+.novel-volumes {
+  margin: 12px 0 24px;
+}
+.novel-volume-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.novel-volume {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  text-align: left;
+  border: 1px solid #34453c;
+  border-radius: 7px;
+  background: #1b2723;
+  font-size: 12px;
+}
+.novel-volume span,
+.novel-volume small {
+  color: #a7bfb0;
+  line-height: 1.6;
+}
+.novel-volume.is-current {
+  border-color: #8faa72;
+}
+@media (max-width: 750px) {
+  .novel-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .novel-library-card {
+    gap: 12px;
+    padding: 14px;
+  }
+}
