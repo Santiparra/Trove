@@ -1,31 +1,31 @@
-# Seguridad y privacidad
+# Security and privacy
 
-Trove mantiene la biblioteca local. No tiene cuentas propias, telemetría ni integración de IA. El catálogo opcional de Libros consulta Hardcover y complementa metadata con Open Library. El frontend empaquetado no carga scripts o imágenes remotas arbitrarias.
+Trove keeps your library local. It has no Trove accounts, telemetry, or integrated AI. The optional Books catalog queries Hardcover and supplements metadata through Open Library. The packaged frontend does not load arbitrary remote scripts or images.
 
-SQLite y los respaldos no tienen cifrado propio: quien acceda a los archivos puede leerlos. La protección del dispositivo y de la cuenta de almacenamiento corresponde al entorno Windows y al servicio configurado. No se distribuyen credenciales, bibliotecas ni rutas personales dentro del ejecutable.
+SQLite and backups are not encrypted by Trove: anyone with access to those files can read them. Device and storage-account protection depend on Windows and the configured storage service. Credentials, libraries, and personal paths are not bundled in the executable.
 
-## Archivos y recuperación
+## Files and recovery
 
-- JSON y SQLite se identifican y validan antes de restaurar; versiones desconocidas, referencias rotas y contenido incompleto se rechazan.
-- La restauración prepara una base aparte y requiere confirmación del perfil de destino.
-- Se guarda una copia anterior y se intenta recuperarla si falla el reemplazo.
-- Rutas de respaldo, logs, cachés y credenciales quedan fuera del modelo portable.
-- El estado local de un respaldo no garantiza que un sincronizador de nube lo haya subido.
+- JSON and SQLite backups are identified and validated before restoration. Unknown versions, broken references, and incomplete content are rejected.
+- Restoration prepares a separate database and requires confirmation of the destination profile.
+- A safety copy is kept, and recovery is attempted if replacement fails.
+- Backup paths, logs, caches, and credentials are excluded from the portable data model.
+- Local backup status does not confirm that a cloud synchronization client has uploaded the files.
 
-## Catálogo opcional
+## Optional catalogs
 
-Las búsquedas transmiten consulta o ISBN a Hardcover. Al seleccionar o refrescar una edición se consultan sus referencias y, cuando corresponde, el ISBN en Open Library. Las descargas de portadas exponen la IP al host de imágenes. No se consulta ni sincroniza la biblioteca personal de Hardcover.
+Searches send the query or ISBN to Hardcover. Selecting or refreshing an edition queries its references and, where applicable, its ISBN in Open Library. Cover downloads expose the IP address to the image host. Trove does not query or synchronize the user's personal Hardcover library.
 
-Al iniciar se comprueba la API de Hardcover (solo si hay clave) con una consulta de una referencia de catálogo, y Open Library con un ISBN público fijo de diagnóstico. Estas comprobaciones también exponen la IP, pero no envían títulos, notas ni progreso de la biblioteca. Se ejecutan una vez en segundo plano; se pueden repetir manualmente y no hay sondeos periódicos de red. El estado, los errores genéricos y los tiempos se conservan solo en memoria. Las consultas normales alimentan el mismo diagnóstico; los mensajes no incorporan cuerpos remotos ni credenciales.
+At startup, the app checks Hardcover's API, only when a key is configured, using a single catalog reference query. Open Library is checked with a fixed public diagnostic ISBN. These checks also expose the IP address, but do not send library titles, notes, or progress. They run once in the background and may be repeated manually; there is no periodic remote polling. Status, generic errors, and timings are kept only in memory. Normal queries update the same diagnostics; messages do not include remote response bodies or credentials.
 
-El modo solo local se carga antes de iniciar los chequeos y bloquea el transporte HTTP compartido por catálogos y portadas, incluyendo redirecciones. Activarlo cancela las solicitudes en curso, también durante la lectura del cuerpo de respuesta. Las lecturas de la base de datos y de portadas cacheadas no pasan por la red. Esta preferencia pertenece al perfil, queda fuera de respaldos y no elimina las credenciales.
+Local-only mode is loaded before startup checks and blocks the HTTP transport shared by catalogs and covers, including redirects. Enabling it cancels in-flight requests, including response-body reads. Database and cached-cover reads do not use the network. This preference belongs to the profile, is excluded from backups, and does not remove credentials.
 
-La clave se introduce en un campo protegido y se guarda por perfil en `catalog-credentials.bin`, cifrada con DPAPI para la cuenta Windows. No se devuelve al frontend ni se incluye en respaldos. Guardarla no comprueba su validez hasta la consulta. Quitarla conserva la biblioteca y sus snapshots.
+The key is entered in a password field and stored per profile in `catalog-credentials.bin`, protected with DPAPI for the Windows account. It is not returned to the frontend or included in backups. Saving a key does not verify it until a query is made. Removing it preserves the library and snapshots.
 
-Go limita endpoints, HTTPS, redirecciones, tamaños y tiempos de espera; no devuelve cuerpos de error con credenciales. Las portadas se admiten solo desde `assets.hardcover.app`, `images.hardcover.app` y `covers.openlibrary.org`, se validan como imágenes raster y se sirven a React como data URL desde una caché local por perfil. No se envía la clave al descargar imágenes ni a Open Library. La metadata se presenta como texto, sin ejecutar HTML o SQL externo.
+Go restricts endpoints, HTTPS, redirects, response sizes, and timeouts; it does not return raw error bodies containing credentials. Covers are accepted only from `assets.hardcover.app`, `images.hardcover.app`, and `covers.openlibrary.org`. They are validated as raster images and delivered to React as data URLs through a per-profile local cache. The key is not sent to image hosts or Open Library. Metadata is rendered as text, without executing external HTML or SQL.
 
-## Automatización
+## Automation
 
-La validación de PR usa permisos de lectura. Solo el job de publicación sobre un push a `main` solicita escritura de contenido. Las Actions de terceros utilizadas están fijadas a revisiones concretas. No se publican releases desde PRs ni desde pushes a `dev`.
+PR validation uses read permissions. Only the publication job for a push to `main` requests content-write permissions. Third-party Actions are pinned to specific revisions. PRs and pushes to `dev` do not publish releases.
 
-Las releases portables no están firmadas digitalmente. Los checksums sirven para comprobar integridad del paquete; no son cifrado ni sustituyen una firma del editor.
+Portable releases are not digitally signed. Checksums verify package integrity; they are not encryption or a substitute for a publisher signature.

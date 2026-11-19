@@ -1,49 +1,53 @@
 # Trove
 
-Biblioteca y bitácora multimedia local para **Windows x64**. Los datos personales pertenecen a la biblioteca local; los proveedores externos no son necesarios para registrar libros.
+A local multimedia library and personal activity journal for **Windows x64**. Your reading history and personal records belong to the local library; external catalogs are optional.
 
-**Novedades de este corte:** catálogo de Libros, biblioteca manual de Novelas ligeras, modo solo local y mejoras de búsqueda, fichas y restauración. Ver [qué cambia respecto a v0.1.4](docs/releases/catalogo-libros-y-novelas.md) y el [historial de publicaciones](docs/releases/README.md#historial-de-novedades).
+**Español:** [Cómo empezar y usar Trove](docs/es/guia.md).
 
-## Funciones disponibles
+Trove is a personal project, publicly available for anyone who finds it useful or wants to contribute. The application currently uses a Spanish interface. Public documentation is maintained in English, with a short Spanish guide reviewed when preparing PRs to `main`.
 
-- **Libros:** búsqueda unificada en la biblioteca y Hardcover, con Open Library como complemento seguro por ISBN de la edición elegida.
-- Ficha compartida para resultados locales y de catálogo, con portadas, descripción, selección de ediciones y navegación por autoría y series.
-- Alta manual o desde catálogo, vinculación con registros existentes y metadata guardada sin reemplazar notas ni seguimiento personal.
-- **Novelas ligeras:** biblioteca manual independiente, con autoría, series y orden, edición, estado y fechas. Cada volumen es una entrada; todavía no tiene proveedor remoto.
-- Portal de lectura, notas, favoritos, propiedad y gestión rápida de estados. Elegir un estado al agregar ejecuta el alta directamente.
-- Indicador de salud de proveedores, diagnóstico manual y pausas automáticas ante fallos o límites.
-- **Modo solo local** persistente por perfil: bloquea consultas y descargas, conservando biblioteca, metadata y portadas ya cacheadas.
-- Avisos de éxito flotantes que no desplazan el contenido.
-- Respaldo automático SQLite + JSON y restauración **Actual / Anterior** con fecha, hora, validación y copia previa al reemplazo.
-- Perfiles separados de desarrollo, prueba y uso habitual.
+## Available features
 
-El catálogo es opcional. Hardcover requiere configurar una clave de lectura; Open Library no requiere clave. El alta manual, la gestión personal y la lectura de los datos guardados siguen disponibles sin conexión. Ver [uso y configuración](docs/usage.md).
+- **Books:** unified search across the local library and Hardcover, with Open Library providing complementary metadata for a safely identified edition.
+- A shared local/catalog detail page with covers, descriptions, edition selection, and author/series navigation.
+- Manual or catalog-based entry creation, linking to existing records, and saved bibliographic metadata that does not replace personal notes or reading history.
+- **Light novels:** a separate manual library with authors, series and volume order, edition details, status, and dates. Each volume is an entry; remote catalog integration is not available yet.
+- Reading dashboards, notes, favorites, ownership, and quick status changes. Selecting a status when adding a book creates the entry directly.
+- Provider health information, manual diagnostics, and automatic pauses after failures or rate limits.
+- A per-profile **local-only mode** that blocks catalog requests and cover downloads while retaining local records, metadata, and cached covers.
+- Success notifications that float above the page without shifting its content.
+- Automatic SQLite + JSON backups and **Actual / Anterior** (current/previous) restoration with timestamps, validation, and a pre-restore safety copy.
+- Separate development, test, and everyday-use profiles.
 
-Las demás secciones multimedia están en construcción. No están implementadas las importaciones de servicios externos ni puntajes. Listados, búsquedas, series y operaciones se acotan al medio seleccionado.
+Hardcover requires a catalog access key; Open Library does not. Manual entry creation and personal library management work without a key or connection. See the [user guide](docs/usage.md).
 
-## Descargar y ejecutar
+Other media sections are under construction. External-service imports and ratings are not implemented. Lists, searches, series, and operations are scoped to the selected medium.
 
-Las entregas se publican en [Releases](https://github.com/Santiparra/Trove/releases) cuando un cambio integrado en `main` supera las verificaciones. Mientras no haya una publicación disponible se puede compilar desde el código.
+## Download and run
 
-1. Descargar el ZIP **Windows x64** de una release.
-2. Extraerlo en una carpeta con permiso de escritura.
-3. Abrir `Trove.exe`.
+Verified releases are available from [GitHub Releases](https://github.com/Santiparra/Trove/releases). See the [release history](docs/releases/README.md#release-history) for user-facing changes, including the Books and Light Novels release, **v0.1.7**.
 
-Para actualizar, cerrar Trove y conservar la carpeta `data/` del portable anterior; extraer la nueva entrega en esa ubicación reemplazando los archivos de la aplicación. También se puede usar una carpeta nueva y restaurar un respaldo. Las notas de cada corte describen sus cambios y límites.
+1. Download the **Windows x64** ZIP from a release.
+2. Extract it into a writable folder.
+3. Open `Trove.exe`.
 
-Requisito de ejecución: [Microsoft WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente disponible en Windows moderno. No requiere Go, Node, un servidor SQLite ni cuenta de Trove. El paquete portable no está firmado digitalmente.
+Runtime requirement: [Microsoft WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normally available on modern Windows. Go, Node, a SQLite server, and a Trove account are not required to run the app. The portable package is not digitally signed.
 
-Las releases usan `data/habitual/` junto al ejecutable. Los artefactos de PR usan un perfil de prueba independiente. Copiar solo el EXE no transfiere una biblioteca: conservar los datos o restaurar un respaldo.
+To update, close Trove and preserve the existing `data/` folder while replacing the application files with the new release. Alternatively, use a new folder and restore a backup. Each release documents its changes and relevant limitations.
 
-## Datos y recuperación
+Releases use `data/habitual/` next to the executable. PR artifacts use a separate test profile. Copying only the executable does not transfer a library: preserve the data or restore a backup.
 
-Configurar una carpeta desde **Respaldo y restauración**. Trove mantiene dos generaciones completas de SQLite y JSON; un cliente de Drive/Dropbox puede sincronizar esa carpeta. El indicador confirma resguardo local, no subida a la nube.
+## Data and recovery
 
-El selector muestra **Actual** y **Anterior** con fecha y hora. También permite elegir un archivo de respaldo manualmente. Las claves, portadas cacheadas y preferencias del perfil, incluido el modo solo local, quedan fuera de la exportación.
+Choose a backup folder from **Respaldo y restauración**. Trove retains two complete SQLite and JSON generations. A Drive/Dropbox client can synchronize that folder; the backup indicator confirms local files, not cloud upload.
 
-El JSON documentado conserva identidades y relaciones sin depender de SQLite. Restaurar reemplaza el perfil seleccionado, no mezcla bibliotecas ni importa datos de otros servicios. Los archivos no tienen cifrado propio.
+The restore selector shows **Actual** and **Anterior** with local timestamps. You can also select a backup file manually. Credentials, cached covers, and profile preferences, including local-only mode, are excluded from exports.
 
-## Desarrollo y contribuciones
+The documented JSON format preserves identities and relationships independently of SQLite. Restoration replaces the selected profile's library; it does not merge libraries or import another service's data. Database and backup files are not encrypted by Trove.
+
+## Development and contributions
+
+Install the tools listed in the [development guide](docs/development.md), then run:
 
 ```powershell
 git clone https://github.com/Santiparra/Trove.git
@@ -53,20 +57,23 @@ npm --prefix frontend ci
 wails3 task dev
 ```
 
-Antes de ejecutar esos comandos, instalar las herramientas indicadas en [desarrollo](docs/development.md). El código de trabajo se integra en `dev`; los PR destinados a `main` ejecutan las verificaciones Windows. Integrar en `main` inicia la publicación automática si las verificaciones pasan.
+Work is integrated into `dev`. PRs targeting `main` run the Windows checks. Merging to `main` starts automatic publication once those checks pass.
 
-## Documentación
+English documentation is the day-to-day source of truth. Update the short [Spanish guide](docs/es/guia.md) when preparing a release PR, rather than duplicating every technical document. Published release notes retain their original language; new release notes are written in English.
 
-| Tema | Referencia |
+## Documentation
+
+| Topic | Reference |
 | --- | --- |
-| Uso y almacenamiento | [Guía de uso](docs/usage.md) |
-| Entorno y comandos | [Desarrollo](docs/development.md) |
-| Responsabilidades y límites | [Arquitectura](docs/architecture.md) |
-| Recuperación portable | [Formato de respaldo](docs/backup-format.md) |
-| Criterios verificables | [Contratos y pruebas](docs/testing.md) |
-| Publicación y artefactos | [Releases](docs/releases/README.md) |
-| Alcance de privacidad | [Seguridad](docs/security.md) |
+| Usage and local storage | [User guide](docs/usage.md) |
+| Getting started and everyday usage in Spanish | [Guía breve en español](docs/es/guia.md) |
+| Tools and commands | [Development](docs/development.md) |
+| Responsibilities and boundaries | [Architecture](docs/architecture.md) |
+| Portable recovery | [Backup format](docs/backup-format.md) |
+| Verifiable behavior | [Contracts and testing](docs/testing.md) |
+| Publication and artifacts | [Releases](docs/releases/README.md) |
+| Privacy boundaries | [Security](docs/security.md) |
 
-## Licencia
+## License
 
 [MIT](LICENSE).

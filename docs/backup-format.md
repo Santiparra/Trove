@@ -1,58 +1,58 @@
-# Formato de respaldo de Trove
+# Trove backup format
 
-La versión **3 del formato de respaldo** es independiente del esquema SQLite (actualmente 4) y de la versión pública de la aplicación. Se mantiene lectura y restauración de las copias de formato 1 y 2.
+Backup format **version 3** is independent of the SQLite schema (currently 4) and the public application version. Reading and restoration of format 1 and 2 backups remain supported.
 
-## Organización de archivos
+## File layout
 
 ```text
-Carpeta elegida/
-  test/                       # o development / habitual
+Chosen folder/
+  test/                       # or development / habitual
     generation-<id>/
       trove.sqlite
       trove.json
       complete.json
-    generation-<id-anterior>/
+    generation-<previous-id>/
       trove.sqlite
       trove.json
       complete.json
 ```
 
-Se conservan las dos últimas generaciones completas y válidas. `complete.json` contiene versión de publicación, generación, fecha UTC, hash del contenido lógico y hashes SHA-256 de ambos archivos. Permite detectar pares incompletos o alterados antes de tratarlos como generaciones válidas para retención. No es una firma ni cifrado.
+The two most recent complete, valid generations are retained. `complete.json` contains a manifest format version, generation ID, UTC timestamp, logical content hash, and SHA-256 hashes of both representations. It detects incomplete or altered pairs before they qualify for retention. It is neither a signature nor encryption.
 
-La generación se publica tras terminar los archivos. Una sincronización externa puede descargarlos por separado: **un JSON o SQLite válido de Trove funciona de forma independiente**, sin requerir el otro archivo ni el manifiesto. No confundir una copia incompleta del sincronizador con una generación terminada.
+A generation is published after its files are finished. External synchronization may download them separately: **a valid Trove JSON or SQLite file works independently**, without the other representation or manifest. An incomplete synchronization copy is not a completed generation.
 
-## JSON lógico, versión 3
+## Logical JSON, version 3
 
-Codificación UTF-8. Raíz:
+Encoding is UTF-8. Root fields:
 
-| Campo | Tipo / significado |
+| Field | Type / meaning |
 | --- | --- |
-| `format` | Cadena constante `trove-library` |
-| `version` | Entero `3` en nuevas generaciones |
-| `generation` | Identificador textual de la generación; no es el ID de una obra |
-| `createdAt` | Fecha/hora de generación RFC 3339 en UTC |
-| `catalog` | Contenido lógico descrito debajo |
+| `format` | Constant string `trove-library` |
+| `version` | Integer `3` in new generations |
+| `generation` | Text generation identifier, not a work ID |
+| `createdAt` | Generation timestamp in UTC, RFC 3339 |
+| `catalog` | Logical content described below |
 
-`catalog` contiene cuatro arrays. Se generan arrays vacíos para colecciones sin registros. Los IDs son cadenas, no posiciones en un array ni secuencias autoincrementales dependientes de un motor.
+`catalog` contains four arrays. Empty collections are written as empty arrays. IDs are strings, not array positions or engine-specific auto-increment sequences.
 
-| Colección | Campos |
+| Collection | Fields |
 | --- | --- |
 | `series` | `id`, `name`, `medium` |
-| `works` | `id`, `medium`, `title`, `authors` (array de cadenas), `notes`, `addedOn`, `favorite`; `seriesId` y `position` opcionales |
-| `editions` | `id`, `workId`, `language`, `format`, `identifier`, `owned`; `identifiers` y `catalog` opcionales |
+| `works` | `id`, `medium`, `title`, `authors` (string array), `notes`, `addedOn`, `favorite`; optional `seriesId` and `position` |
+| `editions` | `id`, `workId`, `language`, `format`, `identifier`, `owned`; optional `identifiers` and `catalog` |
 | `cycles` | `id`, `editionId`, `status`, `startedOn`, `finishedOn` |
 
-En esta versión, `medium` admite `books` y `light-novels`. El estado admite `to-read`, `up-next`, `reading`, `read`, `paused`, `did-not-finish`. Formatos de edición: cadena vacía (desconocido), `paperback`, `hardcover`, `digital`, `audio`, `other`.
+Supported `medium` values are `books` and `light-novels`. Status values are `to-read`, `up-next`, `reading`, `read`, `paused`, and `did-not-finish`. Edition formats are an empty string (unknown), `paperback`, `hardcover`, `digital`, `audio`, and `other`.
 
-Las fechas de biblioteca/consumo son `AAAA-MM-DD` o cadena vacía cuando se desconocen; no tienen hora ni zona horaria. `favorite` y `owned` son booleanos independientes del estado de lectura. `position` es un número no negativo y solo tiene sentido con serie. `identifier` es texto opcional de edición, no se presupone que sea siempre un ISBN.
+Library/reading dates use `YYYY-MM-DD`, or an empty string when unknown; they have no time or time zone. `favorite` and `owned` are booleans independent of reading state. `position` is nonnegative and only meaningful with a series. `identifier` is optional edition text and is not assumed to always be an ISBN.
 
-`identifiers` conserva esquema, valor normalizado, fuente y marca de equivalencia derivada. `catalog` contiene el snapshot bibliográfico: proveedor principal, fecha de consulta RFC 3339, obra y edición remotas, identificadores, descripción, URL de portada, fuentes por campo y advertencias. No sustituye los campos personales. Los bytes de portadas y las credenciales no forman parte del respaldo; las URLs y la metadata sí.
+`identifiers` preserves scheme, normalized value, source, and a derived-equivalence flag. `catalog` holds the bibliographic snapshot: primary provider, RFC 3339 fetch time, remote work/edition, identifiers, description, cover URL, per-field sources, and warnings. It does not replace personal fields. Cover bytes and credentials are excluded; URLs and metadata are included.
 
-Relaciones: `works.seriesId` → `series.id`; `editions.workId` → `works.id`; `cycles.editionId` → `editions.id`. Una obra y su serie deben pertenecer al mismo medio. Cada obra debe tener edición y registro de lectura. Se conservan todas las ediciones y ciclos, no solo los que seleccione una vista del frontend. Los nombres de serie no pueden colisionar al normalizarlos dentro de un medio, pero pueden repetirse entre medios distintos.
+Relationships: `works.seriesId` → `series.id`; `editions.workId` → `works.id`; `cycles.editionId` → `editions.id`. A work and its series must have the same medium. Every work must have an edition and reading record. All editions and cycles are preserved, not only those displayed by a frontend view. Normalized series names must be unique within a medium but may repeat across media.
 
-Se validan identidad de formato, versión, duplicados, referencias, fechas, enums y coherencia temporal, sin inventar fechas faltantes. El catálogo y las cuatro colecciones deben estar presentes, aunque sean arrays vacíos: un contenido omitido no se interpreta como una biblioteca vacía. Los campos o medios desconocidos se rechazan, en lugar de descartarlos silenciosamente. La incorporación de nuevos datos debe actualizar explícitamente el formato/compatibilidad y sus pruebas.
+Validation checks format identity, version, duplicates, references, dates, enums, and chronology without inventing missing dates. The catalog and all four collections must be present, even as empty arrays: omitted content is not interpreted as an empty library. Unknown fields or media are rejected instead of silently discarded. New data requires explicit format/compatibility and test updates.
 
-Ejemplo **sintético** abreviado de una obra antigua con fechas de consumo desconocidas:
+Abbreviated **synthetic** example of an older work with unknown reading dates:
 
 ```json
 {
@@ -62,35 +62,33 @@ Ejemplo **sintético** abreviado de una obra antigua con fechas de consumo desco
   "createdAt": "2026-01-01T00:00:00Z",
   "catalog": {
     "series": [],
-    "works": [{"id":"work-example","medium":"books","title":"Una historia de ejemplo","authors":["Autora ficticia"],"notes":"Nota de ejemplo","addedOn":"","favorite":false}],
-    "editions": [{"id":"edition-example","workId":"work-example","language":"en","format":"digital","identifier":"","owned":true}],
+    "works": [{"id":"work-example","medium":"books","title":"An example story","authors":["Fictional author"],"notes":"","addedOn":"2020-01-01","favorite":false}],
+    "editions": [{"id":"edition-example","workId":"work-example","language":"en","format":"paperback","identifier":"","owned":true}],
     "cycles": [{"id":"cycle-example","editionId":"edition-example","status":"read","startedOn":"","finishedOn":""}]
   }
 }
 ```
 
-Este archivo no contiene SQL ni tipos del driver. Otro motor puede reconstruir sus entidades y relaciones mediante un adaptador nuevo, sin leer una base SQLite primero. No significa conversión automática a cualquier aplicación o motor.
+## Earlier format support
 
-## Compatibilidad con formatos anteriores
+Format 1 contains only `works.medium = books`; series lack `medium` and are interpreted as Books. Format 2 adds both reading media without bibliographic snapshots. IDs, relationships, unknown dates, and the original logical hash are preserved: validating an older backup does not rewrite it as format 3 or invalidate its manifest.
 
-Las copias de formato 1 contienen solo `works.medium = books`; sus series no tienen campo `medium` y se interpretan como Libros. El formato 2 incorpora ambos medios, sin snapshots bibliográficos. Se conservan IDs, relaciones, fechas desconocidas y el hash lógico original: validar una copia antigua no la reescribe como formato 3 ni invalida su manifiesto.
+New backups use format 3. Older restorations are prepared on the current schema without applying live reading-date behavior. Native snapshots identified as SQLite schemas 1, 2, 3, or 4 with a supported format are accepted. Older application versions may not accept schema 4 or format 3.
 
-Los nuevos respaldos se escriben en formato 3. Las restauraciones antiguas se preparan sobre el esquema actual, sin aplicar fechas de lectura en vivo. Se admiten snapshots nativos identificados con esquemas SQLite 1, 2, 3 o 4 y formato compatible. Una aplicación anterior puede no admitir el esquema 4 o el formato 3.
+Restoring an earlier backup recovers exactly that state: format 1 contains no light novels, and format 2 contains no bibliographic snapshots. Later entries are not retained by merging. The pre-replacement safety copy preserves the complete current state.
 
-Restaurar una copia anterior recupera exactamente ese estado completo: el formato 1 no contiene novelas ligeras y el formato 2 no contiene snapshots bibliográficos. No conserva por mezcla las entradas añadidas después. La copia previa al reemplazo sí conserva el estado actual completo.
+## Native backup
 
-## Respaldo nativo
+`trove.sqlite` is generated from a consistent SQLite snapshot and includes a technical `trove_backup` table identifying its format, version, generation, and timestamp. It is not the active database or a copy of its files taken during writes. Reading it requires SQLite support.
 
-`trove.sqlite` se genera con un snapshot consistente de SQLite y lleva una tabla técnica `trove_backup` que identifica formato, versión, generación y fecha. No es la base activa ni una copia de sus archivos tomada mientras se escriben. Para leerlo hace falta soporte SQLite.
+JSON is derived from the completed snapshot, not from a later query against the active library. Both representations therefore describe the same state even if new writes occur while the backup is being prepared.
 
-El JSON se obtiene del snapshot terminado, no de otra consulta posterior a la biblioteca activa. Así ambas representaciones corresponden al mismo estado, aunque aparezcan nuevas escrituras mientras se prepara el respaldo.
+## Restoration and limits
 
-## Restauración y límites
+Regular files up to 256 MiB per representation are accepted. The app prepares a new database, verifies recovered content, and shows the destination profile before replacement. It does not merge libraries. Manual file selection uses native dialogs.
 
-Se admiten archivos regulares de hasta 256 MiB por representación. La app prepara una base nueva, verifica que el contenido recuperado coincide y muestra el perfil de destino antes de reemplazar. No mezcla bibliotecas. La selección de archivos usa diálogos nativos.
+Backup folder configuration lives in `backup-settings.json` alongside profile data and is **not** restored from a backup. Local-only mode lives in `provider-network.json`; it is neither exported nor changed during recovery. Machine paths, tokens, logs, WebView caches, and covers are excluded. Recovery does not query the Internet or apply live reading rules to historical dates.
 
-La configuración de carpeta vive en `backup-settings.json` junto a los datos del perfil y **no** se restaura desde el respaldo. El modo solo local vive en `provider-network.json` y tampoco se exporta ni se modifica durante la recuperación. No se incluyen rutas de máquina, tokens, logs, cachés del WebView o portadas. No se consulta Internet ni se aplican reglas de lectura en vivo al recuperar fechas históricas.
+The restore selector presents the two most recent complete valid generations as **Actual** (current) and **Anterior** (previous), with local dates and times. Selection retains the exact ID, revalidates the manifest and files before preparation, and requires the usual confirmation before replacement. A generation that disappeared, rotated out of the available pair, or was altered is not silently replaced by another. Manually selecting a SQLite or JSON file remains available through the native dialog.
 
-El selector de restauración presenta las dos generaciones completas válidas más recientes como **Actual** y **Anterior**, con fecha y hora locales. La elección conserva el ID exacto, vuelve a verificar manifiesto y archivos antes de preparar la copia y exige la confirmación habitual antes de reemplazar. Si la generación elegida desapareció, rotó fuera de las dos disponibles o fue alterada, no se sustituye silenciosamente por otra. La selección manual de un archivo SQLite o JSON sigue disponible mediante el diálogo nativo.
-
-Las copias `before-restore-*.sqlite` anteriores a un reemplazo quedan locales para recuperación; su retirada manual es independiente de la retención automática de generaciones. El usuario debe cerrar otras instancias antes de restaurar. Ante un fallo de reemplazo se intenta reabrir la biblioteca anterior y se informa la ubicación de seguridad si requiere intervención.
+`before-restore-*.sqlite` safety copies remain local for recovery; manually removing them is independent of automatic generation retention. Close other instances before restoring. If replacement fails, the app attempts to reopen the previous library and reports the safety-copy location if intervention is required.
