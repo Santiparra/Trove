@@ -42,6 +42,16 @@ func (n *Novels) Get(id string) (novels.Novel, error) {
 	defer n.library.gate.RUnlock()
 	return n.service.Get(context.Background(), id)
 }
+func (n *Novels) Dashboard() (novels.Dashboard, error) {
+	n.library.gate.RLock()
+	defer n.library.gate.RUnlock()
+	return n.service.Dashboard(context.Background())
+}
+func (n *Novels) SetCompleted(id string, completed int, markRead bool) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) {
+		return n.service.SetCompleted(context.Background(), id, completed, markRead)
+	})
+}
 func (n *Novels) mutate(action func() (novels.Novel, error)) (novels.Novel, error) {
 	n.library.gate.Lock()
 	defer n.library.gate.Unlock()

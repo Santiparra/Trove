@@ -17,6 +17,7 @@ const MaxVolumes = 10000
 var ErrNotFound = errors.New("la novela no existe; actualizá la biblioteca")
 
 type Volume struct {
+	Label       string                    `json:"label,omitempty"`
 	Catalog     *novelcatalog.Publication `json:"catalog,omitempty"`
 	ID          string                    `json:"id"`
 	Number      int                       `json:"number"`
@@ -28,30 +29,34 @@ type Volume struct {
 	Favorite    bool                      `json:"favorite"`
 }
 type Novel struct {
-	Catalog   *novelcatalog.Series `json:"catalog,omitempty"`
-	ID        string               `json:"id"`
-	Title     string               `json:"title"`
-	Authors   []string             `json:"authors"`
-	Status    string               `json:"status"`
-	Total     *int                 `json:"total"`
-	Completed *int                 `json:"completed"`
-	Notes     string               `json:"notes"`
-	Favorite  bool                 `json:"favorite"`
-	AddedOn   string               `json:"addedOn"`
-	Volumes   []Volume             `json:"volumes"`
+	StatusChangedAt string               `json:"statusChangedAt,omitempty"`
+	Catalog         *novelcatalog.Series `json:"catalog,omitempty"`
+	ID              string               `json:"id"`
+	Title           string               `json:"title"`
+	Authors         []string             `json:"authors"`
+	Status          string               `json:"status"`
+	Total           *int                 `json:"total"`
+	Completed       *int                 `json:"completed"`
+	Notes           string               `json:"notes"`
+	Favorite        bool                 `json:"favorite"`
+	AddedOn         string               `json:"addedOn"`
+	Volumes         []Volume             `json:"volumes"`
 }
 type Input struct {
-	ID        string   `json:"id"`
-	Title     string   `json:"title"`
-	Authors   []string `json:"authors"`
-	Status    string   `json:"status"`
-	Total     *int     `json:"total"`
-	Completed *int     `json:"completed"`
-	Notes     string   `json:"notes"`
-	Favorite  bool     `json:"favorite"`
-	AddedOn   string   `json:"addedOn"`
+	ProgressVolumeID string   `json:"progressVolumeID,omitempty"`
+	ProgressBookID   string   `json:"progressBookID,omitempty"`
+	ID               string   `json:"id"`
+	Title            string   `json:"title"`
+	Authors          []string `json:"authors"`
+	Status           string   `json:"status"`
+	Total            *int     `json:"total"`
+	Completed        *int     `json:"completed"`
+	Notes            string   `json:"notes"`
+	Favorite         bool     `json:"favorite"`
+	AddedOn          string   `json:"addedOn"`
 }
 type VolumeInput struct {
+	Label       string `json:"label,omitempty"`
 	ID          string `json:"id"`
 	Number      int    `json:"number"`
 	Title       string `json:"title"`
@@ -99,6 +104,11 @@ func (n *Novel) Canonicalize() {
 	sort.Slice(n.Volumes, func(i, j int) bool { return n.Volumes[i].Number < n.Volumes[j].Number })
 }
 func (n Novel) Validate() error {
+	if n.StatusChangedAt != "" {
+		if _, err := time.Parse(time.RFC3339Nano, n.StatusChangedAt); err != nil {
+			return errors.New("fecha de cambio de estado inválida")
+		}
+	}
 	if n.Catalog != nil {
 		if err := n.Catalog.Validate(); err != nil {
 			return err

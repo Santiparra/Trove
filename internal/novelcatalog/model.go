@@ -51,6 +51,7 @@ type SearchResult struct {
 	Warnings []string    `json:"warnings"`
 }
 type BookRef struct {
+	Label         string  `json:"label,omitempty"`
 	ID            string  `json:"id"`
 	Number        int     `json:"number"`
 	Order         float64 `json:"order"`
@@ -94,6 +95,7 @@ type Source struct {
 	FetchedAt string `json:"fetchedAt"`
 }
 type Publication struct {
+	Label             string            `json:"label,omitempty"`
 	HardcoverCategory string            `json:"hardcoverCategory,omitempty"`
 	ReleaseTitle      string            `json:"releaseTitle"`
 	SeriesID          string            `json:"seriesID"`

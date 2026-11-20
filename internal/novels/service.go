@@ -65,6 +65,15 @@ func volumeAt(n *Novel, number int) *Volume {
 	return &n.Volumes[len(n.Volumes)-1]
 }
 func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
+	previous, err := s.repository.GetNovel(ctx, n.ID)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return Novel{}, err
+	}
+	if err != nil || previous.Status != n.Status {
+		n.StatusChangedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	} else {
+		n.StatusChangedAt = previous.StatusChangedAt
+	}
 	n.Canonicalize()
 	if err := n.Validate(); err != nil {
 		return Novel{}, err
@@ -115,6 +124,37 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 		}
 	}
 	previousStatus := n.Status
+	if in.ProgressVolumeID != "" {
+		found := false
+		for _, v := range n.Volumes {
+			if v.ID == in.ProgressVolumeID {
+				completed := v.Number - 1
+				in.Completed = &completed
+				found = true
+				break
+			}
+		}
+		if !found {
+			return Novel{}, errors.New("el volumen no pertenece a esta novela")
+		}
+	}
+	if in.ProgressBookID != "" {
+		if n.Catalog == nil {
+			return Novel{}, errors.New("no hay catálogo para identificar ese volumen")
+		}
+		found := false
+		for _, ref := range n.Catalog.Books {
+			if ref.ID == in.ProgressBookID {
+				completed := ref.Number - 1
+				in.Completed = &completed
+				found = true
+				break
+			}
+		}
+		if !found {
+			return Novel{}, errors.New("el volumen elegido no pertenece a esta novela")
+		}
+	}
 	n.Title = strings.TrimSpace(in.Title)
 	n.Authors = []string{}
 	for _, author := range in.Authors {
@@ -220,6 +260,7 @@ func (s *Service) SaveVolume(ctx context.Context, id string, in VolumeInput) (No
 		}
 	}
 	v := volumeAt(&n, in.Number)
+	v.Label = strings.TrimSpace(in.Label)
 	if isbn := catalog.ISBN13(in.Identifier); v.Catalog != nil && isbn != "" && v.Catalog.ISBN != "" && isbn != v.Catalog.ISBN {
 		return Novel{}, errors.New("el ISBN no coincide con la publicación vinculada; elegí otra publicación antes de cambiarlo")
 	}

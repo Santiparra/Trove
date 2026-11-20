@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type {
   Book,
   Series,
@@ -7,6 +7,7 @@ import type { Snapshot } from "../../bindings/github.com/Santiparra/Trove/intern
 import CatalogImage from "../catalog/CatalogImage";
 import Icon from "../components/Icon";
 import { seriesLabel } from "./presentation";
+import DescriptionText from "../components/DescriptionText";
 
 export default function BookProfile({
   book = null,
@@ -45,11 +46,6 @@ export default function BookProfile({
   sourceDetails?: ReactNode;
   formatLabel?: string;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  useEffect(
-    () => setExpanded(false),
-    [book?.id, snapshot?.edition.id, description],
-  );
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
   const identifiers = book?.edition.identifiers || snapshot?.identifiers || [];
@@ -172,28 +168,7 @@ export default function BookProfile({
               </>
             )}
           </dl>
-          {synopsis && (
-            <div className="profile-description">
-              <p
-                className={
-                  !expanded && synopsis.length > 600
-                    ? "description-collapsed"
-                    : ""
-                }
-              >
-                {synopsis}
-              </p>
-              {synopsis.length > 600 && (
-                <button
-                  className="text-action"
-                  aria-expanded={expanded}
-                  onClick={() => setExpanded((value) => !value)}
-                >
-                  {expanded ? "Leer menos" : "Leer más"}
-                </button>
-              )}
-            </div>
-          )}
+          {synopsis && <DescriptionText text={synopsis} />}
         </div>
         <aside className="profile-management" aria-label="Gestión del libro">
           {management}

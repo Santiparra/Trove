@@ -4,6 +4,7 @@ import type {
   Novel,
   Volume,
   Input,
+  Dashboard,
 } from "../../bindings/github.com/Santiparra/Trove/internal/novels/models";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type {
@@ -21,7 +22,10 @@ import type {
 } from "../../bindings/github.com/Santiparra/Trove/internal/novelcatalog/models";
 import NovelSearch from "./NovelSearch";
 import CatalogNovel, { PublicationSources } from "./CatalogNovel";
-import { representedNovel } from "./presentation";
+import { representedNovel, volumeLabel, novelColors } from "./presentation";
+import NovelPortal from "./NovelPortal";
+import VolumeGallery from "./VolumeGallery";
+import DeleteDialog from "../books/DeleteDialog";
 
 function progress(n: Novel) {
   return `${n.completed ?? "?"}/${n.total ?? "?"}`;
@@ -77,6 +81,25 @@ export default function NovelWorkspace({
   } | null>(null);
   const [notes, setNotes] = useState("");
   const [all, setAll] = useState(false);
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [portalError, setPortalError] = useState("");
+  const [confirmation, setConfirmation] = useState<
+    { kind: "delete" } | { kind: "complete"; count: number } | null
+  >(null);
+  useEffect(() => {
+    let active = true;
+    setPortalError("");
+    Novels.Dashboard()
+      .then((value) => {
+        if (active) setDashboard(value);
+      })
+      .catch((reason) => {
+        if (active) setPortalError(errorMessage(reason));
+      });
+    return () => {
+      active = false;
+    };
+  }, [revision]);
   const [searchText, setSearchText] = useState("");
   const [authorID, setAuthorID] = useState("");
   const [remote, setRemote] = useState<SearchResult | null>(null);
@@ -251,6 +274,45 @@ export default function NovelWorkspace({
         }),
     );
   }
+  function openByID(id: string, number?: number) {
+    leave(
+      () =>
+        void action(async () => {
+          setSelected(await Novels.Get(id));
+          setViewedNumber(number ?? null);
+          setPreview(null);
+          setLinking(false);
+        }),
+    );
+  }
+  function list(statusValue: string) {
+    leave(() => {
+      setAll(true);
+      setStatus(statusValue);
+      setQuery("");
+      setSearchText("");
+      setAuthorID("");
+      setPage(1);
+    });
+  }
+  function adjustProgress(value: number) {
+    if (!selected || busy) return;
+    if (
+      selected.total != null &&
+      value === selected.total &&
+      selected.status !== "read"
+    ) {
+      setConfirmation({ kind: "complete", count: value });
+      return;
+    }
+    void action(async () =>
+      commit(
+        await Novels.SetCompleted(selected.id, value, false),
+        "Progreso actualizado sin modificar fechas.",
+        true,
+      ),
+    );
+  }
   function search(value: string) {
     leave(() => {
       setAuthorID(
@@ -394,6 +456,8 @@ export default function NovelWorkspace({
     const next = nextNumber(selected);
     const shown = shownNumber;
     const current = selected.volumes.find((volume) => volume.number === shown);
+    const shownLabel = volumeLabel(selected, shown);
+    const nextLabel = next ? volumeLabel(selected, next) : "";
     const registeredNumbers = new Set(
       selected.volumes.map((volume) => volume.number),
     );
@@ -431,394 +495,478 @@ export default function NovelWorkspace({
       favorite: selected.favorite,
     };
     return (
-      <BookProfile
-        book={book}
-        ariaLabel="Detalle de novela"
-        subtitle={`${progress(selected)} volúmenes completados${shown ? ` · Volumen ${shown}${current?.title || current?.catalog?.title ? `: ${current?.title || current?.catalog?.title}` : ""}` : ""}`}
-        description={
-          current?.description ||
-          current?.catalog?.description ||
-          selected.catalog?.description
-        }
-        coverURL={current?.catalog?.coverURL}
-        editionInfo={current?.catalog || undefined}
-        formatLabel={
-          current?.catalog?.releaseFormat === "print" &&
-          current?.edition.format === "other"
-            ? "Impreso"
-            : undefined
-        }
-        sourceDetails={
-          current?.catalog ? (
-            <PublicationSources publication={current.catalog} />
-          ) : undefined
-        }
-        busy={busy}
-        onBack={() =>
-          leave(() => {
-            setSelected(null);
-            setViewedNumber(null);
-            setLinking(false);
-          })
-        }
-        onSearch={search}
-        management={
-          <>
-            <select
-              aria-label={`Estado de ${selected.title}`}
-              value={selected.status}
-              disabled={busy}
-              onChange={(event) =>
-                void action(async () =>
-                  commit(
-                    await Novels.ChangeStatus(selected.id, event.target.value),
-                    "Estado de la novela actualizado.",
-                  ),
-                )
-              }
-            >
-              {info.statuses.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.value === "read" ? "Leída" : option.label}
-                </option>
-              ))}
-            </select>
-            <strong className="novel-progress">{progress(selected)}</strong>
-            <span className="management-hint">Volúmenes completados</span>
-            {viewedNumber != null && !!next && viewedNumber !== next && (
+      <>
+        <BookProfile
+          book={book}
+          ariaLabel="Detalle de novela"
+          subtitle={`${progress(selected)} volúmenes completados${shown ? ` · Volumen ${shownLabel}${current?.title || current?.catalog?.title ? `: ${current?.title || current?.catalog?.title}` : ""}` : ""}`}
+          description={
+            current?.description ||
+            current?.catalog?.description ||
+            selected.catalog?.description
+          }
+          coverURL={current?.catalog?.coverURL}
+          editionInfo={current?.catalog || undefined}
+          formatLabel={
+            current?.catalog?.releaseFormat === "print" &&
+            current?.edition.format === "other"
+              ? "Impreso"
+              : undefined
+          }
+          sourceDetails={
+            current?.catalog ? (
+              <PublicationSources publication={current.catalog} />
+            ) : undefined
+          }
+          busy={busy}
+          onBack={() =>
+            leave(() => {
+              setSelected(null);
+              setViewedNumber(null);
+              setLinking(false);
+            })
+          }
+          onSearch={search}
+          management={
+            <>
+              <select
+                className="novel-status-select"
+                style={{
+                  color: novelColors[selected.status],
+                  borderColor: novelColors[selected.status],
+                }}
+                aria-label={`Estado de ${selected.title}`}
+                value={selected.status}
+                disabled={busy}
+                onChange={(event) =>
+                  void action(async () =>
+                    commit(
+                      await Novels.ChangeStatus(
+                        selected.id,
+                        event.target.value,
+                      ),
+                      "Estado de la novela actualizado.",
+                    ),
+                  )
+                }
+              >
+                {info.statuses.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.value === "read" ? "Leída" : option.label}
+                  </option>
+                ))}
+              </select>
+              <div
+                className="novel-progress-control"
+                role="group"
+                aria-label={`Progreso: ${progress(selected)}`}
+              >
+                <strong className="novel-progress">
+                  {selected.completed ?? "?"}
+                </strong>
+                <span className="novel-progress-arrows">
+                  <button
+                    aria-label="Aumentar volúmenes completados"
+                    title="Aumentar progreso sin cambiar fechas"
+                    disabled={
+                      busy ||
+                      selected.completed == null ||
+                      (selected.total != null &&
+                        selected.completed >= selected.total)
+                    }
+                    onClick={() => adjustProgress(selected.completed! + 1)}
+                  >
+                    ▴
+                  </button>
+                  <button
+                    aria-label="Reducir volúmenes completados"
+                    title="Reducir progreso sin cambiar fechas"
+                    disabled={
+                      busy ||
+                      selected.completed == null ||
+                      selected.completed <= 0
+                    }
+                    onClick={() => adjustProgress(selected.completed! - 1)}
+                  >
+                    ▾
+                  </button>
+                </span>
+                <strong className="novel-progress">
+                  /{selected.total ?? "?"}
+                </strong>
+              </div>
+              <span className="management-hint">Volúmenes completados</span>
+              {viewedNumber != null && !!next && viewedNumber !== next && (
+                <button
+                  className="quiet"
+                  disabled={busy}
+                  onClick={() => setViewedNumber(null)}
+                >
+                  Volver al volumen actual {nextLabel}
+                </button>
+              )}
+              {selected.total != null &&
+                selected.completed === selected.total &&
+                selected.status !== "read" && (
+                  <button
+                    className="primary"
+                    disabled={busy}
+                    onClick={() =>
+                      void action(async () =>
+                        commit(
+                          await Novels.ChangeStatus(selected.id, "read"),
+                          "Novela marcada como leída.",
+                        ),
+                      )
+                    }
+                  >
+                    Marcar novela como leída
+                  </button>
+                )}
+              <button
+                className="primary"
+                disabled={
+                  busy ||
+                  !next ||
+                  (selected.status === "reading" &&
+                    current?.cycle.status === "reading")
+                }
+                onClick={() =>
+                  void action(async () =>
+                    commit(
+                      await Novels.StartVolume(selected.id),
+                      `Volumen ${next} iniciado.`,
+                      true,
+                    ),
+                  )
+                }
+              >
+                Empezar volumen{next ? ` ${nextLabel}` : ""}
+              </button>
+              <button
+                className="secondary"
+                disabled={busy || !next}
+                onClick={() =>
+                  void action(async () =>
+                    commit(
+                      await Novels.FinishVolume(selected.id),
+                      "Volumen terminado. Progreso actualizado.",
+                      true,
+                    ),
+                  )
+                }
+              >
+                {next && selected.total === next
+                  ? "Terminar último volumen y marcar leída"
+                  : "Volumen terminado"}
+              </button>
               <button
                 className="quiet"
                 disabled={busy}
-                onClick={() => setViewedNumber(null)}
+                onClick={() => leave(() => setEditing(true))}
               >
-                Volver al volumen actual {next}
+                Editar novela y progreso
               </button>
-            )}
-            {selected.total != null &&
-              selected.completed === selected.total &&
-              selected.status !== "read" && (
+              <button
+                className={`flag-button ${selected.favorite ? "is-active" : ""}`}
+                aria-pressed={selected.favorite}
+                disabled={busy}
+                onClick={() =>
+                  void action(async () =>
+                    commit(
+                      await Novels.Save({
+                        ...asInput(selected),
+                        favorite: !selected.favorite,
+                      }),
+                      "Favorita actualizada.",
+                    ),
+                  )
+                }
+              >
+                Favorita
+              </button>
+              <button
+                className="quiet danger-text"
+                disabled={busy}
+                onClick={() => {
+                  if (canLeave()) {
+                    setError("");
+                    setConfirmation({ kind: "delete" });
+                  }
+                }}
+              >
+                Eliminar novela
+              </button>
+              <small>Alta: {dateLabel(selected.addedOn)}</small>
+              {shown > 0 && (
                 <button
-                  className="primary"
-                  disabled={busy}
+                  className="secondary"
+                  disabled={busy || metadataLoading}
                   onClick={() =>
-                    void action(async () =>
-                      commit(
-                        await Novels.ChangeStatus(selected.id, "read"),
-                        "Novela marcada como leída.",
-                      ),
+                    leave(() =>
+                      setVolumeEdit({ volume: current || null, number: shown }),
                     )
                   }
                 >
-                  Marcar novela como leída
+                  Editar datos del volumen {shownLabel}
                 </button>
               )}
-            <button
-              className="primary"
-              disabled={
-                busy ||
-                !next ||
-                (selected.status === "reading" &&
-                  current?.cycle.status === "reading")
-              }
-              onClick={() =>
-                void action(async () =>
-                  commit(
-                    await Novels.StartVolume(selected.id),
-                    `Volumen ${next} iniciado.`,
-                    true,
-                  ),
-                )
-              }
-            >
-              Empezar volumen{next ? ` ${next}` : ""}
-            </button>
-            <button
-              className="secondary"
-              disabled={busy || !next}
-              onClick={() =>
-                void action(async () =>
-                  commit(
-                    await Novels.FinishVolume(selected.id),
-                    "Volumen terminado. Progreso actualizado.",
-                    true,
-                  ),
-                )
-              }
-            >
-              {next && selected.total === next
-                ? "Terminar último volumen y marcar leída"
-                : "Volumen terminado"}
-            </button>
-            <button
-              className="quiet"
-              disabled={busy}
-              onClick={() => leave(() => setEditing(true))}
-            >
-              Editar novela y progreso
-            </button>
-            <button
-              className={`flag-button ${selected.favorite ? "is-active" : ""}`}
-              aria-pressed={selected.favorite}
-              disabled={busy}
-              onClick={() =>
-                void action(async () =>
-                  commit(
-                    await Novels.Save({
-                      ...asInput(selected),
-                      favorite: !selected.favorite,
+              {selected.catalog ? (
+                <>
+                  <small className="management-hint">
+                    RanobeDB · Novela ligera
+                  </small>
+                  <button
+                    className="quiet"
+                    disabled={busy || localOnly}
+                    onClick={choosePublication}
+                  >
+                    Elegir volumen o publicación
+                  </button>
+                  <button
+                    className="quiet"
+                    disabled={busy || localOnly || metadataLoading}
+                    onClick={() =>
+                      void action(async () => {
+                        const updated = await Novels.RefreshCatalog(
+                          selected.id,
+                          shown || 0,
+                          true,
+                        );
+                        setMetadataError("");
+                        commit(updated, "Metadata de novela actualizada.");
+                      })
+                    }
+                  >
+                    Refrescar catálogo
+                  </button>
+                  <button
+                    className="quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      if (
+                        window.confirm(
+                          "¿Quitar el vínculo y sus snapshots? Se conservan progreso, fechas y datos personales.",
+                        )
+                      )
+                        void action(async () =>
+                          commit(
+                            await Novels.UnlinkCatalog(selected.id),
+                            "Catálogo desvinculado.",
+                          ),
+                        );
+                    }}
+                  >
+                    Desvincular catálogo
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="quiet"
+                  disabled={busy || localOnly}
+                  onClick={() =>
+                    leave(() => {
+                      setLinkQuery(selected.title);
+                      setLinking((value) => !value);
+                    })
+                  }
+                >
+                  Vincular catálogo
+                </button>
+              )}
+              {metadataLoading && (
+                <small role="status">Consultando metadata del volumen…</small>
+              )}
+              {metadataError && (
+                <p className="management-hint" role="alert">
+                  {metadataError}
+                </p>
+              )}
+              {error && !confirmation && (
+                <p className="error-banner" role="alert">
+                  {error}
+                </p>
+              )}
+            </>
+          }
+        >
+          {linking && (
+            <section className="edition-picker" aria-label="Vincular novela">
+              <div className="card-heading">
+                <h2>Buscar novela para vincular</h2>
+                <button className="quiet" onClick={() => setLinking(false)}>
+                  Cerrar búsqueda
+                </button>
+              </div>
+              <NovelSearch
+                value={linkQuery}
+                onChange={setLinkQuery}
+                disabled={busy}
+                localOnly={localOnly}
+                catalogOnly
+                onAll={() => {}}
+                onNovel={() => {}}
+                onCandidate={(item) => candidate(item, selected)}
+              />
+            </section>
+          )}
+          {!!current?.catalog?.warnings.length && (
+            <ul className="catalog-warnings">
+              {current.catalog.warnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          )}
+          <section
+            className="novel-volumes"
+            aria-label="Volúmenes de la novela"
+          >
+            <div className="card-heading">
+              <h2>Volúmenes</h2>
+              <button
+                className="secondary"
+                disabled={
+                  busy ||
+                  (selected.total != null &&
+                    selected.volumes.length >= selected.total)
+                }
+                onClick={() =>
+                  leave(() =>
+                    setVolumeEdit({
+                      volume: null,
+                      number: numberToRegister,
                     }),
-                    "Favorita actualizada.",
-                  ),
-                )
-              }
-            >
-              Favorita
-            </button>
-            <button
-              className="quiet danger-text"
-              disabled={busy}
-              onClick={() => {
-                if (
-                  !canLeave() ||
-                  !window.confirm(
-                    `¿Eliminar «${selected.title}» y todos sus volúmenes?`,
                   )
-                )
-                  return;
-                void action(async () => {
+                }
+              >
+                Registrar volumen
+              </button>
+            </div>
+            {!selected.volumes.length && (
+              <p className="management-hint">
+                Sin volúmenes registrados. Empezar, terminar o declarar un
+                progreso conocido crea sus registros; una cantidad desconocida
+                no inventa volúmenes.
+              </p>
+            )}
+            <VolumeGallery
+              novel={selected}
+              busy={busy}
+              next={selected.completed != null ? selected.completed + 1 : next}
+              onVolume={(number) =>
+                leave(() => {
+                  if (
+                    selected.volumes.some((volume) => volume.number === number)
+                  ) {
+                    setViewedNumber(number);
+                  } else if (!localOnly) {
+                    void action(async () => {
+                      setLinkTarget(selected);
+                      setPreview(
+                        await Novels.PrepareCatalog(selected.id, number),
+                      );
+                    });
+                  } else {
+                    setViewedNumber(number);
+                  }
+                })
+              }
+            />
+          </section>
+          <section className="portal-card profile-notes">
+            <div className="card-heading">
+              <h2>Notas de la novela</h2>
+              <button
+                className="small-save"
+                disabled={busy || notes === selected.notes}
+                onClick={() =>
+                  void action(async () =>
+                    commit(
+                      await Novels.Save({ ...asInput(selected), notes }),
+                      "Notas de la novela guardadas.",
+                    ),
+                  )
+                }
+              >
+                Guardar notas
+              </button>
+            </div>
+            <label>
+              <span className="sr-only">Notas de la novela</span>
+              <textarea
+                rows={4}
+                disabled={busy}
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+              />
+            </label>
+          </section>
+        </BookProfile>
+        {confirmation && (
+          <DeleteDialog
+            book={book}
+            busy={busy}
+            error={error}
+            heading={
+              confirmation.kind === "delete"
+                ? "¿Eliminar esta novela?"
+                : "¿Marcar la novela como leída?"
+            }
+            description={
+              confirmation.kind === "delete" ? (
+                <>
+                  <strong>{selected.title}</strong> y todos sus volúmenes se
+                  eliminarán junto a sus notas y seguimiento. No afecta a otras
+                  novelas ni a Libros.
+                </>
+              ) : (
+                <>
+                  El progreso llegará a {selected.total}/{selected.total}. Se
+                  marcará Leída sin inventar ni cambiar fechas de lectura.
+                </>
+              )
+            }
+            danger={confirmation.kind === "delete"}
+            confirmLabel={
+              confirmation.kind === "delete"
+                ? "Eliminar definitivamente"
+                : "Completar y marcar leída"
+            }
+            onCancel={() => {
+              if (!busy) {
+                setConfirmation(null);
+                setError("");
+              }
+            }}
+            onConfirm={() =>
+              void action(async () => {
+                if (confirmation.kind === "delete") {
                   await Novels.Delete(selected.id);
                   setSelected(null);
                   setRevision((value) => value + 1);
                   onDirty(false);
                   onNotice("Novela y volúmenes eliminados.");
-                });
-              }}
-            >
-              Eliminar novela
-            </button>
-            <small>Alta: {dateLabel(selected.addedOn)}</small>
-            {shown > 0 && (
-              <button
-                className="secondary"
-                disabled={busy || metadataLoading}
-                onClick={() =>
-                  leave(() =>
-                    setVolumeEdit({ volume: current || null, number: shown }),
-                  )
-                }
-              >
-                Editar datos del volumen {shown}
-              </button>
-            )}
-            {selected.catalog ? (
-              <>
-                <small className="management-hint">
-                  RanobeDB · Novela ligera
-                </small>
-                <button
-                  className="quiet"
-                  disabled={busy || localOnly}
-                  onClick={choosePublication}
-                >
-                  Elegir volumen o publicación
-                </button>
-                <button
-                  className="quiet"
-                  disabled={busy || localOnly || metadataLoading}
-                  onClick={() =>
-                    void action(async () => {
-                      const updated = await Novels.RefreshCatalog(
-                        selected.id,
-                        shown || 0,
-                        true,
-                      );
-                      setMetadataError("");
-                      commit(updated, "Metadata de novela actualizada.");
-                    })
-                  }
-                >
-                  Refrescar catálogo
-                </button>
-                <button
-                  className="quiet"
-                  disabled={busy}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "¿Quitar el vínculo y sus snapshots? Se conservan progreso, fechas y datos personales.",
-                      )
-                    )
-                      void action(async () =>
-                        commit(
-                          await Novels.UnlinkCatalog(selected.id),
-                          "Catálogo desvinculado.",
-                        ),
-                      );
-                  }}
-                >
-                  Desvincular catálogo
-                </button>
-              </>
-            ) : (
-              <button
-                className="quiet"
-                disabled={busy || localOnly}
-                onClick={() =>
-                  leave(() => {
-                    setLinkQuery(selected.title);
-                    setLinking((value) => !value);
-                  })
-                }
-              >
-                Vincular catálogo
-              </button>
-            )}
-            {metadataLoading && (
-              <small role="status">Consultando metadata del volumen…</small>
-            )}
-            {metadataError && (
-              <p className="management-hint" role="alert">
-                {metadataError}
-              </p>
-            )}
-            {error && (
-              <p className="error-banner" role="alert">
-                {error}
-              </p>
-            )}
-          </>
-        }
-      >
-        {linking && (
-          <section className="edition-picker" aria-label="Vincular novela">
-            <div className="card-heading">
-              <h2>Buscar novela para vincular</h2>
-              <button className="quiet" onClick={() => setLinking(false)}>
-                Cerrar búsqueda
-              </button>
-            </div>
-            <NovelSearch
-              value={linkQuery}
-              onChange={setLinkQuery}
-              disabled={busy}
-              localOnly={localOnly}
-              catalogOnly
-              onAll={() => {}}
-              onNovel={() => {}}
-              onCandidate={(item) => candidate(item, selected)}
-            />
-          </section>
-        )}
-        {!!current?.catalog?.warnings.length && (
-          <ul className="catalog-warnings">
-            {current.catalog.warnings.map((warning, index) => (
-              <li key={index}>{warning}</li>
-            ))}
-          </ul>
-        )}
-        <section className="novel-volumes" aria-label="Volúmenes de la novela">
-          <div className="card-heading">
-            <h2>Volúmenes</h2>
-            <button
-              className="secondary"
-              disabled={
-                busy ||
-                (selected.total != null &&
-                  selected.volumes.length >= selected.total)
-              }
-              onClick={() =>
-                leave(() =>
-                  setVolumeEdit({
-                    volume: null,
-                    number: numberToRegister,
-                  }),
-                )
-              }
-            >
-              Registrar volumen
-            </button>
-          </div>
-          {!selected.volumes.length && (
-            <p className="management-hint">
-              Sin volúmenes registrados. Empezar, terminar o declarar un
-              progreso conocido crea sus registros; una cantidad desconocida no
-              inventa volúmenes.
-            </p>
-          )}
-          <div className="novel-volume-grid">
-            {selected.volumes.map((volume) => (
-              <button
-                className={`novel-volume ${volume.number === next ? "is-current" : ""}`}
-                key={volume.id}
-                aria-label={`Abrir volumen ${volume.number}`}
-                disabled={busy}
-                onClick={() => leave(() => setViewedNumber(volume.number))}
-              >
-                <strong>
-                  Volumen {volume.number}
-                  {volume.title || volume.catalog?.title
-                    ? ` · ${volume.title || volume.catalog?.title}`
-                    : ""}
-                </strong>
-                <span>
-                  {
-                    info.statuses.find(
-                      (option) => option.value === volume.cycle.status,
-                    )?.label
-                  }
-                  {volume.edition.owned ? " · En propiedad" : ""}
-                  {volume.favorite ? " · Favorito" : ""}
-                </span>
-                <small>
-                  {volume.cycle.startedOn
-                    ? `Inicio: ${dateLabel(volume.cycle.startedOn)}`
-                    : "Inicio desconocido"}{" "}
-                  ·{" "}
-                  {volume.cycle.finishedOn
-                    ? `Fin: ${dateLabel(volume.cycle.finishedOn)}`
-                    : "Fin desconocido"}
-                </small>
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="portal-card profile-notes">
-          <div className="card-heading">
-            <h2>Notas de la novela</h2>
-            <button
-              className="small-save"
-              disabled={busy || notes === selected.notes}
-              onClick={() =>
-                void action(async () =>
+                } else {
                   commit(
-                    await Novels.Save({ ...asInput(selected), notes }),
-                    "Notas de la novela guardadas.",
-                  ),
-                )
-              }
-            >
-              Guardar notas
-            </button>
-          </div>
-          <label>
-            <span className="sr-only">Notas de la novela</span>
-            <textarea
-              rows={4}
-              disabled={busy}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-            />
-          </label>
-        </section>
-      </BookProfile>
+                    await Novels.SetCompleted(
+                      selected.id,
+                      confirmation.count,
+                      true,
+                    ),
+                    "Progreso completado sin modificar fechas.",
+                    true,
+                  );
+                }
+                setConfirmation(null);
+              })
+            }
+          />
+        )}
+      </>
     );
   }
-  const visible =
-    all || query || status
-      ? items
-      : items.filter(
-          (novel) => novel.status === "reading" || novel.status === "up-next",
-        );
+  const portal = !all && !query && !status;
+  const visible = items;
   return (
     <section className="novel-workspace" aria-label="Biblioteca de novelas">
       <div className="page-heading">
@@ -850,159 +998,187 @@ export default function NovelWorkspace({
           onCandidate={(item) => candidate(item)}
           onAll={allResults}
         />
-        <button
-          className="secondary"
-          disabled={busy}
-          onClick={() => {
-            setAll(true);
-            setStatus("");
-            setQuery("");
-            setSearchText("");
-            setAuthorID("");
-            setPage(1);
-          }}
-        >
-          Ver todas las novelas
-        </button>
-      </div>
-      <div className="status-tabs" aria-label="Estados de novelas">
-        <button
-          className={!status ? "active" : ""}
-          disabled={busy}
-          onClick={() => {
-            setStatus("");
-            setAll(true);
-          }}
-        >
-          Todas
-        </button>
-        {info.statuses.map((option) => (
+        {!portal && (
           <button
-            className={status === option.value ? "active" : ""}
+            className="secondary"
             disabled={busy}
-            key={option.value}
             onClick={() => {
-              setStatus(option.value);
-              setAll(true);
+              setAll(false);
+              setStatus("");
+              setQuery("");
+              setSearchText("");
+              setAuthorID("");
+              setPage(1);
             }}
           >
-            {option.value === "read" ? "Leídas" : option.label}
+            Volver al portal
           </button>
-        ))}
+        )}
       </div>
-      {error && (
-        <p className="error-banner" role="alert">
-          {error}
-          <button onClick={() => setRevision((value) => value + 1)}>
-            Reintentar
-          </button>
-        </p>
-      )}
-      {loading && <p role="status">Cargando novelas…</p>}
-      {!loading && !items.length && !error && (
-        <div className="empty-state">
-          <h2>
-            {query || status
-              ? "No hay coincidencias locales"
-              : "Tu biblioteca de novelas está vacía"}
-          </h2>
-          {!query && !status && (
-            <p>Agregá una novela y registrá sus volúmenes y progreso.</p>
+      {portal ? (
+        <>
+          {portalError && <p role="alert">{portalError}</p>}
+          {dashboard ? (
+            <NovelPortal
+              dashboard={dashboard}
+              info={info}
+              busy={busy}
+              onList={list}
+              onNovel={openByID}
+            />
+          ) : (
+            !portalError && <p role="status">Cargando portal…</p>
           )}
-        </div>
-      )}
-      {!loading && !!items.length && !visible.length && (
-        <p className="management-hint">
-          No hay novelas en curso. Podés consultar todas o elegir un estado.
-        </p>
-      )}
-      <div className="novel-library-grid">
-        {visible.map((novel) => (
-          <button
-            className="novel-library-card"
-            disabled={busy}
-            key={novel.id}
-            aria-label={`Abrir novela ${novel.title}`}
-            onClick={() => open(novel)}
-          >
-            <Icon name="books" size={28} />
-            <div>
-              <strong>{novel.title}</strong>
-              <span>
-                {novel.authors.join(" · ") || "Autoría sin especificar"}
-              </span>
-              <span>
-                {
-                  info.statuses.find((option) => option.value === novel.status)
-                    ?.label
-                }
-              </span>
-            </div>
-            <div className="novel-card-progress">
-              <strong>{progress(novel)}</strong>
-              <small>
-                {nextNumber(novel)
-                  ? `Volumen ${nextNumber(novel)}`
-                  : novel.status === "read"
-                    ? "Lectura completada"
-                    : "Progreso por indicar"}
-              </small>
-            </div>
-          </button>
-        ))}
-      </div>
-      {query && !status && !localOnly && (
-        <section className="catalog-results" aria-label="Resultados RanobeDB">
-          {remoteLoading && <p role="status">Buscando en RanobeDB…</p>}
-          {remoteError && (
+        </>
+      ) : (
+        <>
+          <div className="status-tabs" aria-label="Estados de novelas">
+            <button
+              className={!status ? "active" : ""}
+              disabled={busy}
+              onClick={() => {
+                setStatus("");
+                setAll(true);
+              }}
+            >
+              Todas
+            </button>
+            {info.statuses.map((option) => (
+              <button
+                className={status === option.value ? "active" : ""}
+                disabled={busy}
+                key={option.value}
+                style={{ color: novelColors[option.value] }}
+                onClick={() => {
+                  setStatus(option.value);
+                  setAll(true);
+                }}
+              >
+                {option.value === "read" ? "Leídas" : option.label}
+              </button>
+            ))}
+          </div>
+          {error && (
             <p className="error-banner" role="alert">
-              {remoteError}
+              {error}
               <button onClick={() => setRevision((value) => value + 1)}>
-                Reintentar catálogo
+                Reintentar
               </button>
             </p>
           )}
-          {remote?.items
-            .filter((item) => !representedNovel(item, items))
-            .map((item) => (
-              <button
-                className="catalog-work"
-                key={item.id}
-                disabled={busy}
-                onClick={() => candidate(item)}
-              >
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>{item.originalTitle}</small>
-                </span>
-                <Icon name="chevron" size={17} />
-              </button>
-            ))}
-          {remote && !remote.items.length && (
-            <p className="management-hint">Sin coincidencias en RanobeDB.</p>
-          )}
-          {!!remote && remote.pages > 1 && (
-            <div className="catalog-actions">
-              <button
-                className="quiet"
-                disabled={busy || page <= 1}
-                onClick={() => setPage((value) => value - 1)}
-              >
-                Anterior
-              </button>
-              <span>
-                Página {page} de {remote.pages}
-              </span>
-              <button
-                className="quiet"
-                disabled={busy || page >= remote.pages}
-                onClick={() => setPage((value) => value + 1)}
-              >
-                Siguiente
-              </button>
+          {loading && <p role="status">Cargando novelas…</p>}
+          {!loading && !items.length && !error && (
+            <div className="empty-state">
+              <h2>
+                {query || status
+                  ? "No hay coincidencias locales"
+                  : "Tu biblioteca de novelas está vacía"}
+              </h2>
+              {!query && !status && (
+                <p>Agregá una novela y registrá sus volúmenes y progreso.</p>
+              )}
             </div>
           )}
-        </section>
+          {!loading && !!items.length && !visible.length && (
+            <p className="management-hint">
+              No hay novelas en curso. Podés consultar todas o elegir un estado.
+            </p>
+          )}
+          <div className="novel-library-grid">
+            {visible.map((novel) => (
+              <button
+                className="novel-library-card"
+                disabled={busy}
+                key={novel.id}
+                aria-label={`Abrir novela ${novel.title}`}
+                onClick={() => open(novel)}
+              >
+                <Icon name="books" size={28} />
+                <div>
+                  <strong>{novel.title}</strong>
+                  <span>
+                    {novel.authors.join(" · ") || "Autoría sin especificar"}
+                  </span>
+                  <span>
+                    {
+                      info.statuses.find(
+                        (option) => option.value === novel.status,
+                      )?.label
+                    }
+                  </span>
+                </div>
+                <div className="novel-card-progress">
+                  <strong>{progress(novel)}</strong>
+                  <small>
+                    {nextNumber(novel)
+                      ? `Volumen ${volumeLabel(novel, nextNumber(novel))}`
+                      : novel.status === "read"
+                        ? "Lectura completada"
+                        : "Progreso por indicar"}
+                  </small>
+                </div>
+              </button>
+            ))}
+          </div>
+          {query && !status && !localOnly && (
+            <section
+              className="catalog-results"
+              aria-label="Resultados RanobeDB"
+            >
+              {remoteLoading && <p role="status">Buscando en RanobeDB…</p>}
+              {remoteError && (
+                <p className="error-banner" role="alert">
+                  {remoteError}
+                  <button onClick={() => setRevision((value) => value + 1)}>
+                    Reintentar catálogo
+                  </button>
+                </p>
+              )}
+              {remote?.items
+                .filter((item) => !representedNovel(item, items))
+                .map((item) => (
+                  <button
+                    className="catalog-work"
+                    key={item.id}
+                    disabled={busy}
+                    onClick={() => candidate(item)}
+                  >
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.originalTitle}</small>
+                    </span>
+                    <Icon name="chevron" size={17} />
+                  </button>
+                ))}
+              {remote && !remote.items.length && (
+                <p className="management-hint">
+                  Sin coincidencias en RanobeDB.
+                </p>
+              )}
+              {!!remote && remote.pages > 1 && (
+                <div className="catalog-actions">
+                  <button
+                    className="quiet"
+                    disabled={busy || page <= 1}
+                    onClick={() => setPage((value) => value - 1)}
+                  >
+                    Anterior
+                  </button>
+                  <span>
+                    Página {page} de {remote.pages}
+                  </span>
+                  <button
+                    className="quiet"
+                    disabled={busy || page >= remote.pages}
+                    onClick={() => setPage((value) => value + 1)}
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+        </>
       )}
     </section>
   );

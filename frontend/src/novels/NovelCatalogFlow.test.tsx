@@ -23,6 +23,8 @@ import NovelWorkspace from "./NovelWorkspace";
 const covers = vi.hoisted(() => ({ CoverDataURL: vi.fn() }));
 
 const api = vi.hoisted(() => ({
+  Dashboard: vi.fn(),
+  SetCompleted: vi.fn(),
   List: vi.fn(),
   Get: vi.fn(),
   Save: vi.fn(),
@@ -174,6 +176,23 @@ beforeEach(() => {
   vi.resetAllMocks();
   covers.CoverDataURL.mockResolvedValue("");
   api.List.mockResolvedValue([]);
+  api.Dashboard.mockImplementation(async () => {
+    const items: Novel[] = await api.List("", "");
+    return {
+      total: items.length,
+      counts: [],
+      reading: items
+        .filter((n) => n.status === "reading")
+        .map((n) => ({
+          ...n,
+          number: (n.completed || 0) + 1,
+          label: String((n.completed || 0) + 1),
+          coverURL: "",
+        })),
+      recent: [],
+      upNext: [],
+    };
+  });
   api.SearchCatalog.mockResolvedValue({
     items: [candidate],
     total: 1,
@@ -379,4 +398,21 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   ).toHaveProperty("disabled", true);
   expect(api.SearchCatalog).not.toHaveBeenCalled();
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
+});
+it("muestra futuros del catálogo sin registrarlos ni cambiar progreso al abrirlos", async () => {
+  const n = local();
+  api.PrepareCatalog.mockResolvedValue(
+    preview({
+      publication: publication(2),
+      match: new CatalogMatch({ kind: "existing", novel: n }),
+    }),
+  );
+  await openLocal(n);
+  expect(screen.getByRole("button", { name: "Abrir volumen 2" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 2" }));
+  await screen.findByRole("region", { name: "Detalle de novela de catálogo" });
+  expect(api.PrepareCatalog).toHaveBeenCalledExactlyOnceWith(n.id, 2);
+  expect(api.SaveVolume).not.toHaveBeenCalled();
+  expect(api.FinishVolume).not.toHaveBeenCalled();
+  expect(api.LinkCatalog).not.toHaveBeenCalled();
 });

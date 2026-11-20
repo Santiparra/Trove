@@ -31,6 +31,7 @@ export class Author {
 }
 
 export class BookRef {
+    "label"?: string;
     "id": string;
     "number": number;
     "order": number;
@@ -113,6 +114,7 @@ export class Candidate {
 }
 
 export class Publication {
+    "label"?: string;
     "hardcoverCategory"?: string;
     "releaseTitle": string;
     "seriesID": string;
@@ -209,14 +211,14 @@ export class Publication {
      * Creates a new Publication instance from a string or object.
      */
     static createFrom($$source: any = {}): Publication {
-        const $$createField20_0 = $$createType1;
-        const $$createField21_0 = $$createType2;
+        const $$createField21_0 = $$createType1;
+        const $$createField22_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("sources" in $$parsedSource) {
-            $$parsedSource["sources"] = $$createField20_0($$parsedSource["sources"]);
+            $$parsedSource["sources"] = $$createField21_0($$parsedSource["sources"]);
         }
         if ("warnings" in $$parsedSource) {
-            $$parsedSource["warnings"] = $$createField21_0($$parsedSource["warnings"]);
+            $$parsedSource["warnings"] = $$createField22_0($$parsedSource["warnings"]);
         }
         return new Publication($$parsedSource as Partial<Publication>);
     }

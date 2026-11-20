@@ -10,6 +10,8 @@ import {
 } from "@testing-library/react";
 import App from "./App";
 const novelAPI = vi.hoisted(() => ({
+  Dashboard: vi.fn(),
+  SetCompleted: vi.fn(),
   List: vi.fn(),
   Get: vi.fn(),
   Save: vi.fn(),
@@ -140,6 +142,32 @@ function overview(withBook = false) {
 beforeEach(() => {
   vi.resetAllMocks();
   novelAPI.List.mockResolvedValue([]);
+  novelAPI.Dashboard.mockImplementation(async () => {
+    const items = await novelAPI.List("", "");
+    return {
+      total: items.length,
+      counts: [],
+      reading: items
+        .filter((n: { status: string }) => n.status === "reading")
+        .map(
+          (n: {
+            id: string;
+            title: string;
+            authors: string[];
+            status: string;
+            completed: number | null;
+            total: number | null;
+          }) => ({
+            ...n,
+            number: (n.completed || 0) + 1,
+            label: String((n.completed || 0) + 1),
+            coverURL: "",
+          }),
+        ),
+      recent: [],
+      upNext: [],
+    };
+  });
   novelAPI.SearchCatalog.mockResolvedValue({
     items: [],
     total: 0,

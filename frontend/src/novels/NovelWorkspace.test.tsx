@@ -18,6 +18,8 @@ import {
 import NovelWorkspace from "./NovelWorkspace";
 
 const api = vi.hoisted(() => ({
+  Dashboard: vi.fn(),
+  SetCompleted: vi.fn(),
   List: vi.fn(),
   Get: vi.fn(),
   Save: vi.fn(),
@@ -105,6 +107,23 @@ async function open(n: Novel) {
 beforeEach(() => {
   vi.resetAllMocks();
   api.List.mockResolvedValue([]);
+  api.Dashboard.mockImplementation(async () => {
+    const items: Novel[] = await api.List("", "");
+    return {
+      total: items.length,
+      counts: [],
+      reading: items
+        .filter((n) => n.status === "reading")
+        .map((n) => ({
+          ...n,
+          number: (n.completed || 0) + 1,
+          label: String((n.completed || 0) + 1),
+          coverURL: "",
+        })),
+      recent: [],
+      upNext: [],
+    };
+  });
   api.SearchCatalog.mockResolvedValue({
     items: [],
     total: 0,
@@ -130,8 +149,48 @@ it("lista una novela y su progreso, no una entrada por volumen", async () => {
   expect(screen.getAllByRole("button", { name: /^Abrir novela/ })).toHaveLength(
     1,
   );
-  expect(screen.getByText("7/?")).toBeTruthy();
-  expect(screen.getByText("Volumen 8")).toBeTruthy();
+  expect(screen.getByText(/7\/\?/)).toBeTruthy();
+  expect(screen.getByText(/Volumen 8/)).toBeTruthy();
+});
+it("abre en portal y Todas muestra realmente todos los estados desde el primer clic", async () => {
+  const n = novel({ status: "to-read" });
+  api.List.mockResolvedValue([n]);
+  mount();
+  await screen.findByRole("region", { name: "Portal de novelas" });
+  expect(
+    screen.queryByRole("button", { name: `Abrir novela ${n.title}` }),
+  ).toBeNull();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Ver todas las novelas" }),
+  );
+  await screen.findByRole("button", { name: `Abrir novela ${n.title}` });
+  expect(
+    screen.getByRole("button", { name: "Todas" }).classList.contains("active"),
+  ).toBe(true);
+});
+it("ajusta progreso con una flecha y usa confirmación propia al borrar", async () => {
+  const n = novel();
+  api.SetCompleted.mockResolvedValue(
+    novel({ completed: 1, status: "up-next" }),
+  );
+  api.Delete.mockResolvedValue(undefined);
+  const confirm = vi.spyOn(window, "confirm");
+  await open(n);
+  fireEvent.click(
+    screen.getByRole("button", { name: "Aumentar volúmenes completados" }),
+  );
+  await screen.findByRole("group", { name: "Progreso: 1/?" });
+  expect(api.SetCompleted).toHaveBeenCalledExactlyOnceWith(n.id, 1, false);
+  fireEvent.click(screen.getByRole("button", { name: "Eliminar novela" }));
+  expect(
+    screen.getByRole("dialog", { name: "¿Eliminar esta novela?" }),
+  ).toBeTruthy();
+  expect(confirm).not.toHaveBeenCalled();
+  expect(api.Delete).not.toHaveBeenCalled();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Eliminar definitivamente" }),
+  );
+  await waitFor(() => expect(api.Delete).toHaveBeenCalledExactlyOnceWith(n.id));
 });
 
 it("el atajo Voy por el volumen X guarda X-1 y la creación no exige títulos de volumen", async () => {
@@ -188,7 +247,7 @@ it("guarda Leída con cantidad desconocida sin dibujar volúmenes ficticios", as
     completed: null,
     total: null,
   });
-  expect(screen.getByText("?/?")).toBeTruthy();
+  expect(screen.getByRole("group", { name: "Progreso: ?/?" })).toBeTruthy();
   expect(screen.queryByRole("button", { name: "Abrir volumen 1" })).toBeNull();
 });
 
@@ -261,7 +320,7 @@ it("edita datos de un volumen con título opcional, conserva errores y no pierde
   fireEvent.click(
     screen.getByRole("button", { name: "Editar datos del volumen 1" }),
   );
-  expect(screen.getByLabelText("Número de volumen")).toHaveProperty(
+  expect(screen.getByLabelText("Posición de lectura")).toHaveProperty(
     "disabled",
     true,
   );

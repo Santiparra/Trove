@@ -4,6 +4,7 @@ import type {
   VolumeInput,
 } from "../../bindings/github.com/Santiparra/Trove/internal/novels/models";
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import { printedLabel } from "./presentation";
 
 export default function VolumeEditor({
   volume,
@@ -28,6 +29,7 @@ export default function VolumeEditor({
 }) {
   const [input, setInput] = useState<VolumeInput>({
     id: volume?.id || "",
+    label: volume?.label || "",
     number: volume?.number || number,
     title: volume?.title || "",
     description: volume?.description || "",
@@ -55,13 +57,15 @@ export default function VolumeEditor({
       </button>
       <div className="page-heading">
         <h1>
-          {volume ? `Editar volumen ${volume.number}` : "Registrar volumen"}
+          {volume
+            ? `Editar volumen ${volume.label || volume.catalog?.label || printedLabel(volume.catalog?.title || volume.title, volume.catalog?.originalTitle || "") || volume.number}`
+            : "Registrar volumen"}
         </h1>
       </div>
       <form className="form-card novel-form" onSubmit={submit}>
         <div className="novel-form-grid">
           <label>
-            Número de volumen
+            Posición de lectura
             <input
               type="number"
               min={1}
@@ -73,6 +77,16 @@ export default function VolumeEditor({
               onChange={(event) =>
                 change({ number: Number(event.target.value) })
               }
+            />
+          </label>
+          <label>
+            Etiqueta del volumen
+            <input
+              aria-label="Etiqueta del volumen"
+              placeholder="Por ejemplo 6.5 o Parte 2 · 1"
+              value={input.label || ""}
+              disabled={busy}
+              onChange={(event) => change({ label: event.target.value })}
             />
           </label>
           <label>

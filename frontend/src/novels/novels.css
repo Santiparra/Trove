@@ -3,6 +3,229 @@
   gap: 14px;
   margin: 24px 0;
 }
+.novel-portal {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin: 20px 0 28px;
+}
+.novel-portal .portal-card {
+  margin: 0;
+  padding: 20px;
+  min-width: 0;
+}
+.novel-portal .card-heading {
+  margin-bottom: 16px;
+  gap: 12px;
+}
+.novel-portal .card-heading h2 {
+  font-size: 15px;
+}
+.novel-library-total {
+  font-size: 34px;
+  color: #d7e7d8;
+}
+.novel-library-total small {
+  font-size: 12px;
+  font-weight: 400;
+  color: #99afa7;
+}
+.novel-state-counts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 18px 0;
+}
+.novel-state-counts button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 5px;
+  background: #202d29;
+  color: #bcd0c5;
+  text-align: left;
+  font-size: 11px;
+}
+.novel-state-counts strong {
+  margin-left: auto;
+  color: #e0ebe4;
+}
+.volume-state-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px #14211c;
+}
+.novel-distribution {
+  display: flex;
+  height: 10px;
+  gap: 3px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: #2b3732;
+}
+.novel-distribution button {
+  padding: 0;
+  min-width: 4px;
+}
+.novel-reading-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 13px;
+}
+.novel-reading-entry {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: transparent;
+  text-align: left;
+  padding: 0;
+  color: #c8dbcf;
+}
+.novel-reading-cover {
+  display: block;
+  width: 55px;
+  flex-shrink: 0;
+}
+.novel-reading-entry > span:last-child {
+  display: grid;
+  gap: 7px;
+}
+.novel-reading-entry strong {
+  font-size: 13px;
+}
+.novel-reading-entry small {
+  font-size: 11px;
+  color: #95afa2;
+}
+.novel-cover-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.novel-cover-row button {
+  padding: 0;
+  background: transparent;
+  min-width: 0;
+}
+.novel-portal .cover-placeholder {
+  padding: 8px;
+  gap: 8px;
+}
+.novel-portal .cover-title {
+  font-size: 11px;
+}
+.volume-cover-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
+  gap: 18px 14px;
+  margin: 20px 0;
+}
+.volume-cover-item {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  background: transparent;
+  padding: 0;
+  color: #bfd1c5;
+  min-width: 0;
+}
+.volume-cover-image {
+  display: block;
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 3px;
+}
+.volume-cover-item.is-current .volume-cover-image {
+  border-color: #bb91ff;
+  box-shadow: 0 0 0 1px #bb91ff55;
+}
+.volume-cover-image > .volume-state-dot {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 11px;
+  height: 11px;
+  border: 1px solid #24352c;
+}
+.volume-state-dot.unregistered {
+  background: #26352c;
+  box-shadow: 0 0 0 1px #b5bdb9;
+}
+.volume-cover-gallery .cover-placeholder {
+  padding: 10px;
+  gap: 12px;
+}
+.volume-cover-gallery .cover-title {
+  font-size: 13px;
+}
+.volume-cover-label {
+  font-size: 11px;
+  line-height: 1.5;
+}
+.novel-progress-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.novel-progress-arrows {
+  display: grid;
+  gap: 2px;
+}
+.novel-progress-arrows button {
+  background: #2b4335;
+  color: #d6e8d9;
+  border-radius: 3px;
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 16px;
+}
+.complete-symbol {
+  display: inline-flex;
+  padding: 13px;
+  border-radius: 50%;
+  color: #63dda0;
+  background: #294434;
+}
+.description-links {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+.description-source {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #9bb8a9;
+}
+.description-source > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.description-source button {
+  min-width: 80px;
+}
+.source-link {
+  color: #80bfff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
+.lazy-cover {
+  width: 100%;
+}
+@media (max-width: 1150px) {
+  .novel-portal {
+    grid-template-columns: 1fr;
+  }
+}
 .novel-workspace .status-tabs {
   display: flex;
   flex-wrap: wrap;

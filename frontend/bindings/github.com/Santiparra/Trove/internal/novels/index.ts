@@ -3,8 +3,12 @@
 
 export {
     CatalogMatch,
+    Dashboard,
+    FinishedVolume,
     Input,
     Novel,
+    PortalEntry,
+    StatusCount,
     Volume,
     VolumeInput
 } from "./models.js";

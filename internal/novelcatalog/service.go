@@ -3,6 +3,7 @@ package novelcatalog
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Santiparra/Trove/internal/catalog"
@@ -65,6 +66,10 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 		base.Sources["cover"] = bookSource
 	}
 	if releaseID == "" {
+		base.Label = ref.Label
+		if base.Label == "" {
+			base.Label = PrintedLabel(book.Title, book.OriginalTitle)
+		}
 		lang := series.Language
 		if lang == "" {
 			lang = "en"
@@ -110,6 +115,10 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 		}
 		publication.SeriesID, publication.BookID, publication.Number, publication.Order = series.ID, book.ID, number, ref.Order
 		publication.Title, publication.OriginalTitle = book.Title, book.OriginalTitle
+		publication.Label = ref.Label
+		if publication.Label == "" {
+			publication.Label = PrintedLabel(book.Title, book.OriginalTitle)
+		}
 		publication.FetchedAt, publication.Evidence = now, "ranobedb-main"
 		publication.Sources = map[string]Source{}
 		publication.Warnings = []string{}
@@ -167,7 +176,14 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 		}
 		base = publication
 	} else {
-		base.Warnings = append(base.Warnings, "No hay una publicación seleccionada para el idioma/formato preferido. Se muestra metadata del volumen, sin asumir una edición.")
+		language, format := series.Language, series.Format
+		if language == "" {
+			language = "en"
+		}
+		if format == "" {
+			format = "print"
+		}
+		base.Warnings = append(base.Warnings, fmt.Sprintf("Sin publicación coincidente para %s / %s. Se muestra información del volumen; podés elegir otra publicación. La ausencia de ISBN solo limita el complemento Hardcover.", language, format))
 	}
 	if err := base.Validate(); err != nil {
 		return Publication{}, err

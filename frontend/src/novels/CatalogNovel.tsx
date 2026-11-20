@@ -12,6 +12,7 @@ import type {
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import BookProfile from "../books/BookProfile";
 import { errorMessage } from "../books/presentation";
+import { printedLabel } from "./presentation";
 
 export function publicationFormat(format: string) {
   return (
@@ -159,7 +160,7 @@ export default function CatalogNovel({
     <BookProfile
       book={book}
       ariaLabel="Detalle de novela de catálogo"
-      subtitle={`Novela ligera · Volumen ${p.number} · ${p.title}`}
+      subtitle={`Novela ligera · Volumen ${p.label || printedLabel(p.title, p.originalTitle) || `Lectura #${p.number}`} · ${p.title}`}
       description={p.description || series.description}
       coverURL={p.coverURL}
       editionInfo={p}
@@ -304,7 +305,10 @@ export default function CatalogNovel({
             >
               {series.books.map((ref) => (
                 <option key={ref.id} value={ref.number}>
-                  {ref.number} · {ref.title || ref.originalTitle}
+                  {ref.label ||
+                    printedLabel(ref.title, ref.originalTitle) ||
+                    `Lectura #${ref.number}`}{" "}
+                  · {ref.title || ref.originalTitle}
                 </option>
               ))}
             </select>

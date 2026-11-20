@@ -24,7 +24,7 @@ import (
 )
 
 const Format = "trove-library"
-const Version = 5
+const Version = 6
 
 func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 

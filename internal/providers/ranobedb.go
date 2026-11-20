@@ -276,7 +276,7 @@ func (p *RanobeDB) Series(ctx context.Context, id string) (novelcatalog.Series, 
 	sort.Slice(refs, func(i, j int) bool { return refs[i].Order < refs[j].Order })
 	s := novelcatalog.Series{ID: id, Title: raw.Title, OriginalTitle: raw.OriginalTitle, Description: plain(raw.Description), Authors: []novelcatalog.Author{}, Books: []novelcatalog.BookRef{}, FetchedAt: time.Now().UTC().Format(time.RFC3339Nano), Language: "en", Format: "print"}
 	for i, b := range refs {
-		s.Books = append(s.Books, novelcatalog.BookRef{ID: strconv.FormatInt(b.ID, 10), Number: i + 1, Order: b.Order, Title: b.Title, OriginalTitle: b.OriginalTitle, CoverURL: rnCover(b.Image)})
+		s.Books = append(s.Books, novelcatalog.BookRef{Label: novelcatalog.PrintedLabel(b.Title, b.OriginalTitle), ID: strconv.FormatInt(b.ID, 10), Number: i + 1, Order: b.Order, Title: b.Title, OriginalTitle: b.OriginalTitle, CoverURL: rnCover(b.Image)})
 	}
 	if len(s.Books) > 0 {
 		s.CoverURL = s.Books[0].CoverURL
