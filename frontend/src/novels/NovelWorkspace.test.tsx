@@ -26,6 +26,15 @@ const api = vi.hoisted(() => ({
   FinishVolume: vi.fn(),
   SaveVolume: vi.fn(),
   Delete: vi.fn(),
+  SearchCatalog: vi.fn(),
+  OpenCatalog: vi.fn(),
+  PrepareCatalog: vi.fn(),
+  CatalogReleases: vi.fn(),
+  PreviewPublication: vi.fn(),
+  AddCatalog: vi.fn(),
+  LinkCatalog: vi.fn(),
+  UnlinkCatalog: vi.fn(),
+  RefreshCatalog: vi.fn(),
 }));
 vi.mock(
   "../../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
@@ -96,6 +105,13 @@ async function open(n: Novel) {
 beforeEach(() => {
   vi.resetAllMocks();
   api.List.mockResolvedValue([]);
+  api.SearchCatalog.mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    pages: 1,
+    warnings: [],
+  });
 });
 afterEach(cleanup);
 
@@ -173,7 +189,7 @@ it("guarda Leída con cantidad desconocida sin dibujar volúmenes ficticios", as
     total: null,
   });
   expect(screen.getByText("?/?")).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Editar volumen 1" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Abrir volumen 1" })).toBeNull();
 });
 
 it("terminar deja el siguiente pendiente sin iniciarlo y conserva el borrador de notas", async () => {
@@ -241,7 +257,10 @@ it("edita datos de un volumen con título opcional, conserva errores y no pierde
     new Error("La finalización precede al inicio"),
   );
   await open(novel());
-  fireEvent.click(screen.getByRole("button", { name: "Editar volumen 1" }));
+  fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 1" }));
+  fireEvent.click(
+    screen.getByRole("button", { name: "Editar datos del volumen 1" }),
+  );
   expect(screen.getByLabelText("Número de volumen")).toHaveProperty(
     "disabled",
     true,

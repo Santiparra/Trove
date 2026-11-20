@@ -635,6 +635,7 @@ export default function App() {
         ) : currentMedium === "light-novels" ? (
           info ? (
             <NovelWorkspace
+              localOnly={localOnly}
               key={`novels:${revision}`}
               info={info}
               onBusy={setBusy}

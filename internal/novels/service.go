@@ -220,9 +220,15 @@ func (s *Service) SaveVolume(ctx context.Context, id string, in VolumeInput) (No
 		}
 	}
 	v := volumeAt(&n, in.Number)
+	if isbn := catalog.ISBN13(in.Identifier); v.Catalog != nil && isbn != "" && v.Catalog.ISBN != "" && isbn != v.Catalog.ISBN {
+		return Novel{}, errors.New("el ISBN no coincide con la publicación vinculada; elegí otra publicación antes de cambiarlo")
+	}
 	v.Title, v.Description, v.Notes, v.Favorite = strings.TrimSpace(in.Title), in.Description, in.Notes, in.Favorite
 	v.Edition.Language, v.Edition.Format, v.Edition.Identifier, v.Edition.Owned = strings.TrimSpace(in.Language), in.Format, strings.TrimSpace(in.Identifier), in.Owned
 	v.Edition.Identifiers = catalog.NormalizeIdentifier(v.Edition.Identifier, "manual")
+	if v.Catalog != nil {
+		v.Edition.Identifiers = catalog.MergeIdentifiers(v.Edition.Identifiers, catalog.NormalizeIdentifier(v.Catalog.ISBN, "ranobedb"))
+	}
 	v.Cycle.StartedOn, v.Cycle.FinishedOn = in.StartedOn, in.FinishedOn
 	if n.Completed != nil && in.Number <= *n.Completed {
 		v.Cycle.Status = "read"

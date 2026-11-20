@@ -27,10 +27,11 @@ type BuildInfo struct {
 	Revision string
 }
 type Library struct {
-	gate    sync.RWMutex
-	closing bool
-	service *books.Service
-	info    Info
+	dataEpoch uint64
+	gate      sync.RWMutex
+	closing   bool
+	service   *books.Service
+	info      Info
 }
 
 func NewLibrary(service *books.Service, profile, dir, buildID string, identity ...BuildInfo) *Library {

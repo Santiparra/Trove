@@ -15,6 +15,7 @@ import (
 	"github.com/Santiparra/Trove/internal/config"
 	"github.com/Santiparra/Trove/internal/credentials"
 	"github.com/Santiparra/Trove/internal/desktop"
+	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"github.com/Santiparra/Trove/internal/novels"
 	"github.com/Santiparra/Trove/internal/providers"
 	"github.com/Santiparra/Trove/internal/storage/sqlite"
@@ -62,18 +63,19 @@ func main() {
 	library := desktop.NewLibrary(books.NewService(store), cfg.Profile, cfg.DataDir, buildID, desktop.BuildInfo{Version: version, Revision: revision})
 	vault := credentials.New(cfg.DataDir)
 	hardcover, openlibrary := providers.NewHardcover(vault.Get), providers.NewOpenLibrary()
+	ranobe := providers.NewRanobeDB()
 	network, err := providers.NewNetworkPolicy(cfg.DataDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	health := providers.NewHealth(hardcover, openlibrary, network)
+	health := providers.NewHealth(hardcover, openlibrary, network, ranobe)
 	defer health.Close()
 	health.Check()
 	catalogService := desktop.NewCatalog(catalog.New(hardcover, openlibrary), vault, providers.NewCovers(filepath.Join(cfg.DataDir, "catalog-covers"), network), library, health)
 	app := application.New(application.Options{
 		Name: "Trove", Description: "Biblioteca personal multimedia local",
 		Windows:  application.WindowsOptions{WebviewUserDataPath: filepath.Join(cfg.DataDir, "webview")},
-		Services: []application.Service{application.NewService(library), application.NewService(catalogService), application.NewService(desktop.NewNovels(novels.NewService(store), library))},
+		Services: []application.Service{application.NewService(library), application.NewService(catalogService), application.NewService(desktop.NewNovels(novels.NewService(store), library, novelcatalog.New(ranobe, hardcover), network))},
 		Assets:   application.AssetOptions{Handler: application.AssetFileServerFS(assets)},
 	})
 	app.RegisterService(application.NewService(desktop.NewBackups(backups, library,

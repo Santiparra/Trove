@@ -8,6 +8,42 @@ import { Create as $Create } from "@wailsio/runtime";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as books$0 from "../books/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as novelcatalog$0 from "../novelcatalog/models.js";
+
+export class CatalogMatch {
+    "kind": string;
+    "novel": Novel | null;
+    "message": string;
+
+    /** Creates a new CatalogMatch instance. */
+    constructor($$source: Partial<CatalogMatch> = {}) {
+        if (!("kind" in $$source)) {
+            this["kind"] = "";
+        }
+        if (!("novel" in $$source)) {
+            this["novel"] = null;
+        }
+        if (!("message" in $$source)) {
+            this["message"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new CatalogMatch instance from a string or object.
+     */
+    static createFrom($$source: any = {}): CatalogMatch {
+        const $$createField1_0 = $$createType1;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("novel" in $$parsedSource) {
+            $$parsedSource["novel"] = $$createField1_0($$parsedSource["novel"]);
+        }
+        return new CatalogMatch($$parsedSource as Partial<CatalogMatch>);
+    }
+}
 
 export class Input {
     "id": string;
@@ -57,7 +93,7 @@ export class Input {
      * Creates a new Input instance from a string or object.
      */
     static createFrom($$source: any = {}): Input {
-        const $$createField2_0 = $$createType0;
+        const $$createField2_0 = $$createType2;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
             $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
@@ -67,6 +103,7 @@ export class Input {
 }
 
 export class Novel {
+    "catalog"?: novelcatalog$0.Series | null;
     "id": string;
     "title": string;
     "authors": string[];
@@ -118,20 +155,25 @@ export class Novel {
      * Creates a new Novel instance from a string or object.
      */
     static createFrom($$source: any = {}): Novel {
-        const $$createField2_0 = $$createType0;
-        const $$createField9_0 = $$createType2;
+        const $$createField0_0 = $$createType4;
+        const $$createField3_0 = $$createType2;
+        const $$createField10_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("catalog" in $$parsedSource) {
+            $$parsedSource["catalog"] = $$createField0_0($$parsedSource["catalog"]);
+        }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField2_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
         }
         if ("volumes" in $$parsedSource) {
-            $$parsedSource["volumes"] = $$createField9_0($$parsedSource["volumes"]);
+            $$parsedSource["volumes"] = $$createField10_0($$parsedSource["volumes"]);
         }
         return new Novel($$parsedSource as Partial<Novel>);
     }
 }
 
 export class Volume {
+    "catalog"?: novelcatalog$0.Publication | null;
     "id": string;
     "number": number;
     "title": string;
@@ -175,14 +217,18 @@ export class Volume {
      * Creates a new Volume instance from a string or object.
      */
     static createFrom($$source: any = {}): Volume {
-        const $$createField4_0 = $$createType3;
-        const $$createField5_0 = $$createType4;
+        const $$createField0_0 = $$createType8;
+        const $$createField5_0 = $$createType9;
+        const $$createField6_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("catalog" in $$parsedSource) {
+            $$parsedSource["catalog"] = $$createField0_0($$parsedSource["catalog"]);
+        }
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField4_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
         }
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField5_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
         }
         return new Volume($$parsedSource as Partial<Volume>);
     }
@@ -254,8 +300,14 @@ export class VolumeInput {
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = Volume.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = books$0.Edition.createFrom;
-const $$createType4 = books$0.Cycle.createFrom;
+const $$createType0 = Novel.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = $Create.Array($Create.Any);
+const $$createType3 = novelcatalog$0.Series.createFrom;
+const $$createType4 = $Create.Nullable($$createType3);
+const $$createType5 = Volume.createFrom;
+const $$createType6 = $Create.Array($$createType5);
+const $$createType7 = novelcatalog$0.Publication.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);
+const $$createType9 = books$0.Edition.createFrom;
+const $$createType10 = books$0.Cycle.createFrom;

@@ -18,6 +18,15 @@ const novelAPI = vi.hoisted(() => ({
   FinishVolume: vi.fn(),
   SaveVolume: vi.fn(),
   Delete: vi.fn(),
+  SearchCatalog: vi.fn(),
+  OpenCatalog: vi.fn(),
+  PrepareCatalog: vi.fn(),
+  CatalogReleases: vi.fn(),
+  PreviewPublication: vi.fn(),
+  AddCatalog: vi.fn(),
+  LinkCatalog: vi.fn(),
+  UnlinkCatalog: vi.fn(),
+  RefreshCatalog: vi.fn(),
 }));
 vi.mock(
   "../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
@@ -131,6 +140,13 @@ function overview(withBook = false) {
 beforeEach(() => {
   vi.resetAllMocks();
   novelAPI.List.mockResolvedValue([]);
+  novelAPI.SearchCatalog.mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    pages: 1,
+    warnings: [],
+  });
   vi.mocked(BackupService.RestoreChoices).mockResolvedValue([]);
   catalog.State.mockResolvedValue({ configured: true });
   catalog.ProviderHealth.mockResolvedValue({

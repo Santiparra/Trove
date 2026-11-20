@@ -16,5 +16,6 @@ export {
     CatalogPreview,
     CatalogState,
     Choice,
-    Info
+    Info,
+    NovelPreview
 } from "./models.js";

@@ -11,6 +11,7 @@ import (
 
 const Hardcover = "hardcover"
 const OpenLibrary = "openlibrary"
+const RanobeDB = "ranobedb"
 
 type Identifier struct {
 	Scheme  string `json:"scheme"`
@@ -70,7 +71,7 @@ var numericID = regexp.MustCompile(`^[1-9][0-9]{0,17}$`)
 var olID = regexp.MustCompile(`^OL[0-9]+[MW]$`)
 
 func ValidID(provider, id string) bool {
-	if provider == Hardcover {
+	if provider == Hardcover || provider == RanobeDB {
 		return numericID.MatchString(id)
 	}
 	return provider == OpenLibrary && olID.MatchString(id)
@@ -84,7 +85,7 @@ func ValidCoverURL(value string) bool {
 		return false
 	}
 	switch strings.ToLower(u.Hostname()) {
-	case "assets.hardcover.app", "images.hardcover.app", "covers.openlibrary.org":
+	case "assets.hardcover.app", "images.hardcover.app", "covers.openlibrary.org", "images.ranobedb.org":
 		return true
 	}
 	return false

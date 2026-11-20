@@ -93,6 +93,7 @@ export default function CatalogControl({
             </button>
           </div>
           <p>Open Library · Sin clave</p>
+          <p>RanobeDB · Sin clave</p>
           {error && <p role="alert">{error}</p>}
         </section>
       )}

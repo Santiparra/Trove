@@ -12,11 +12,30 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as novelcatalog$0 from "../novelcatalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as novels$0 from "../novels/models.js";
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as $models from "./models.js";
+
+export function AddCatalog(token: string, status: string, completed: number | null): $CancellablePromise<novels$0.CatalogMatch> {
+    return $Call.ByID(2700353494, token, status, completed).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function CatalogReleases(token: string, $number: number): $CancellablePromise<novelcatalog$0.Release[]> {
+    return $Call.ByID(2010557741, token, $number).then(($result: any) => {
+        return $$createType2($result);
+    });
+}
 
 export function ChangeStatus(id: string, status: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(4175022786, id, status).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
     });
 }
 
@@ -26,40 +45,87 @@ export function Delete(id: string): $CancellablePromise<void> {
 
 export function FinishVolume(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(555120161, id).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
     });
 }
 
 export function Get(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(3139770132, id).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
+    });
+}
+
+export function LinkCatalog(id: string, token: string): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(3043135463, id, token).then(($result: any) => {
+        return $$createType3($result);
     });
 }
 
 export function List(query: string, status: string): $CancellablePromise<novels$0.Novel[]> {
     return $Call.ByID(2939315824, query, status).then(($result: any) => {
-        return $$createType1($result);
+        return $$createType4($result);
+    });
+}
+
+export function OpenCatalog(seriesID: string, $number: number, bookID: string, releaseID: string): $CancellablePromise<$models.NovelPreview> {
+    return $Call.ByID(1049901871, seriesID, $number, bookID, releaseID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+export function PrepareCatalog(id: string, $number: number): $CancellablePromise<$models.NovelPreview> {
+    return $Call.ByID(1421036262, id, $number).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+export function PreviewPublication(token: string, $number: number, releaseID: string): $CancellablePromise<$models.NovelPreview> {
+    return $Call.ByID(1909519766, token, $number, releaseID).then(($result: any) => {
+        return $$createType5($result);
+    });
+}
+
+export function RefreshCatalog(id: string, $number: number, refreshSeries: boolean): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(3633803038, id, $number, refreshSeries).then(($result: any) => {
+        return $$createType3($result);
     });
 }
 
 export function Save(input: novels$0.Input): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(1599254661, input).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
     });
 }
 
 export function SaveVolume(id: string, input: novels$0.VolumeInput): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(2684821359, id, input).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
+    });
+}
+
+export function SearchCatalog(query: string, authorID: string, page: number, scope: string): $CancellablePromise<novelcatalog$0.SearchResult> {
+    return $Call.ByID(853198699, query, authorID, page, scope).then(($result: any) => {
+        return $$createType6($result);
     });
 }
 
 export function StartVolume(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(2896909894, id).then(($result: any) => {
-        return $$createType0($result);
+        return $$createType3($result);
+    });
+}
+
+export function UnlinkCatalog(id: string): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(40757906, id).then(($result: any) => {
+        return $$createType3($result);
     });
 }
 
 // Private type creation functions
-const $$createType0 = novels$0.Novel.createFrom;
-const $$createType1 = $Create.Array($$createType0);
+const $$createType0 = novels$0.CatalogMatch.createFrom;
+const $$createType1 = novelcatalog$0.Release.createFrom;
+const $$createType2 = $Create.Array($$createType1);
+const $$createType3 = novels$0.Novel.createFrom;
+const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = $models.NovelPreview.createFrom;
+const $$createType6 = novelcatalog$0.SearchResult.createFrom;

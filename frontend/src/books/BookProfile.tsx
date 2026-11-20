@@ -20,6 +20,10 @@ export default function BookProfile({
   ariaLabel,
   subtitle,
   description,
+  coverURL,
+  editionInfo,
+  sourceDetails,
+  formatLabel,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -32,6 +36,14 @@ export default function BookProfile({
   ariaLabel?: string;
   subtitle?: string;
   description?: string;
+  coverURL?: string;
+  editionInfo?: {
+    publisher: string;
+    publishedOn: string;
+    pages: number | null;
+  };
+  sourceDetails?: ReactNode;
+  formatLabel?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   useEffect(
@@ -42,6 +54,20 @@ export default function BookProfile({
   const authors = book?.authors || snapshot?.work.authors || [];
   const identifiers = book?.edition.identifiers || snapshot?.identifiers || [];
   const synopsis = description ?? snapshot?.description;
+  const facts = editionInfo ?? snapshot?.edition;
+  const displayFormat =
+    formatLabel ||
+    (
+      {
+        paperback: "Tapa blanda",
+        hardcover: "Tapa dura",
+        digital: "Digital",
+        audio: "Audio",
+        other: "Otro",
+      } as Record<string, string>
+    )[book?.edition.format || snapshot?.edition.format || ""] ||
+    book?.edition.format ||
+    snapshot?.edition.format;
   return (
     <section
       className="book-page unified-book-page"
@@ -58,7 +84,7 @@ export default function BookProfile({
       <div className="book-profile-grid">
         <div className="profile-cover">
           <CatalogImage
-            url={snapshot?.coverURL || ""}
+            url={coverURL ?? snapshot?.coverURL ?? ""}
             fallback={
               <div className="cover-placeholder" aria-hidden="true">
                 <Icon name="books" size={44} />
@@ -124,37 +150,25 @@ export default function BookProfile({
             {(book?.edition.format || snapshot?.edition.format) && (
               <>
                 <dt>Formato</dt>
-                <dd>
-                  {(
-                    {
-                      paperback: "Tapa blanda",
-                      hardcover: "Tapa dura",
-                      digital: "Digital",
-                      audio: "Audio",
-                      other: "Otro",
-                    } as Record<string, string>
-                  )[book?.edition.format || snapshot?.edition.format || ""] ||
-                    book?.edition.format ||
-                    snapshot?.edition.format}
-                </dd>
+                <dd>{displayFormat}</dd>
               </>
             )}
-            {snapshot?.edition.publisher && (
+            {facts?.publisher && (
               <>
                 <dt>Editorial</dt>
-                <dd>{snapshot.edition.publisher}</dd>
+                <dd>{facts.publisher}</dd>
               </>
             )}
-            {snapshot?.edition.pages != null && (
+            {facts?.pages != null && (
               <>
                 <dt>Páginas</dt>
-                <dd>{snapshot.edition.pages}</dd>
+                <dd>{facts.pages}</dd>
               </>
             )}
-            {snapshot?.edition.publishedOn && (
+            {facts?.publishedOn && (
               <>
                 <dt>Publicación</dt>
-                <dd>{snapshot.edition.publishedOn}</dd>
+                <dd>{facts.publishedOn}</dd>
               </>
             )}
           </dl>
@@ -213,6 +227,7 @@ export default function BookProfile({
             ))}
           </>
         )}
+        {sourceDetails}
       </details>
     </section>
   );

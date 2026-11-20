@@ -9,6 +9,7 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/novelcatalog"
 )
 
 const MaxVolumes = 10000
@@ -16,26 +17,28 @@ const MaxVolumes = 10000
 var ErrNotFound = errors.New("la novela no existe; actualizá la biblioteca")
 
 type Volume struct {
-	ID          string        `json:"id"`
-	Number      int           `json:"number"`
-	Title       string        `json:"title"`
-	Description string        `json:"description"`
-	Edition     books.Edition `json:"edition"`
-	Cycle       books.Cycle   `json:"cycle"`
-	Notes       string        `json:"notes"`
-	Favorite    bool          `json:"favorite"`
+	Catalog     *novelcatalog.Publication `json:"catalog,omitempty"`
+	ID          string                    `json:"id"`
+	Number      int                       `json:"number"`
+	Title       string                    `json:"title"`
+	Description string                    `json:"description"`
+	Edition     books.Edition             `json:"edition"`
+	Cycle       books.Cycle               `json:"cycle"`
+	Notes       string                    `json:"notes"`
+	Favorite    bool                      `json:"favorite"`
 }
 type Novel struct {
-	ID        string   `json:"id"`
-	Title     string   `json:"title"`
-	Authors   []string `json:"authors"`
-	Status    string   `json:"status"`
-	Total     *int     `json:"total"`
-	Completed *int     `json:"completed"`
-	Notes     string   `json:"notes"`
-	Favorite  bool     `json:"favorite"`
-	AddedOn   string   `json:"addedOn"`
-	Volumes   []Volume `json:"volumes"`
+	Catalog   *novelcatalog.Series `json:"catalog,omitempty"`
+	ID        string               `json:"id"`
+	Title     string               `json:"title"`
+	Authors   []string             `json:"authors"`
+	Status    string               `json:"status"`
+	Total     *int                 `json:"total"`
+	Completed *int                 `json:"completed"`
+	Notes     string               `json:"notes"`
+	Favorite  bool                 `json:"favorite"`
+	AddedOn   string               `json:"addedOn"`
+	Volumes   []Volume             `json:"volumes"`
 }
 type Input struct {
 	ID        string   `json:"id"`
@@ -71,6 +74,9 @@ func validDate(value string) bool {
 	return err == nil
 }
 func (n *Novel) Canonicalize() {
+	if n.Catalog != nil && n.Catalog.Authors == nil {
+		n.Catalog.Authors = []novelcatalog.Author{}
+	}
 	if n.Authors == nil {
 		n.Authors = []string{}
 	}
@@ -78,6 +84,14 @@ func (n *Novel) Canonicalize() {
 		n.Volumes = []Volume{}
 	}
 	for i := range n.Volumes {
+		if p := n.Volumes[i].Catalog; p != nil {
+			if p.Sources == nil {
+				p.Sources = map[string]novelcatalog.Source{}
+			}
+			if p.Warnings == nil {
+				p.Warnings = []string{}
+			}
+		}
 		if n.Volumes[i].Edition.Identifiers == nil {
 			n.Volumes[i].Edition.Identifiers = []catalog.Identifier{}
 		}
@@ -85,6 +99,11 @@ func (n *Novel) Canonicalize() {
 	sort.Slice(n.Volumes, func(i, j int) bool { return n.Volumes[i].Number < n.Volumes[j].Number })
 }
 func (n Novel) Validate() error {
+	if n.Catalog != nil {
+		if err := n.Catalog.Validate(); err != nil {
+			return err
+		}
+	}
 	if n.Volumes == nil {
 		return errors.New("falta la colección de volúmenes de la novela")
 	}
@@ -105,6 +124,18 @@ func (n Novel) Validate() error {
 	}
 	ids, numbers, editionIDs, cycleIDs := map[string]bool{}, map[int]bool{}, map[string]bool{}, map[string]bool{}
 	for _, v := range n.Volumes {
+		if v.Catalog != nil {
+			if err := v.Catalog.Validate(); err != nil {
+				return err
+			}
+			if n.Catalog == nil || v.Catalog.SeriesID != n.Catalog.ID || v.Catalog.Number != v.Number {
+				return errors.New("el vínculo del volumen no pertenece a esta novela")
+			}
+			ref, ok := n.Catalog.Ref(v.Number)
+			if !ok || ref.ID != v.Catalog.BookID {
+				return errors.New("el orden del catálogo contradice el volumen local")
+			}
+		}
 		if v.ID == "" || ids[v.ID] || v.Number < 1 || v.Number > MaxVolumes || numbers[v.Number] || (n.Total != nil && v.Number > *n.Total) {
 			return errors.New("identidad o número de volumen inválido o duplicado")
 		}
@@ -117,7 +148,7 @@ func (n Novel) Validate() error {
 			return errors.New("edición o fechas del volumen inválidas")
 		}
 		if v.Edition.Catalog != nil {
-			return errors.New("el proveedor de novelas todavía no está habilitado")
+			return errors.New("las publicaciones de novelas deben usar su propio vínculo de catálogo")
 		}
 		for _, id := range v.Edition.Identifiers {
 			if !catalog.ValidIdentifier(id) {

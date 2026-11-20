@@ -3,19 +3,35 @@ package desktop
 import (
 	"context"
 	"errors"
+	"sync"
+	"time"
 
+	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"github.com/Santiparra/Trove/internal/novels"
+	"github.com/Santiparra/Trove/internal/providers"
 )
 
 // Novels serializes aggregate writes with restore and shutdown through the shared gate.
 type Novels struct {
-	service *novels.Service
-	library *Library
+	service      *novels.Service
+	library      *Library
+	catalog      *novelcatalog.Service
+	network      *providers.NetworkPolicy
+	mu           sync.Mutex
+	previews     map[string]novelSelection
+	searchCancel map[string]context.CancelFunc
 }
 
-func NewNovels(service *novels.Service, library *Library) *Novels {
-	return &Novels{service: service, library: library}
+func NewNovels(service *novels.Service, library *Library, catalog *novelcatalog.Service, network *providers.NetworkPolicy) *Novels {
+	return &Novels{service: service, library: library, catalog: catalog, network: network, previews: map[string]novelSelection{}, searchCancel: map[string]context.CancelFunc{}}
 }
+
+type novelSelection struct {
+	series      novelcatalog.Series
+	publication novelcatalog.Publication
+	at          time.Time
+}
+
 func (n *Novels) List(query, status string) ([]novels.Novel, error) {
 	n.library.gate.RLock()
 	defer n.library.gate.RUnlock()

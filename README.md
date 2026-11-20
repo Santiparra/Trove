@@ -11,7 +11,7 @@ Trove is a personal project, publicly available for anyone who finds it useful o
 - **Books:** unified search across the local library and Hardcover, with Open Library providing complementary metadata for a safely identified edition.
 - A shared local/catalog detail page with covers, descriptions, edition selection, and author/series navigation.
 - Manual or catalog-based entry creation, linking to existing records, and saved bibliographic metadata that does not replace personal notes or reading history.
-- **Light novels:** one library entry per novel, with independent volume records, editable completed/total progress, optional totals, and separate start/finish actions. Volumes retain their own edition details, synopsis, notes, ownership, favorites, and reading dates. Remote catalog integration is not available yet.
+- **Light novels:** one library entry per novel, independent volumes, editable progress, and unified local/RanobeDB search. A shared detail page supports catalog linking, volume/publication selection, author navigation, and saved metadata. Hardcover supplements verified publications by ISBN; Open Library is not used for novels.
 - Reading dashboards, notes, favorites, ownership, and quick status changes. Selecting a status when adding a book creates the entry directly.
 - Provider health information, manual diagnostics, and automatic pauses after failures or rate limits.
 - A per-profile **local-only mode** that blocks catalog requests and cover downloads while retaining local records, metadata, and cached covers.
@@ -19,7 +19,7 @@ Trove is a personal project, publicly available for anyone who finds it useful o
 - Automatic SQLite + JSON backups and **Actual / Anterior** (current/previous) restoration with timestamps, validation, and a pre-restore safety copy.
 - Separate development, test, and everyday-use profiles.
 
-Hardcover requires a catalog access key; Open Library does not. Manual entry creation and personal library management work without a key or connection. See the [user guide](docs/usage.md).
+Hardcover requires a catalog access key; RanobeDB and Open Library do not. Light Novels can use RanobeDB without configuring Hardcover, with reduced complementary metadata. Manual entry creation and personal library management work without a key or connection. See the [user guide](docs/usage.md).
 
 Other media sections are under construction. External-service imports and ratings are not implemented. Lists, searches, series, and operations are scoped to the selected medium.
 

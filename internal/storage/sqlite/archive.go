@@ -93,7 +93,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 5 {
+	if version < 1 || version > 6 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
 	medium := "'books'"

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Santiparra/Trove/internal/backup"
+	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"github.com/Santiparra/Trove/internal/novels"
 )
 
@@ -106,5 +107,52 @@ func TestNovelOnlyBackupPreviewIsNotReportedAsEmpty(t *testing.T) {
 	got, err := s.GetNovel(ctx, n.ID)
 	if err != nil || got.Completed != nil || got.Total != nil || len(got.Volumes) != 0 {
 		t.Fatal("restauración inventó datos")
+	}
+}
+
+func TestNovelCatalogSnapshotsRoundTripAndKeepSourceIdentity(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "live.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	series := novelcatalog.Series{ID: "10", Title: "Novel", Language: "en", Format: "print", FetchedAt: "2026-01-01T00:00:00Z", Books: []novelcatalog.BookRef{{ID: "20", Number: 1, Order: 1, Title: "First volume"}}}
+	pub := novelcatalog.Publication{SeriesID: "10", BookID: "20", ReleaseID: "30", Number: 1, Order: 1, Title: "First volume", Language: "en", ReleaseFormat: "print", Format: "other", ISBN: "9780547928227", CoverURL: "https://images.ranobedb.org/cover.jpg", Description: "Cached synopsis", Evidence: "ranobedb-main", FetchedAt: "2026-01-01T00:00:00Z", Sources: map[string]novelcatalog.Source{"description": {Provider: novelcatalog.RanobeDB, Entity: "book", ID: "20", FetchedAt: "2026-01-01T00:00:00Z"}}}
+	zero := 0
+	created, err := novels.NewService(s).AddCatalog(ctx, series, pub, "to-read", &zero)
+	if err != nil {
+		t.Fatal(err)
+	}
+	native := filepath.Join(dir, "backup.sqlite")
+	doc, err := s.Capture(ctx, native, "novel-catalog", time.Now().UTC().Format(time.RFC3339Nano))
+	if err != nil {
+		t.Fatal(err)
+	}
+	logical := filepath.Join(dir, "backup.json")
+	if err = backup.WriteJSON(logical, doc); err != nil {
+		t.Fatal(err)
+	}
+	fromJSON, err := backup.ReadJSON(logical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fromSQLite, err := s.ReadNative(ctx, native)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, source := range []backup.Document{fromJSON, fromSQLite} {
+		prepared := filepath.Join(t.TempDir(), "prepared.sqlite")
+		if err = s.Prepare(ctx, source, prepared); err != nil {
+			t.Fatal(err)
+		}
+		if _, err = s.Install(ctx, prepared); err != nil {
+			t.Fatal(err)
+		}
+		n, err := s.GetNovel(ctx, created.Novel.ID)
+		if err != nil || n.Catalog.ID != "10" || n.Volumes[0].Catalog.ReleaseID != "30" || n.Volumes[0].Catalog.CoverURL != pub.CoverURL || n.Volumes[0].Catalog.Description != pub.Description || *n.Completed != 0 {
+			t.Fatal("restauración perdió vínculo, metadata o progreso")
+		}
 	}
 }

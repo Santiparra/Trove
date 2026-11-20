@@ -14,7 +14,7 @@ Light Novels displays one entry per novel, with its volumes inside the detail pa
 - Clicking an author on a local or remote detail page opens the shared search for their books. Remote results require a configured key; local matches remain available without one.
 - The detail page allows saving notes and changing favorites, ownership, and status without opening the full editor.
 - Only the title is required when creating a book. ISBN, authors, and dates can be added later.
-- Light Novels uses **Añadir novela**, with volume editing available from its detail page.
+- Light Novels uses **Añadir novela**, with unified local/catalog search, publication selection, and volume editing available from its detail page.
 - Deletion requires confirmation and removes the entry's associated data, not other entries in its series.
 
 ## Optional Books catalog
@@ -31,13 +31,30 @@ Popover search waits for a 140 ms pause before searching locally, then another 3
 
 From a detail page, you can link or change an edition, refresh metadata, and unlink it. These actions preserve personal data; a failed refresh keeps the previous snapshot. Saved descriptions and metadata can be read offline. Downloaded covers are reused locally, while unavailable ones display a placeholder. Open Library only supplements missing fields for the selected edition using a safe ISBN match.
 
-Manual entry creation remains available without a key or connection. Light Novels has no remote provider in this release. Keys and cached image bytes are not exported: restoring elsewhere may require configuring the key and downloading covers again.
+Manual entry creation remains available without a key or connection. Keys and cached image bytes are not exported: restoring elsewhere may require configuring the key and downloading covers again.
+
+## Optional Light Novels catalog
+
+Light Novels uses **RanobeDB** for novel identity, ordered main volumes, and publications. **Hardcover** only supplements a selected publication through a verified ISBN, language, and format. Open Library is not consulted for novels. RanobeDB does not require a key; Hardcover uses the same profile key as Books.
+
+1. Type a normal title, author name, or ISBN into **Buscar novelas**. Local results appear first, then RanobeDB candidates in the same popover. You do not need to add `(Light Novel)`. **Ver todos los resultados** opens the combined list; remote pages are navigable there.
+2. Selecting a result opens the shared enriched profile directly. An already-linked novel opens locally without offering another creation. A different publication or a manual ISBN match is reviewed before linking, rather than silently replacing or merging records.
+3. **Elegir volumen o publicación** shows main-volume reading order and publication cards with language, format, date, and ISBN. Original titles and ordering are preserved, including parts. The local consecutive number describes reading order, not an inferred printed volume number.
+4. Initial preference is English/print. If it cannot be verified, the page retains book-level metadata without assuming another edition. Select a publication explicitly to change the novel's language/format preference. Compilations, partial releases, hidden records, and mismatched relationships are not accepted as a single-volume publication.
+5. Add with **Agregar · Por leer**, or choose another state to create immediately. Set the completed count if known; leave it empty if unknown. Catalog counts never set your total or imply that untranslated or newly added publications were read.
+6. For an existing manual entry, use **Vincular catálogo**. Its personal title, authors, progress, notes, favorites, ownership, and reading dates are preserved. A safe publication ISBN can coexist with a non-ISBN personal identifier; a conflicting personal ISBN requires review.
+
+Authors open local/remote results using RanobeDB staff identity when available. Volume cards open that volume's data within the same profile; **Editar datos del volumen** edits personal fields. After finishing a volume, the next confirmed main-volume snapshot is fetched in the background without starting it or changing progress. Missing catalog information leaves manual management available.
+
+**Refrescar catálogo** refreshes the selected volume and series mapping. Failed requests preserve cached snapshots. A changed order/identity or changed ISBN is rejected for review instead of reassigning local history. **Desvincular catálogo** removes references/snapshots while retaining personal data and edition identifiers. Identifiers and per-field sources are available at the bottom of the profile.
+
+Disambiguation checks RanobeDB series → main book → single complete release, then Hardcover ISBN/language/format and structured book category. Explicit manga annotations and incompatible categories are rejected. Community genre tags such as "Manga" or "Comics" are not authoritative: a real light novel may have them. Hardcover is never searched by approximate title to fill novel metadata.
 
 ## Provider health
 
 ### Local-only mode
 
-In **Proveedores**, **Modo solo local** disables Hardcover and Open Library requests, health checks, and cover downloads. Go enforces the policy, cancels in-flight requests, and saves the preference per profile so it is respected on restart. It neither removes keys nor treats the intentional block as a provider outage.
+In **Proveedores**, **Modo solo local** disables Hardcover, Open Library, and RanobeDB requests, health checks, and cover downloads. Go enforces the policy, cancels in-flight requests, and saves the preference per profile so it is respected on restart. It neither removes keys nor treats the intentional block as a provider outage.
 
 The library, saved snapshots, cached covers, and personal management remain available. Undownloaded covers display a placeholder; remote metadata refresh and edition search are disabled. Re-enabling the network allows requests again, subject to the circuit-breaker rules.
 
@@ -45,7 +62,7 @@ To test restoration offline, enable the mode, restore the selected generation, a
 
 ### Indicator and diagnostics
 
-The **Proveedores** indicator, beside keys and backups, shows the last known state of the Hardcover and Open Library APIs. Open it for availability, last request duration/time, and temporary pauses. Missing or rejected credentials are distinguished from service failures. It does not check cover hosts or guarantee that every provider operation works.
+The **Proveedores** indicator, beside keys and backups, shows the last known state of the Hardcover, Open Library, and RanobeDB APIs. Open it for availability, last request duration/time, and temporary pauses. Missing or rejected credentials are distinguished from service failures. It does not check cover hosts or guarantee that every provider operation works.
 
 - Startup runs a brief background check per API with an 8-second budget, without blocking the library. Hardcover is skipped without a key. Normal requests update the same state.
 - **Comprobar ahora** repeats diagnostics at most once every 15 seconds and respects each provider's pause. There is no periodic remote polling. While the window is visible, the indicator refreshes local state every 3 seconds.
@@ -136,4 +153,4 @@ If a damaged database prevents startup, open a new data root and restore there w
 
 Supported formats, limits, and relationships are documented in the [backup format](backup-format.md).
 
-The current local schema is 5, including separate novel and volume storage. Adding the new tables does not convert old volume records; the existing schema initializer retains a pre-change safety copy. New backups use format 4 and preserve Books, grouped novels, their volumes, and linked book metadata. Supported earlier backups retain their original contents rather than converting standalone volumes into novels. Restoration replaces the entire profile library without merging later entries.
+The current local schema is 6, including separate novel/volume storage and unique linked provider identities. Existing standalone-volume records are not converted; the schema initializer retains its usual pre-change safety copy. New backups use format 5 and preserve Books, grouped novels, volumes, and bibliographic snapshots for both. Supported earlier backups retain their original contents without conversion. Restoration replaces the entire profile library; a novel metadata request started before restoration cannot write over the recovered snapshot afterwards.

@@ -16,7 +16,7 @@ func TestNovelsRejectWritesDuringShutdown(t *testing.T) {
 	}
 	defer store.Close()
 	library := NewLibrary(books.NewService(store), "test", "synthetic", "contract")
-	adapter := NewNovels(novels.NewService(store), library)
+	adapter := NewNovels(novels.NewService(store), library, nil, nil)
 	zero := 0
 	n, err := adapter.Save(novels.Input{Title: "Novela", Status: "to-read", Completed: &zero})
 	if err != nil {

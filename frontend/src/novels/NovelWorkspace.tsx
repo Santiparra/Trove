@@ -6,12 +6,22 @@ import type {
   Input,
 } from "../../bindings/github.com/Santiparra/Trove/internal/novels/models";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
-import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
+import type {
+  Info,
+  NovelPreview,
+} from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import BookProfile from "../books/BookProfile";
 import { dateLabel, errorMessage } from "../books/presentation";
 import NovelEditor from "./NovelEditor";
 import VolumeEditor from "./VolumeEditor";
 import Icon from "../components/Icon";
+import type {
+  Candidate,
+  SearchResult,
+} from "../../bindings/github.com/Santiparra/Trove/internal/novelcatalog/models";
+import NovelSearch from "./NovelSearch";
+import CatalogNovel, { PublicationSources } from "./CatalogNovel";
+import { representedNovel } from "./presentation";
 
 function progress(n: Novel) {
   return `${n.completed ?? "?"}/${n.total ?? "?"}`;
@@ -43,12 +53,14 @@ export default function NovelWorkspace({
   onDirty,
   canLeave,
   onNotice,
+  localOnly = false,
 }: {
   info: Info;
   onBusy: (value: boolean) => void;
   onDirty: (value: boolean) => void;
   canLeave: () => boolean;
   onNotice: (message: string) => void;
+  localOnly?: boolean;
 }) {
   const [items, setItems] = useState<Novel[]>([]);
   const [selected, setSelected] = useState<Novel | null>(null);
@@ -65,6 +77,107 @@ export default function NovelWorkspace({
   } | null>(null);
   const [notes, setNotes] = useState("");
   const [all, setAll] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [authorID, setAuthorID] = useState("");
+  const [remote, setRemote] = useState<SearchResult | null>(null);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteError, setRemoteError] = useState("");
+  const [page, setPage] = useState(1);
+  const [preview, setPreview] = useState<NovelPreview | null>(null);
+  const [linkTarget, setLinkTarget] = useState<Novel | null>(null);
+  const [linking, setLinking] = useState(false);
+  const [linkQuery, setLinkQuery] = useState("");
+  const [viewedNumber, setViewedNumber] = useState<number | null>(null);
+  const [metadataError, setMetadataError] = useState("");
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const shownNumber = selected
+    ? (viewedNumber ??
+      (nextNumber(selected) ||
+        selected.completed ||
+        selected.volumes[selected.volumes.length - 1]?.number ||
+        0))
+    : 0;
+  useEffect(() => {
+    let active = true;
+    setRemote(null);
+    setRemoteError("");
+    setRemoteLoading(false);
+    if (
+      selected ||
+      preview ||
+      editing ||
+      volumeEdit ||
+      localOnly ||
+      query.trim().length < 2 ||
+      status
+    )
+      return;
+    setRemoteLoading(true);
+    const timer = setTimeout(() => {
+      Novels.SearchCatalog(query, authorID, page, "list")
+        .then((value) => {
+          if (active) setRemote(value);
+        })
+        .catch((reason) => {
+          if (active) setRemoteError(errorMessage(reason));
+        })
+        .finally(() => {
+          if (active) setRemoteLoading(false);
+        });
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [
+    query,
+    authorID,
+    page,
+    status,
+    selected?.id,
+    !!preview,
+    editing,
+    volumeEdit,
+    localOnly,
+    revision,
+  ]);
+  useEffect(() => {
+    let active = true;
+    setMetadataError("");
+    setMetadataLoading(false);
+    if (
+      !selected?.catalog ||
+      !shownNumber ||
+      selected.volumes.some((v) => v.number === shownNumber && v.catalog) ||
+      preview ||
+      editing ||
+      volumeEdit ||
+      localOnly
+    )
+      return;
+    setMetadataLoading(true);
+    Novels.RefreshCatalog(selected.id, shownNumber, false)
+      .then((value) => {
+        if (active) setSelected(value);
+      })
+      .catch((reason) => {
+        if (active) setMetadataError(errorMessage(reason));
+      })
+      .finally(() => {
+        if (active) setMetadataLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [
+    selected?.id,
+    selected?.catalog?.id,
+    shownNumber,
+    !!preview,
+    editing,
+    volumeEdit,
+    localOnly,
+  ]);
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -118,8 +231,9 @@ export default function NovelWorkspace({
       onBusy(false);
     }
   }
-  function commit(n: Novel, message: string) {
+  function commit(n: Novel, message: string, showCurrent = false) {
     setSelected(n);
+    if (showCurrent) setViewedNumber(null);
     setEditing(false);
     setVolumeEdit(null);
     setRevision((value) => value + 1);
@@ -131,17 +245,109 @@ export default function NovelWorkspace({
       () =>
         void action(async () => {
           setSelected(await Novels.Get(n.id));
+          setViewedNumber(null);
+          setPreview(null);
+          setLinking(false);
         }),
     );
   }
   function search(value: string) {
     leave(() => {
+      setAuthorID(
+        selected?.catalog?.authors.find((author) => author.name === value)
+          ?.id || "",
+      );
       setSelected(null);
+      setPreview(null);
+      setLinking(false);
+      setViewedNumber(null);
       setQuery(value);
+      setSearchText(value);
+      setPage(1);
       setStatus("");
       setAll(true);
     });
   }
+  function allResults(value: string) {
+    leave(() => {
+      setQuery(value);
+      setSearchText(value);
+      setPage(1);
+      setAll(true);
+      setStatus("");
+    });
+  }
+  function candidate(item: Candidate, target: Novel | null = null) {
+    leave(
+      () =>
+        void action(async () => {
+          const value = await Novels.OpenCatalog(
+            item.id,
+            target ? nextNumber(target) || target.completed || 1 : 1,
+            item.matchedBookID || "",
+            item.matchedReleaseID || "",
+          );
+          if (
+            value.match.kind === "existing" &&
+            value.match.novel &&
+            !value.token
+          ) {
+            setSelected(value.match.novel);
+            setViewedNumber(
+              item.matchedBookID
+                ? value.series.books.find(
+                    (ref) => ref.id === item.matchedBookID,
+                  )?.number || null
+                : null,
+            );
+            setPreview(null);
+            setLinking(false);
+            return;
+          }
+          setLinkTarget(
+            target ||
+              (value.match.kind === "existing" ? value.match.novel : null),
+          );
+          setPreview(value);
+          setLinking(false);
+        }),
+    );
+  }
+  function choosePublication() {
+    if (!selected) return;
+    leave(
+      () =>
+        void action(async () => {
+          setLinkTarget(selected);
+          setPreview(
+            await Novels.PrepareCatalog(selected.id, shownNumber || 1),
+          );
+        }),
+    );
+  }
+  if (preview)
+    return (
+      <CatalogNovel
+        key={preview.token}
+        initial={preview}
+        target={linkTarget}
+        info={info}
+        localOnly={localOnly}
+        onBusy={onBusy}
+        onSearch={search}
+        onBack={() => setPreview(null)}
+        onDone={(n, message, number) => {
+          setSelected(n);
+          setPreview(null);
+          setLinkTarget(null);
+          setLinking(false);
+          setViewedNumber(number || null);
+          onDirty(false);
+          setRevision((value) => value + 1);
+          if (message) onNotice(message);
+        }}
+      />
+    );
   if (editing)
     return (
       <NovelEditor
@@ -186,11 +392,7 @@ export default function NovelWorkspace({
     );
   if (selected) {
     const next = nextNumber(selected);
-    const shown =
-      next ||
-      selected.completed ||
-      selected.volumes[selected.volumes.length - 1]?.number ||
-      0;
+    const shown = shownNumber;
     const current = selected.volumes.find((volume) => volume.number === shown);
     const registeredNumbers = new Set(
       selected.volumes.map((volume) => volume.number),
@@ -205,7 +407,9 @@ export default function NovelWorkspace({
       id: selected.id,
       medium: "light-novels",
       title: selected.title,
-      authors: selected.authors,
+      authors: selected.authors.length
+        ? selected.authors
+        : selected.catalog?.authors.map((author) => author.name) || [],
       series: null,
       edition: current?.edition || {
         id: "",
@@ -230,10 +434,33 @@ export default function NovelWorkspace({
       <BookProfile
         book={book}
         ariaLabel="Detalle de novela"
-        subtitle={`${progress(selected)} volúmenes completados${shown ? ` · Volumen ${shown}${current?.title ? `: ${current.title}` : ""}` : ""}`}
-        description={current?.description}
+        subtitle={`${progress(selected)} volúmenes completados${shown ? ` · Volumen ${shown}${current?.title || current?.catalog?.title ? `: ${current?.title || current?.catalog?.title}` : ""}` : ""}`}
+        description={
+          current?.description ||
+          current?.catalog?.description ||
+          selected.catalog?.description
+        }
+        coverURL={current?.catalog?.coverURL}
+        editionInfo={current?.catalog || undefined}
+        formatLabel={
+          current?.catalog?.releaseFormat === "print" &&
+          current?.edition.format === "other"
+            ? "Impreso"
+            : undefined
+        }
+        sourceDetails={
+          current?.catalog ? (
+            <PublicationSources publication={current.catalog} />
+          ) : undefined
+        }
         busy={busy}
-        onBack={() => leave(() => setSelected(null))}
+        onBack={() =>
+          leave(() => {
+            setSelected(null);
+            setViewedNumber(null);
+            setLinking(false);
+          })
+        }
         onSearch={search}
         management={
           <>
@@ -258,6 +485,15 @@ export default function NovelWorkspace({
             </select>
             <strong className="novel-progress">{progress(selected)}</strong>
             <span className="management-hint">Volúmenes completados</span>
+            {viewedNumber != null && !!next && viewedNumber !== next && (
+              <button
+                className="quiet"
+                disabled={busy}
+                onClick={() => setViewedNumber(null)}
+              >
+                Volver al volumen actual {next}
+              </button>
+            )}
             {selected.total != null &&
               selected.completed === selected.total &&
               selected.status !== "read" && (
@@ -289,6 +525,7 @@ export default function NovelWorkspace({
                   commit(
                     await Novels.StartVolume(selected.id),
                     `Volumen ${next} iniciado.`,
+                    true,
                   ),
                 )
               }
@@ -303,6 +540,7 @@ export default function NovelWorkspace({
                   commit(
                     await Novels.FinishVolume(selected.id),
                     "Volumen terminado. Progreso actualizado.",
+                    true,
                   ),
                 )
               }
@@ -359,6 +597,90 @@ export default function NovelWorkspace({
               Eliminar novela
             </button>
             <small>Alta: {dateLabel(selected.addedOn)}</small>
+            {shown > 0 && (
+              <button
+                className="secondary"
+                disabled={busy || metadataLoading}
+                onClick={() =>
+                  leave(() =>
+                    setVolumeEdit({ volume: current || null, number: shown }),
+                  )
+                }
+              >
+                Editar datos del volumen {shown}
+              </button>
+            )}
+            {selected.catalog ? (
+              <>
+                <small className="management-hint">
+                  RanobeDB · Novela ligera
+                </small>
+                <button
+                  className="quiet"
+                  disabled={busy || localOnly}
+                  onClick={choosePublication}
+                >
+                  Elegir volumen o publicación
+                </button>
+                <button
+                  className="quiet"
+                  disabled={busy || localOnly || metadataLoading}
+                  onClick={() =>
+                    void action(async () => {
+                      const updated = await Novels.RefreshCatalog(
+                        selected.id,
+                        shown || 0,
+                        true,
+                      );
+                      setMetadataError("");
+                      commit(updated, "Metadata de novela actualizada.");
+                    })
+                  }
+                >
+                  Refrescar catálogo
+                </button>
+                <button
+                  className="quiet"
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      window.confirm(
+                        "¿Quitar el vínculo y sus snapshots? Se conservan progreso, fechas y datos personales.",
+                      )
+                    )
+                      void action(async () =>
+                        commit(
+                          await Novels.UnlinkCatalog(selected.id),
+                          "Catálogo desvinculado.",
+                        ),
+                      );
+                  }}
+                >
+                  Desvincular catálogo
+                </button>
+              </>
+            ) : (
+              <button
+                className="quiet"
+                disabled={busy || localOnly}
+                onClick={() =>
+                  leave(() => {
+                    setLinkQuery(selected.title);
+                    setLinking((value) => !value);
+                  })
+                }
+              >
+                Vincular catálogo
+              </button>
+            )}
+            {metadataLoading && (
+              <small role="status">Consultando metadata del volumen…</small>
+            )}
+            {metadataError && (
+              <p className="management-hint" role="alert">
+                {metadataError}
+              </p>
+            )}
             {error && (
               <p className="error-banner" role="alert">
                 {error}
@@ -367,6 +689,33 @@ export default function NovelWorkspace({
           </>
         }
       >
+        {linking && (
+          <section className="edition-picker" aria-label="Vincular novela">
+            <div className="card-heading">
+              <h2>Buscar novela para vincular</h2>
+              <button className="quiet" onClick={() => setLinking(false)}>
+                Cerrar búsqueda
+              </button>
+            </div>
+            <NovelSearch
+              value={linkQuery}
+              onChange={setLinkQuery}
+              disabled={busy}
+              localOnly={localOnly}
+              catalogOnly
+              onAll={() => {}}
+              onNovel={() => {}}
+              onCandidate={(item) => candidate(item, selected)}
+            />
+          </section>
+        )}
+        {!!current?.catalog?.warnings.length && (
+          <ul className="catalog-warnings">
+            {current.catalog.warnings.map((warning, index) => (
+              <li key={index}>{warning}</li>
+            ))}
+          </ul>
+        )}
         <section className="novel-volumes" aria-label="Volúmenes de la novela">
           <div className="card-heading">
             <h2>Volúmenes</h2>
@@ -401,15 +750,15 @@ export default function NovelWorkspace({
               <button
                 className={`novel-volume ${volume.number === next ? "is-current" : ""}`}
                 key={volume.id}
-                aria-label={`Editar volumen ${volume.number}`}
+                aria-label={`Abrir volumen ${volume.number}`}
                 disabled={busy}
-                onClick={() =>
-                  leave(() => setVolumeEdit({ volume, number: volume.number }))
-                }
+                onClick={() => leave(() => setViewedNumber(volume.number))}
               >
                 <strong>
                   Volumen {volume.number}
-                  {volume.title ? ` · ${volume.title}` : ""}
+                  {volume.title || volume.catalog?.title
+                    ? ` · ${volume.title || volume.catalog?.title}`
+                    : ""}
                 </strong>
                 <span>
                   {
@@ -488,20 +837,19 @@ export default function NovelWorkspace({
         </button>
       </div>
       <div className="library-toolbar">
-        <label className="search-box">
-          <span className="sr-only">Buscar novelas</span>
-          <input
-            type="search"
-            aria-label="Buscar novelas"
-            placeholder="Título o autoría…"
-            value={query}
-            disabled={busy}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setAll(true);
-            }}
-          />
-        </label>
+        <NovelSearch
+          value={searchText}
+          onChange={(value) => {
+            setSearchText(value);
+            setAuthorID("");
+          }}
+          authorID={authorID}
+          disabled={busy}
+          localOnly={localOnly}
+          onNovel={open}
+          onCandidate={(item) => candidate(item)}
+          onAll={allResults}
+        />
         <button
           className="secondary"
           disabled={busy}
@@ -509,6 +857,9 @@ export default function NovelWorkspace({
             setAll(true);
             setStatus("");
             setQuery("");
+            setSearchText("");
+            setAuthorID("");
+            setPage(1);
           }}
         >
           Ver todas las novelas
@@ -552,7 +903,7 @@ export default function NovelWorkspace({
         <div className="empty-state">
           <h2>
             {query || status
-              ? "No hay coincidencias"
+              ? "No hay coincidencias locales"
               : "Tu biblioteca de novelas está vacía"}
           </h2>
           {!query && !status && (
@@ -600,6 +951,59 @@ export default function NovelWorkspace({
           </button>
         ))}
       </div>
+      {query && !status && !localOnly && (
+        <section className="catalog-results" aria-label="Resultados RanobeDB">
+          {remoteLoading && <p role="status">Buscando en RanobeDB…</p>}
+          {remoteError && (
+            <p className="error-banner" role="alert">
+              {remoteError}
+              <button onClick={() => setRevision((value) => value + 1)}>
+                Reintentar catálogo
+              </button>
+            </p>
+          )}
+          {remote?.items
+            .filter((item) => !representedNovel(item, items))
+            .map((item) => (
+              <button
+                className="catalog-work"
+                key={item.id}
+                disabled={busy}
+                onClick={() => candidate(item)}
+              >
+                <span>
+                  <strong>{item.title}</strong>
+                  <small>{item.originalTitle}</small>
+                </span>
+                <Icon name="chevron" size={17} />
+              </button>
+            ))}
+          {remote && !remote.items.length && (
+            <p className="management-hint">Sin coincidencias en RanobeDB.</p>
+          )}
+          {!!remote && remote.pages > 1 && (
+            <div className="catalog-actions">
+              <button
+                className="quiet"
+                disabled={busy || page <= 1}
+                onClick={() => setPage((value) => value - 1)}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {page} de {remote.pages}
+              </span>
+              <button
+                className="quiet"
+                disabled={busy || page >= remote.pages}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
+        </section>
+      )}
     </section>
   );
 }

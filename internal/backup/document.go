@@ -24,7 +24,7 @@ import (
 )
 
 const Format = "trove-library"
-const Version = 4
+const Version = 5
 
 func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 
@@ -204,6 +204,9 @@ func (d *Document) Validate() error {
 	}
 	novelIDs, volumeIDs, novelEditionIDs, novelCycleIDs := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
 	for _, n := range d.Catalog.Novels {
+		if d.Version < 5 && n.Catalog != nil {
+			return errors.New("el formato no admite catálogo de novelas")
+		}
 		if err := add(novelIDs, n.ID); err != nil {
 			return err
 		}
@@ -211,6 +214,9 @@ func (d *Document) Validate() error {
 			return err
 		}
 		for _, v := range n.Volumes {
+			if d.Version < 5 && v.Catalog != nil {
+				return errors.New("el formato no admite publicaciones de novelas")
+			}
 			for _, entry := range []struct {
 				ids map[string]bool
 				id  string

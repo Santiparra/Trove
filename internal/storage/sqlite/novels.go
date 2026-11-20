@@ -7,6 +7,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/Santiparra/Trove/internal/catalog"
 	"github.com/Santiparra/Trove/internal/novels"
 )
 
@@ -105,8 +106,29 @@ func (s *Store) ListNovels(ctx context.Context, query string) ([]novels.Novel, e
 	}
 	result := []novels.Novel{}
 	query = strings.ToLower(strings.TrimSpace(query))
+	queryISBN := catalog.ISBN13(query)
 	for _, n := range items {
-		if query == "" || strings.Contains(strings.ToLower(n.Title+" "+strings.Join(n.Authors, " ")), query) {
+		text := n.Title + " " + strings.Join(n.Authors, " ")
+		isbnMatch := false
+		if n.Catalog != nil {
+			text += " " + n.Catalog.Title + " " + n.Catalog.OriginalTitle
+			for _, a := range n.Catalog.Authors {
+				text += " " + a.Name
+			}
+		}
+		for _, v := range n.Volumes {
+			text += " " + v.Title + " " + v.Edition.Identifier
+			if queryISBN != "" && catalog.ISBN13(v.Edition.Identifier) == queryISBN {
+				isbnMatch = true
+			}
+			if v.Catalog != nil {
+				text += " " + v.Catalog.Title + " " + v.Catalog.OriginalTitle + " " + v.Catalog.ISBN
+				if queryISBN != "" && v.Catalog.ISBN == queryISBN {
+					isbnMatch = true
+				}
+			}
+		}
+		if query == "" || strings.Contains(strings.ToLower(text), query) || isbnMatch {
 			result = append(result, n)
 		}
 	}

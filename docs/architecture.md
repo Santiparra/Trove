@@ -17,6 +17,7 @@ Trove is a modular local application: a React/TypeScript interface hosted by Wai
 | `internal/backup` | Logical format, validation, generations, and restoration through a backend contract |
 | `internal/config` | Profile and data-location resolution |
 | `internal/catalog` | Provider-independent bibliographic contracts, ISBN handling, cascading, and provenance |
+| `internal/novelcatalog` | Series/main-book/release identity, publication snapshots, and safe Hardcover supplementation for novels |
 | `internal/providers` | Hardcover/Open Library adapters and local cover caching |
 | `internal/credentials` | Per-profile catalog key protection using Windows DPAPI |
 | `main.go` | Dependency composition and native lifecycle |
@@ -49,7 +50,11 @@ Each medium has its own identity and rules. Sharing mechanisms does not require 
 
 Books uses Hardcover as its primary catalog. Open Library supplements missing fields for the selected edition using a safe ISBN match. It is not automatically promoted to primary and is not queried for every search candidate. Snapshots keep remote references, sources, and warnings separate from personal data. Refreshing does not overwrite title, authors, series, notes, status, or dates; a failed refresh preserves the previous snapshot.
 
-Go prepares an edition selection and confirms it through a temporary token, rather than accepting a frontend-supplied snapshot. Local matches require review before linking; an already-linked edition opens without creating a duplicate. Remote catalogs are not enabled for Light Novels. External-service importers are not implemented yet.
+Go prepares a selection and confirms it through a temporary token, rather than accepting a frontend-supplied snapshot. Local matches require review before linking; an already-linked entity opens without creating a duplicate. External-service importers are not implemented yet.
+
+Light Novels uses RanobeDB series identities, explicitly ordered main-book references, and single complete releases. Original titles and source ordering are preserved separately from local reading positions. Hardcover supplements only verified ISBN/language/format matches and checks its structured book category; community genre tags are not used as medium classification. The novel path does not invoke Open Library or approximate Hardcover title searches.
+
+Novel and volume snapshots remain separate from personal fields. Refreshes preserve manually supplied text and dates, reject changed identities/order, and never infer totals or completed history from catalog counts. Metadata for the next volume is loaded without starting it. SQL indexes enforce unique linked RanobeDB series/book identities. Novel refreshes capture the library's restore epoch and cannot apply data after a successful restoration or an intervening switch to local-only mode.
 
 `BookSearch` presents local matches first and then remote candidates in the same popover. `BookProfile` shares local and remote detail presentation; available management actions depend on whether a personal record exists. Go recognizes matches before creation and prefers a local or more informative edition when opening a work. Edition changes are handled within the detail page. Key configuration lives in the header, outside bibliographic content.
 
