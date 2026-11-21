@@ -328,6 +328,7 @@ func (p *RanobeDB) Book(ctx context.Context, seriesID, bookID string) (novelcata
 		return novelcatalog.Book{}, errors.New("el resultado no es un volumen principal verificable de esta novela")
 	}
 	result := novelcatalog.Book{ID: bookID, SeriesID: seriesID, Title: b.Title, OriginalTitle: b.OriginalTitle, Description: plain(b.Description), CoverURL: rnCover(b.Image), Releases: []novelcatalog.Release{}}
+	result.FetchedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	for _, r := range b.Releases {
 		if r.ID > 0 && !r.Hidden && !novelcatalog.ExplicitManga(r.Title) {
 			result.Releases = append(result.Releases, rnOption(r))

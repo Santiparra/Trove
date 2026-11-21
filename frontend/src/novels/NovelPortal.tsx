@@ -44,13 +44,6 @@ export default function NovelPortal({
       <section className="portal-card novel-library-summary">
         <div className="card-heading">
           <h2>Tu biblioteca</h2>
-          <button
-            className="text-action"
-            disabled={busy}
-            onClick={() => onList("")}
-          >
-            Ver todas las novelas
-          </button>
         </div>
         <strong className="novel-library-total">
           {d.total}
@@ -103,6 +96,15 @@ export default function NovelPortal({
               );
             })}
         </div>
+        <button
+          className="novel-library-all"
+          disabled={busy}
+          onClick={() => onList("")}
+        >
+          <Icon name="books" size={17} />
+          <span>Ver todas las novelas</span>
+          <Icon name="chevron" size={15} />
+        </button>
       </section>
       <section className="portal-card novel-reading-card">
         <div className="card-heading">
@@ -112,7 +114,7 @@ export default function NovelPortal({
             disabled={busy}
             onClick={() => onList("reading")}
           >
-            Ver leyendo
+            Ver leyendo <Icon name="chevron" size={13} />
           </button>
         </div>
         {!d.reading.length && (
@@ -150,7 +152,7 @@ export default function NovelPortal({
             disabled={busy}
             onClick={() => onList("read")}
           >
-            Ver leídas
+            Ver leídas <Icon name="chevron" size={13} />
           </button>
         </div>
         <div className="novel-cover-row">
@@ -180,7 +182,7 @@ export default function NovelPortal({
             disabled={busy}
             onClick={() => onList("up-next")}
           >
-            Ver A continuación
+            Ver A continuación <Icon name="chevron" size={13} />
           </button>
         </div>
         <div className="novel-cover-row">

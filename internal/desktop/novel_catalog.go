@@ -17,6 +17,37 @@ type NovelPreview struct {
 	Match       novels.CatalogMatch      `json:"match"`
 }
 
+// BrowseCatalog loads a series once; publication details are deliberately resolved afterwards.
+func (n *Novels) BrowseCatalog(seriesID, bookID, releaseID string) (NovelPreview, error) {
+	if n.catalog == nil {
+		return NovelPreview{}, errors.New("catálogo de novelas no disponible")
+	}
+	n.library.gate.RLock()
+	existing, err := n.service.FindCatalogSeries(context.Background(), seriesID)
+	n.library.gate.RUnlock()
+	if err != nil {
+		return NovelPreview{}, err
+	}
+	if existing != nil {
+		if releaseID == "" {
+			return NovelPreview{Series: *existing.Catalog, Match: novels.CatalogMatch{Kind: "existing", Novel: existing}}, nil
+		}
+		for _, v := range existing.Volumes {
+			if v.Catalog != nil && v.Catalog.BookID == bookID && v.Catalog.ReleaseID == releaseID {
+				return NovelPreview{Series: *existing.Catalog, Match: novels.CatalogMatch{Kind: "existing", Novel: existing}}, nil
+			}
+		}
+		return n.prepareCatalog(*existing.Catalog, novelcatalog.Publication{})
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	series, err := n.catalog.Series(ctx, seriesID)
+	if err != nil {
+		return NovelPreview{}, err
+	}
+	return n.prepareCatalog(series, novelcatalog.Publication{})
+}
+
 func (n *Novels) SearchCatalog(query, authorID string, page int, scope string) (novelcatalog.SearchResult, error) {
 	if n.catalog == nil {
 		return novelcatalog.SearchResult{}, errors.New("catálogo de novelas no disponible")
@@ -143,13 +174,7 @@ func (n *Novels) PrepareCatalog(id string, number int) (NovelPreview, error) {
 			return n.prepareCatalog(*novel.Catalog, *v.Catalog)
 		}
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
-	defer cancel()
-	pub, err := n.catalog.Resolve(ctx, *novel.Catalog, number, "")
-	if err != nil {
-		return NovelPreview{}, err
-	}
-	return n.prepareCatalog(*novel.Catalog, pub)
+	return n.prepareCatalog(*novel.Catalog, novelcatalog.Publication{Number: number})
 }
 func (n *Novels) CatalogReleases(token string, number int) ([]novelcatalog.Release, error) {
 	if n.catalog == nil {
@@ -242,7 +267,12 @@ func (n *Novels) RefreshCatalog(id string, number int, refreshSeries bool) (nove
 			releaseID = v.Catalog.ReleaseID
 		}
 	}
-	pub, err := n.catalog.Resolve(ctx, fresh, number, releaseID)
+	var pub novelcatalog.Publication
+	if refreshSeries {
+		pub, err = n.catalog.ResolveFresh(ctx, fresh, number, releaseID)
+	} else {
+		pub, err = n.catalog.Resolve(ctx, fresh, number, releaseID)
+	}
 	if err != nil {
 		return novels.Novel{}, err
 	}

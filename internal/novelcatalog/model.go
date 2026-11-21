@@ -80,6 +80,7 @@ type Release struct {
 	PublishedOn string `json:"publishedOn"`
 }
 type Book struct {
+	FetchedAt     string
 	ID            string
 	SeriesID      string
 	Title         string

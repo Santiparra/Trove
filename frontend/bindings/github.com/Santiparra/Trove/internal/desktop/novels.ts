@@ -27,21 +27,30 @@ export function AddCatalog(token: string, status: string, completed: number | nu
     });
 }
 
+/**
+ * BrowseCatalog loads a series once; publication details are deliberately resolved afterwards.
+ */
+export function BrowseCatalog(seriesID: string, bookID: string, releaseID: string): $CancellablePromise<$models.NovelPreview> {
+    return $Call.ByID(2721006641, seriesID, bookID, releaseID).then(($result: any) => {
+        return $$createType1($result);
+    });
+}
+
 export function CatalogReleases(token: string, $number: number): $CancellablePromise<novelcatalog$0.Release[]> {
     return $Call.ByID(2010557741, token, $number).then(($result: any) => {
-        return $$createType2($result);
+        return $$createType3($result);
     });
 }
 
 export function ChangeStatus(id: string, status: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(4175022786, id, status).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function Dashboard(): $CancellablePromise<novels$0.Dashboard> {
     return $Call.ByID(2529929996).then(($result: any) => {
-        return $$createType4($result);
+        return $$createType5($result);
     });
 }
 
@@ -51,61 +60,61 @@ export function Delete(id: string): $CancellablePromise<void> {
 
 export function FinishVolume(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(555120161, id).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function Get(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(3139770132, id).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function LinkCatalog(id: string, token: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(3043135463, id, token).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function List(query: string, status: string): $CancellablePromise<novels$0.Novel[]> {
     return $Call.ByID(2939315824, query, status).then(($result: any) => {
-        return $$createType5($result);
+        return $$createType6($result);
     });
 }
 
 export function OpenCatalog(seriesID: string, $number: number, bookID: string, releaseID: string): $CancellablePromise<$models.NovelPreview> {
     return $Call.ByID(1049901871, seriesID, $number, bookID, releaseID).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType1($result);
     });
 }
 
 export function PrepareCatalog(id: string, $number: number): $CancellablePromise<$models.NovelPreview> {
     return $Call.ByID(1421036262, id, $number).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType1($result);
     });
 }
 
 export function PreviewPublication(token: string, $number: number, releaseID: string): $CancellablePromise<$models.NovelPreview> {
     return $Call.ByID(1909519766, token, $number, releaseID).then(($result: any) => {
-        return $$createType6($result);
+        return $$createType1($result);
     });
 }
 
 export function RefreshCatalog(id: string, $number: number, refreshSeries: boolean): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(3633803038, id, $number, refreshSeries).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function Save(input: novels$0.Input): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(1599254661, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function SaveVolume(id: string, input: novels$0.VolumeInput): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(2684821359, id, input).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
@@ -117,28 +126,28 @@ export function SearchCatalog(query: string, authorID: string, page: number, sco
 
 export function SetCompleted(id: string, completed: number, markRead: boolean): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(3711638385, id, completed, markRead).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function StartVolume(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(2896909894, id).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 export function UnlinkCatalog(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(40757906, id).then(($result: any) => {
-        return $$createType3($result);
+        return $$createType4($result);
     });
 }
 
 // Private type creation functions
 const $$createType0 = novels$0.CatalogMatch.createFrom;
-const $$createType1 = novelcatalog$0.Release.createFrom;
-const $$createType2 = $Create.Array($$createType1);
-const $$createType3 = novels$0.Novel.createFrom;
-const $$createType4 = novels$0.Dashboard.createFrom;
-const $$createType5 = $Create.Array($$createType3);
-const $$createType6 = $models.NovelPreview.createFrom;
+const $$createType1 = $models.NovelPreview.createFrom;
+const $$createType2 = novelcatalog$0.Release.createFrom;
+const $$createType3 = $Create.Array($$createType2);
+const $$createType4 = novels$0.Novel.createFrom;
+const $$createType5 = novels$0.Dashboard.createFrom;
+const $$createType6 = $Create.Array($$createType4);
 const $$createType7 = novelcatalog$0.SearchResult.createFrom;

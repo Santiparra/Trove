@@ -38,6 +38,18 @@ export function volumeLabel(n: Novel, number: number) {
     );
   return String(number);
 }
+export function novelCoverURL(n: Novel) {
+  const number =
+    n.status !== "read" && n.completed != null
+      ? n.completed + 1
+      : n.completed || n.volumes[n.volumes.length - 1]?.number || 1;
+  return (
+    n.volumes.find((v) => v.number === number)?.catalog?.coverURL ||
+    n.catalog?.books.find((b) => b.number === number)?.coverURL ||
+    n.catalog?.coverURL ||
+    ""
+  );
+}
 export function representedNovel(candidate: Candidate, novels: Novel[]) {
   return novels.some(
     (n) =>

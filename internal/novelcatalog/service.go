@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/Santiparra/Trove/internal/catalog"
@@ -19,12 +20,14 @@ type Secondary interface {
 	NovelPublication(context.Context, string, string, string) (Supplement, error)
 }
 type Service struct {
+	mu        sync.Mutex
+	books     map[string]*bookEntry
 	primary   Primary
 	secondary Secondary
 }
 
 func New(primary Primary, secondary Secondary) *Service {
-	return &Service{primary: primary, secondary: secondary}
+	return &Service{primary: primary, secondary: secondary, books: map[string]*bookEntry{}}
 }
 func (s *Service) Search(ctx context.Context, q, authorID string, page int) (SearchResult, error) {
 	return s.primary.Search(ctx, q, authorID, page)
@@ -37,7 +40,7 @@ func (s *Service) Releases(ctx context.Context, series Series, number int) ([]Re
 	if !ok {
 		return nil, errors.New("no hay un volumen principal confirmado para ese número")
 	}
-	book, err := s.primary.Book(ctx, series.ID, ref.ID)
+	book, err := s.book(ctx, series.ID, ref.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -52,13 +55,16 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 	if !ok {
 		return Publication{}, errors.New("RanobeDB todavía no confirma ese volumen principal; el progreso local se conserva")
 	}
-	book, err := s.primary.Book(ctx, series.ID, ref.ID)
+	book, err := s.book(ctx, series.ID, ref.ID)
 	if err != nil {
 		return Publication{}, err
 	}
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	base := Publication{SeriesID: series.ID, BookID: ref.ID, Number: number, Order: ref.Order, Title: book.Title, OriginalTitle: book.OriginalTitle, Description: book.Description, CoverURL: book.CoverURL, Evidence: "ranobedb-main", FetchedAt: now, Sources: map[string]Source{}, Warnings: []string{}}
 	bookSource := Source{Provider: RanobeDB, Entity: "book", ID: book.ID, FetchedAt: now}
+	if book.FetchedAt != "" {
+		bookSource.FetchedAt = book.FetchedAt
+	}
 	if base.Description != "" {
 		base.Sources["description"] = bookSource
 	}

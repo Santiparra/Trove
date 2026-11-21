@@ -22,6 +22,7 @@ const novelAPI = vi.hoisted(() => ({
   Delete: vi.fn(),
   SearchCatalog: vi.fn(),
   OpenCatalog: vi.fn(),
+  BrowseCatalog:vi.fn(),
   PrepareCatalog: vi.fn(),
   CatalogReleases: vi.fn(),
   PreviewPublication: vi.fn(),

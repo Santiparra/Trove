@@ -35,6 +35,7 @@ const api = vi.hoisted(() => ({
   Delete: vi.fn(),
   SearchCatalog: vi.fn(),
   OpenCatalog: vi.fn(),
+  BrowseCatalog: vi.fn(),
   PrepareCatalog: vi.fn(),
   CatalogReleases: vi.fn(),
   PreviewPublication: vi.fn(),
@@ -162,6 +163,7 @@ async function chooseRemote() {
   });
   fireEvent.click(await screen.findByRole("button", { name: series.title }));
   await screen.findByRole("region", { name: "Detalle de novela de catálogo" });
+  await screen.findByText("Enriched synopsis 1");
 }
 async function openLocal(n: Novel, localOnly = false) {
   api.List.mockResolvedValue([n]);
@@ -200,7 +202,7 @@ beforeEach(() => {
     pages: 1,
     warnings: [],
   });
-  api.OpenCatalog.mockResolvedValue(preview());
+  api.BrowseCatalog.mockResolvedValue(preview());
 });
 afterEach(cleanup);
 
@@ -217,7 +219,7 @@ it("busca un nombre normal y abre directamente la ficha enriquecida antes de agr
     1,
     "popover",
   );
-  expect(api.OpenCatalog).toHaveBeenCalledWith("10", 1, "", "");
+  expect(api.BrowseCatalog).toHaveBeenCalledWith("10", "", "");
   expect(api.AddCatalog).not.toHaveBeenCalled();
   expect(screen.getByText("Enriched synopsis 1")).toBeTruthy();
   fireEvent.change(screen.getByLabelText("Estado al agregar novela"), {
@@ -238,7 +240,7 @@ it("ofrece vincular una coincidencia manual sin volver a agregarla", async () =>
     notes: "Keep this note",
     completed: 1,
   });
-  api.OpenCatalog.mockResolvedValue(
+  api.BrowseCatalog.mockResolvedValue(
     preview({
       match: new CatalogMatch({
         kind: "review",
@@ -263,7 +265,7 @@ it("ofrece vincular una coincidencia manual sin volver a agregarla", async () =>
 
 it("reconoce una novela ya vinculada encontrada por un alias y no ofrece agregar", async () => {
   const n = local();
-  api.OpenCatalog.mockResolvedValue(
+  api.BrowseCatalog.mockResolvedValue(
     new NovelPreview({
       series,
       match: new CatalogMatch({ kind: "existing", novel: n }),
@@ -398,6 +400,49 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   ).toHaveProperty("disabled", true);
   expect(api.SearchCatalog).not.toHaveBeenCalled();
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
+});
+it("mantiene la galería antes de recibir metadata y al cambiar a volúmenes futuros", async () => {
+  let resolve!: (value: NovelPreview) => void;
+  api.BrowseCatalog.mockResolvedValue(
+    new NovelPreview({
+      token: "series-header",
+      series,
+      publication: new Publication(),
+      match: new CatalogMatch({ kind: "new" }),
+    }),
+  );
+  api.PreviewPublication.mockImplementationOnce(
+    () =>
+      new Promise<NovelPreview>((done) => {
+        resolve = done;
+      }),
+  ).mockResolvedValue(
+    preview({ token: "future-preview", publication: publication(2) }),
+  );
+  mount();
+  fireEvent.change(screen.getByRole("searchbox"), {
+    target: { value: series.title },
+  });
+  fireEvent.click(await screen.findByRole("button", { name: series.title }));
+  expect(
+    await screen.findByRole("button", { name: "Abrir volumen 2" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("status", { name: "Cargando información del volumen" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("button", { name: "Agregar · Por leer" }),
+  ).toHaveProperty("disabled", true);
+  resolve(preview());
+  await screen.findByText("Enriched synopsis 1");
+  fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 2" }));
+  await screen.findByText("Enriched synopsis 2");
+  expect(screen.getByRole("button", { name: "Abrir volumen 1" })).toBeTruthy();
+  expect(screen.getByRole("button", { name: "Abrir volumen 2" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 1" }));
+  await screen.findByText("Enriched synopsis 1");
+  expect(api.PreviewPublication).toHaveBeenCalledTimes(2);
+  expect(api.AddCatalog).not.toHaveBeenCalled();
 });
 it("muestra futuros del catálogo sin registrarlos ni cambiar progreso al abrirlos", async () => {
   const n = local();

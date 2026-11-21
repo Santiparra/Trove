@@ -25,6 +25,7 @@ export default function BookProfile({
   editionInfo,
   sourceDetails,
   formatLabel,
+  loading = false,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -45,6 +46,7 @@ export default function BookProfile({
   };
   sourceDetails?: ReactNode;
   formatLabel?: string;
+  loading?: boolean;
 }) {
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
@@ -168,6 +170,20 @@ export default function BookProfile({
               </>
             )}
           </dl>
+          {loading && (
+            <div
+              className="profile-loading-skeleton"
+              role="status"
+              aria-label="Cargando información del volumen"
+              aria-busy="true"
+            >
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          )}
           {synopsis && <DescriptionText text={synopsis} />}
         </div>
         <aside className="profile-management" aria-label="Gestión del libro">
