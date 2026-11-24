@@ -561,6 +561,72 @@ export default function NovelWorkspace({
     return (
       <>
         <BookProfile
+          sourcesBeforeChildren
+          compactManagement
+          loading={metadataLoading}
+          metadataActions={
+            <section
+              className="metadata-actions"
+              aria-label="Gestión de metadata"
+            >
+              <h3>Catálogo y metadata</h3>
+              <div className="catalog-actions">
+                {selected.catalog ? (
+                  <>
+                    <button
+                      className="secondary"
+                      disabled={busy || localOnly || metadataLoading}
+                      onClick={() =>
+                        void action(async () => {
+                          const updated = await Novels.RefreshCatalog(
+                            selected.id,
+                            shown || 0,
+                            true,
+                          );
+                          setMetadataError("");
+                          commit(updated, "Metadata de novela actualizada.");
+                        })
+                      }
+                    >
+                      Refrescar catálogo
+                    </button>
+                    <button
+                      className="quiet danger-text"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            "¿Quitar el vínculo y sus snapshots? Se conservan progreso, fechas y datos personales.",
+                          )
+                        )
+                          void action(async () =>
+                            commit(
+                              await Novels.UnlinkCatalog(selected.id),
+                              "Catálogo desvinculado.",
+                            ),
+                          );
+                      }}
+                    >
+                      Desvincular catálogo
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="secondary"
+                    disabled={busy || localOnly}
+                    onClick={() =>
+                      leave(() => {
+                        setLinkQuery(selected.title);
+                        setLinking((value) => !value);
+                      })
+                    }
+                  >
+                    Vincular catálogo
+                  </button>
+                )}
+              </div>
+            </section>
+          }
           book={book}
           ariaLabel="Detalle de novela"
           subtitle={`${progress(selected)} volúmenes completados${shown ? ` · Volumen ${shownLabel}${current?.title || current?.catalog?.title ? `: ${current?.title || current?.catalog?.title}` : ""}` : ""}`}
@@ -594,7 +660,7 @@ export default function NovelWorkspace({
           management={
             <>
               <section
-                className="management-group"
+                className="management-group novel-tracking-actions"
                 aria-label="Seguimiento de novela"
               >
                 <h3>Seguimiento</h3>
@@ -735,137 +801,82 @@ export default function NovelWorkspace({
                 aria-label="Gestión de novela"
               >
                 <h3>Novela</h3>
-                <button
-                  className="quiet"
-                  disabled={busy}
-                  onClick={() => leave(() => setEditing(true))}
-                >
-                  Editar novela y progreso
-                </button>
-                <button
-                  className={`flag-button ${selected.favorite ? "is-active" : ""}`}
-                  aria-pressed={selected.favorite}
-                  disabled={busy}
-                  onClick={() =>
-                    void action(async () =>
-                      commit(
-                        await Novels.Save({
-                          ...asInput(selected),
-                          favorite: !selected.favorite,
-                        }),
-                        "Favorita actualizada.",
-                      ),
-                    )
-                  }
-                >
-                  Favorita
-                </button>
-                <button
-                  className="quiet danger-text"
-                  disabled={busy}
-                  onClick={() => {
-                    if (canLeave()) {
-                      setError("");
-                      setConfirmation({ kind: "delete" });
+                <div className="novel-record-buttons">
+                  <button
+                    className="quiet"
+                    disabled={busy}
+                    onClick={() => leave(() => setEditing(true))}
+                    aria-label="Editar novela y progreso"
+                  >
+                    Editar novela
+                  </button>
+                  <button
+                    className={`flag-button ${selected.favorite ? "is-active" : ""}`}
+                    aria-pressed={selected.favorite}
+                    disabled={busy}
+                    onClick={() =>
+                      void action(async () =>
+                        commit(
+                          await Novels.Save({
+                            ...asInput(selected),
+                            favorite: !selected.favorite,
+                          }),
+                          "Favorita actualizada.",
+                        ),
+                      )
                     }
-                  }}
-                >
-                  Eliminar novela
-                </button>
-                <small>Alta: {dateLabel(selected.addedOn)}</small>
+                  >
+                    Favorita
+                  </button>
+                  <button
+                    className="quiet danger-text"
+                    disabled={busy}
+                    aria-label="Eliminar novela"
+                    onClick={() => {
+                      if (canLeave()) {
+                        setError("");
+                        setConfirmation({ kind: "delete" });
+                      }
+                    }}
+                  >
+                    Eliminar
+                  </button>
+                  <small>Alta: {dateLabel(selected.addedOn)}</small>
+                </div>
               </section>
               <section
                 className="management-group"
                 aria-label="Gestión de volumen"
               >
                 <h3>Volumen {shownLabel}</h3>
-                {shown > 0 && (
-                  <button
-                    className="secondary"
-                    disabled={busy || metadataLoading}
-                    onClick={() =>
-                      leave(() =>
-                        setVolumeEdit({
-                          volume: current || null,
-                          number: shown,
-                        }),
-                      )
-                    }
-                  >
-                    Editar datos del volumen {shownLabel}
-                  </button>
-                )}
-                {selected.catalog && (
-                  <button
-                    className="secondary"
-                    disabled={busy || localOnly}
-                    onClick={choosePublication}
-                  >
-                    Elegir volumen o publicación
-                  </button>
-                )}
-              </section>
-              <section
-                className="management-group"
-                aria-label="Gestión de metadata"
-              >
-                <h3>Catálogo y metadata</h3>
-                {selected.catalog ? (
-                  <>
-                    <small className="management-hint">
-                      RanobeDB · Novela ligera
-                    </small>
+                <div className="novel-volume-buttons">
+                  {shown > 0 && (
                     <button
-                      className="quiet"
-                      disabled={busy || localOnly || metadataLoading}
+                      className="secondary"
+                      disabled={busy || metadataLoading}
+                      aria-label={`Editar datos del volumen ${shownLabel}`}
                       onClick={() =>
-                        void action(async () => {
-                          const updated = await Novels.RefreshCatalog(
-                            selected.id,
-                            shown || 0,
-                            true,
-                          );
-                          setMetadataError("");
-                          commit(updated, "Metadata de novela actualizada.");
-                        })
+                        leave(() =>
+                          setVolumeEdit({
+                            volume: current || null,
+                            number: shown,
+                          }),
+                        )
                       }
                     >
-                      Refrescar catálogo
+                      Editar volumen
                     </button>
+                  )}
+                  {selected.catalog && (
                     <button
-                      className="quiet"
-                      disabled={busy}
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            "¿Quitar el vínculo y sus snapshots? Se conservan progreso, fechas y datos personales.",
-                          )
-                        )
-                          void action(async () =>
-                            commit(
-                              await Novels.UnlinkCatalog(selected.id),
-                              "Catálogo desvinculado.",
-                            ),
-                          );
-                      }}
+                      className="secondary"
+                      disabled={busy || localOnly}
+                      onClick={choosePublication}
                     >
-                      Desvincular catálogo
+                      Elegir volumen o publicación
                     </button>
-                  </>
-                ) : (
-                  <button
-                    className="quiet"
-                    disabled={busy || localOnly}
-                    onClick={() =>
-                      leave(() => {
-                        setLinkQuery(selected.title);
-                        setLinking((value) => !value);
-                      })
-                    }
-                  >
-                    Vincular catálogo
-                  </button>
-                )}
+                  )}
+                </div>
                 {metadataLoading && (
                   <small role="status">Consultando metadata del volumen…</small>
                 )}

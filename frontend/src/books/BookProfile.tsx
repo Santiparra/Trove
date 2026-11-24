@@ -26,6 +26,9 @@ export default function BookProfile({
   sourceDetails,
   formatLabel,
   loading = false,
+  sourcesBeforeChildren = false,
+  metadataActions,
+  compactManagement = false,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -47,6 +50,9 @@ export default function BookProfile({
   sourceDetails?: ReactNode;
   formatLabel?: string;
   loading?: boolean;
+  sourcesBeforeChildren?: boolean;
+  metadataActions?: ReactNode;
+  compactManagement?: boolean;
 }) {
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
@@ -68,7 +74,7 @@ export default function BookProfile({
     snapshot?.edition.format;
   return (
     <section
-      className="book-page unified-book-page"
+      className={`book-page unified-book-page ${compactManagement ? "compact-management" : ""}`}
       aria-label={
         ariaLabel ||
         (book?.medium === "light-novels"
@@ -190,9 +196,10 @@ export default function BookProfile({
           {management}
         </aside>
       </div>
-      {children}
+      {!sourcesBeforeChildren && children}
       <details className="profile-identifiers">
         <summary>Identificadores y fuentes</summary>
+        {metadataActions}
         {book?.edition.identifier && (
           <p>ISBN / ID local: {book.edition.identifier}</p>
         )}
@@ -220,6 +227,7 @@ export default function BookProfile({
         )}
         {sourceDetails}
       </details>
+      {sourcesBeforeChildren && children}
     </section>
   );
 }

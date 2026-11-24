@@ -241,6 +241,8 @@ export default function CatalogNovel({
     p.label || printedLabel(p.title, p.originalTitle) || `Lectura #${number}`;
   return (
     <BookProfile
+      sourcesBeforeChildren
+      compactManagement
       book={book}
       ariaLabel="Detalle de novela de catálogo"
       subtitle={`${loadingSeries ? "Consultando novela" : "Novela ligera"} · Volumen ${label}${p.title ? ` · ${p.title}` : ""}`}

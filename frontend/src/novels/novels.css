@@ -1,3 +1,129 @@
+.compact-management .profile-management {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  padding: 12px;
+  gap: 8px;
+}
+.compact-management .management-group {
+  min-width: 0;
+  gap: 6px;
+  text-align: center;
+}
+.compact-management .management-group + .management-group {
+  padding-top: 9px;
+  margin-top: 0;
+}
+.compact-management .management-group > h3 {
+  font-size: 9px;
+}
+.compact-management .profile-management button,
+.compact-management .profile-management select {
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+.compact-management .profile-management button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.35;
+  text-align: center;
+  justify-content: center;
+}
+.compact-management
+  .management-group
+  > button:not(.primary):not(.danger-button),
+.compact-management .management-group > button.primary {
+  padding: 7px 8px;
+  font-size: 11px;
+  text-align: center;
+}
+.compact-management .novel-progress-control {
+  justify-content: center;
+  gap: 6px;
+}
+.compact-management .novel-progress {
+  font-size: 23px;
+  line-height: 1.1;
+}
+.compact-management .novel-progress-arrows button {
+  width: auto;
+  padding: 0 6px;
+  line-height: 14px;
+}
+.compact-management .management-hint {
+  font-size: 10px;
+  line-height: 1.4;
+}
+.novel-record-buttons,
+.novel-volume-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+}
+.compact-management .novel-record-buttons > button,
+.compact-management .novel-volume-buttons > button {
+  border: 1px solid #445048;
+  border-radius: 5px;
+  background: #202824;
+  color: #bdc9c3;
+  padding: 7px 5px;
+  font-size: 10px;
+  min-height: 28px;
+}
+.compact-management .novel-record-buttons > .flag-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.compact-management .novel-record-buttons > .flag-button.is-active {
+  color: #c2e8c7;
+  border-color: #618569;
+  background: #25362b;
+}
+.compact-management .novel-record-buttons > .danger-text {
+  color: #e1a2a5;
+  border-color: #61484b;
+  background: transparent;
+  font-size: 10px;
+}
+.novel-record-buttons > small {
+  font-size: 9px;
+  line-height: 1.5;
+  color: #8fa49a;
+}
+.compact-management .profile-identifiers {
+  margin: 4px 0 18px;
+  padding-top: 12px;
+}
+.metadata-actions {
+  margin: 14px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #34423a;
+}
+.metadata-actions h3 {
+  font-size: 11px;
+  color: #b7c9be;
+  margin: 0 0 10px;
+}
+.metadata-actions .catalog-actions > button {
+  width: auto;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 11px;
+  border: 1px solid #445048;
+  border-radius: 5px;
+  background: #202824;
+  color: #bdc9c3;
+}
+.metadata-actions .catalog-actions > .danger-text {
+  color: #e1a2a5;
+  border-color: #61484b;
+  background: transparent;
+}
 .novel-library-summary {
   grid-area: library;
 }
@@ -126,26 +252,27 @@
 }
 .novel-portal {
   display: grid;
-  grid-template-columns: minmax(245px, 0.78fr) minmax(0, 1.22fr);
-  grid-template-areas: "library reading" "library recent" "library next";
+  --portal-cover-height: clamp(48px, 8.5vh, 76px);
+  grid-template-columns: minmax(210px, 0.6fr) minmax(0, 1.4fr);
+  grid-template-areas: "library reading" "library next" "library recent";
   align-items: start;
-  gap: 18px;
-  margin: 20px 0 28px;
+  gap: 12px;
+  margin: 14px 0 16px;
 }
 .novel-portal .portal-card {
   margin: 0;
-  padding: 20px;
+  padding: 12px 16px;
   min-width: 0;
 }
 .novel-portal .card-heading {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   gap: 12px;
 }
 .novel-portal .card-heading h2 {
   font-size: 15px;
 }
 .novel-library-total {
-  font-size: 34px;
+  font-size: 21px;
   color: #d7e7d8;
 }
 .novel-library-total small {
@@ -156,19 +283,29 @@
 .novel-state-counts {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 8px;
-  margin: 18px 0;
+  gap: 5px;
+  margin: 12px 0;
 }
 .novel-state-counts button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 9px 10px;
+  padding: 8px 6px;
   border-radius: 5px;
-  background: #202d29;
+  background: transparent;
   color: #bcd0c5;
   text-align: left;
   font-size: 11px;
+}
+.novel-state-counts button:hover:not(:disabled),
+.novel-state-counts button:focus-visible {
+  background: #24312b;
+}
+.novel-workspace:has(.novel-portal) .page-heading {
+  padding: 20px 0 14px;
+}
+.novel-workspace:has(.novel-portal) .library-toolbar {
+  margin-bottom: 12px;
 }
 .novel-state-counts strong {
   margin-left: auto;
@@ -197,12 +334,12 @@
 .novel-reading-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 13px;
+  gap: 9px;
 }
 .novel-reading-entry {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 10px;
   background: transparent;
   text-align: left;
   padding: 0;
@@ -210,29 +347,54 @@
 }
 .novel-reading-cover {
   display: block;
-  width: 55px;
+  width: 36px;
   flex-shrink: 0;
 }
 .novel-reading-entry > span:last-child {
   display: grid;
-  gap: 7px;
+  gap: 4px;
+  min-width: 0;
 }
 .novel-reading-entry strong {
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .novel-reading-entry small {
-  font-size: 11px;
+  font-size: 10px;
   color: #95afa2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .novel-cover-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(
+    5,
+    minmax(0, calc(var(--portal-cover-height) * 2 / 3))
+  );
+  gap: 9px;
 }
 .novel-cover-row button {
   padding: 0;
   background: transparent;
   min-width: 0;
+  width: 100%;
+}
+.novel-cover-row .cover-photo,
+.novel-cover-row .cover-placeholder {
+  height: var(--portal-cover-height);
+  min-height: 0;
+  overflow: hidden;
+}
+.novel-reading-cover .cover-photo,
+.novel-reading-cover .cover-placeholder {
+  height: 54px;
+  min-height: 0;
+  overflow: hidden;
 }
 .novel-portal .cover-placeholder {
   padding: 8px;
@@ -344,10 +506,10 @@
 .lazy-cover {
   width: 100%;
 }
-@media (max-width: 1150px) {
+@media (max-width: 750px) {
   .novel-portal {
     grid-template-columns: 1fr;
-    grid-template-areas: "library" "reading" "recent" "next";
+    grid-template-areas: "library" "reading" "next" "recent";
   }
 }
 .novel-workspace .status-tabs {

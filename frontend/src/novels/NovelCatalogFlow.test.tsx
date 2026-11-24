@@ -392,6 +392,7 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   const n = local();
   await openLocal(n, true);
   expect(screen.getByText("Enriched synopsis 1")).toBeTruthy();
+  fireEvent.click(screen.getByText("Identificadores y fuentes"));
   expect(
     screen.getByRole("button", { name: "Refrescar catálogo" }),
   ).toHaveProperty("disabled", true);
@@ -400,6 +401,31 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   ).toHaveProperty("disabled", true);
   expect(api.SearchCatalog).not.toHaveBeenCalled();
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
+});
+it("deja metadata fuera de gestión rápida y las fuentes antes de la galería", async () => {
+  await openLocal(local());
+  const sources = document.querySelector<HTMLDetailsElement>(
+    ".profile-identifiers",
+  )!;
+  const gallery = screen.getByRole("region", {
+    name: "Volúmenes de la novela",
+  });
+  expect(
+    sources.compareDocumentPosition(gallery) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  expect(sources.open).toBe(false);
+  const metadata = screen.getByText("Catálogo y metadata");
+  expect(sources.contains(metadata)).toBe(true);
+  expect(
+    screen
+      .getByRole("complementary", { name: "Gestión del libro" })
+      .contains(metadata),
+  ).toBe(false);
+  fireEvent.click(screen.getByText("Identificadores y fuentes"));
+  expect(sources.open).toBe(true);
+  expect(
+    screen.getByRole("button", { name: "Refrescar catálogo" }),
+  ).toBeTruthy();
 });
 it("mantiene la galería antes de recibir metadata y al cambiar a volúmenes futuros", async () => {
   let resolve!: (value: NovelPreview) => void;

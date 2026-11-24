@@ -44,11 +44,11 @@ export default function NovelPortal({
       <section className="portal-card novel-library-summary">
         <div className="card-heading">
           <h2>Tu biblioteca</h2>
+          <strong className="novel-library-total">
+            {d.total}
+            <small className="sr-only"> novelas</small>
+          </strong>
         </div>
-        <strong className="novel-library-total">
-          {d.total}
-          <small> novelas</small>
-        </strong>
         <div className="novel-state-counts">
           {d.counts.map((count) => (
             <button
@@ -144,6 +144,34 @@ export default function NovelPortal({
           ))}
         </div>
       </section>
+      <section className="portal-card novel-up-next-card">
+        <div className="card-heading">
+          <h2>A continuación</h2>
+          <button
+            className="text-action"
+            disabled={busy}
+            onClick={() => onList("up-next")}
+          >
+            Ver A continuación <Icon name="chevron" size={13} />
+          </button>
+        </div>
+        <div className="novel-cover-row">
+          {d.upNext.map((n) => (
+            <button
+              key={n.id}
+              disabled={busy}
+              title={`${n.title} · ${n.number ? `Volumen ${n.label}` : "Progreso desconocido"}`}
+              aria-label={`Abrir siguiente ${n.title}`}
+              onClick={() => onNovel(n.id)}
+            >
+              <NovelCover url={n.coverURL} label={n.title} />
+            </button>
+          ))}
+        </div>
+        {!d.upNext.length && (
+          <p className="management-hint">Tu próxima lectura aparecerá acá.</p>
+        )}
+      </section>
       <section className="portal-card novel-recent-card">
         <div className="card-heading">
           <h2>Últimos volúmenes leídos</h2>
@@ -172,34 +200,6 @@ export default function NovelPortal({
           <p className="management-hint">
             Las finalizaciones con fecha conocida aparecerán acá.
           </p>
-        )}
-      </section>
-      <section className="portal-card novel-up-next-card">
-        <div className="card-heading">
-          <h2>A continuación</h2>
-          <button
-            className="text-action"
-            disabled={busy}
-            onClick={() => onList("up-next")}
-          >
-            Ver A continuación <Icon name="chevron" size={13} />
-          </button>
-        </div>
-        <div className="novel-cover-row">
-          {d.upNext.map((n) => (
-            <button
-              key={n.id}
-              disabled={busy}
-              title={`${n.title} · ${n.number ? `Volumen ${n.label}` : "Progreso desconocido"}`}
-              aria-label={`Abrir siguiente ${n.title}`}
-              onClick={() => onNovel(n.id)}
-            >
-              <NovelCover url={n.coverURL} label={n.title} />
-            </button>
-          ))}
-        </div>
-        {!d.upNext.length && (
-          <p className="management-hint">Tu próxima lectura aparecerá acá.</p>
         )}
       </section>
     </div>
