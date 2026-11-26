@@ -270,3 +270,107 @@ func TestNovelReadToReadingCreatesJourneyAtomically(t *testing.T) {
 		t.Fatal("individual status completion failed", err)
 	}
 }
+
+func TestNovelRereadsDuringUnfinishedReadingPreserveAndResumeProgress(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	store, err := Open(filepath.Join(dir, "live.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	s := novels.NewService(store)
+	completed := 2
+	n, err := s.Save(ctx, novels.Input{Title: "Ongoing synthetic novel", Status: "reading", Completed: &completed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalCurrent := n.Volumes[2].Cycle
+	n, err = s.RereadVolume(ctx, n.ID, n.Volumes[0].ID)
+	if err != nil {
+		t.Fatal("individual reread rejected because the novel is unfinished", err)
+	}
+	if *n.Completed != 2 || n.NextNumber() != 1 || !reflect.DeepEqual(n.Volumes[2].Cycle, originalCurrent) {
+		t.Fatal("individual reread replaced the ongoing volume")
+	}
+	n, err = s.Finish(ctx, n.ID)
+	if err != nil || n.Status != "reading" || n.NextNumber() != 3 || *n.Completed != 2 {
+		t.Fatal("individual reread did not resume original tracking", err)
+	}
+	n, err = s.RereadNovel(ctx, n.ID, []string{n.Volumes[0].ID, n.Volumes[1].ID})
+	if err != nil {
+		t.Fatal("unfinished novel reread rejected", err)
+	}
+	rereadID := n.ActiveRunID
+	if n.Run().ReturnTo == nil || n.Run().ReturnTo.Status != "reading" || *n.Run().ReturnTo.Completed != 2 || n.Volumes[2].Cycle.ID != originalCurrent.ID {
+		t.Fatal("original progress was not preserved")
+	}
+	originalCurrent = n.Volumes[2].Cycle // The first journey now gives the existing cycle its group identity.
+	doc, err := store.Capture(ctx, filepath.Join(dir, "native.sqlite"), "ongoing-reread", "2026-01-01T00:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	prepared := filepath.Join(dir, "prepared.sqlite")
+	if err = store.Prepare(ctx, doc, prepared); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = store.Install(ctx, prepared); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := s.Get(ctx, n.ID)
+	if err != nil || !reflect.DeepEqual(restored, n) {
+		t.Fatal("backup lost the unfinished reading checkpoint", err)
+	}
+	for i := 0; i < 2; i++ {
+		n, err = s.Start(ctx, n.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		n, err = s.Finish(ctx, n.ID)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n.ActiveRunID != "" || n.Status != "reading" || *n.Completed != 2 || n.NextNumber() != 3 || !reflect.DeepEqual(n.Volumes[2].Cycle, originalCurrent) {
+		t.Fatal("reread completion marked an unfinished novel read or lost its current volume")
+	}
+	if n.Readings[1].ID != rereadID || n.Readings[1].Cycle.Status != "read" || n.Readings[1].Completed != 2 {
+		t.Fatal("completed reread was not kept in history")
+	}
+	// Metadata saves must not rewrite the completed reread's volume cycles.
+	last := n.Volumes[0].Cycle
+	n, err = s.Save(ctx, novels.Input{ID: n.ID, Title: n.Title, Status: n.Status, Completed: n.Completed, Notes: "Preserve all journeys"})
+	if err != nil || !reflect.DeepEqual(n.Volumes[0].Cycle, last) {
+		t.Fatal("metadata save rewrote the reread", err)
+	}
+	// A new reread can also interrupt an unfinished reread and resume its exact cycle.
+	n, err = s.RereadNovel(ctx, n.ID, []string{n.Volumes[0].ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err = s.Start(ctx, n.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runID := n.ActiveRunID
+	cycle := n.Volumes[0].Cycle
+	n, err = s.RereadNovel(ctx, n.ID, []string{n.Volumes[0].ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err = s.Start(ctx, n.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err = s.Finish(ctx, n.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n.ActiveRunID != runID || n.Status != "reading" || !reflect.DeepEqual(n.Volumes[0].Cycle, cycle) {
+		t.Fatal("interrupted reread did not resume the same cycle")
+	}
+	n, err = s.Finish(ctx, n.ID)
+	if err != nil || n.NextNumber() != 3 || n.Status != "reading" || *n.Completed != 2 {
+		t.Fatal("original ongoing novel did not resume after nested rereads", err)
+	}
+}

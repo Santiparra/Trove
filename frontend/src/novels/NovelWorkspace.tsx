@@ -799,25 +799,6 @@ export default function NovelWorkspace({
                   </strong>
                 </div>
                 <span className="management-hint">Volúmenes completados</span>
-                {!!rereadable.length && (
-                  <button
-                    className="secondary"
-                    disabled={
-                      busy ||
-                      !!selected.activeVolumeID ||
-                      selected.status === "reading" ||
-                      (!!run &&
-                        !["read", "did-not-finish"].includes(selected.status))
-                    }
-                    onClick={() =>
-                      leave(() =>
-                        setRereadSelection(rereadable.map((v) => v.id)),
-                      )
-                    }
-                  >
-                    Releer novela
-                  </button>
-                )}
                 {viewedNumber != null && !!next && viewedNumber !== next && (
                   <button
                     className="quiet"
@@ -1035,13 +1016,23 @@ export default function NovelWorkspace({
               </div>
             </section>
           )}
-          {run && (
+          {
             <ReadingHistory
               key={`${selected.id}-runs-${historyRevision}`}
               title="Recorridos de novela"
-              current={run.cycle}
+              current={
+                run?.cycle || {
+                  ...selected.readings?.[0]?.cycle,
+                  id: selected.readings?.[0]?.id || selected.id,
+                  status: selected.status,
+                  startedOn: selected.readings?.[0]?.cycle.startedOn || "",
+                  finishedOn: selected.readings?.[0]?.cycle.finishedOn || "",
+                }
+              }
               history={selected.readings
-                ?.filter((r) => r.id !== run.id)
+                ?.filter(
+                  (r) => r.id !== (run?.id || selected.readings?.[0]?.id),
+                )
                 .map((r) => r.cycle)}
               labels={Object.fromEntries(
                 (selected.readings || []).map((r, i) => [
@@ -1057,6 +1048,12 @@ export default function NovelWorkspace({
               info={info}
               busy={busy}
               allowAdd={false}
+              editableCurrent={!!run}
+              canReread={!!rereadable.length && !selected.activeVolumeID}
+              rereadLabel="Releer novela"
+              onReread={() =>
+                leave(() => setRereadSelection(rereadable.map((v) => v.id)))
+              }
               onDirty={setRunDirty}
               onSave={(input) =>
                 action(async () =>
@@ -1067,7 +1064,7 @@ export default function NovelWorkspace({
                 )
               }
             />
-          )}
+          }
           {current && (
             <ReadingHistory
               key={`${selected.id}-${current.id}-${historyRevision}`}
@@ -1077,10 +1074,9 @@ export default function NovelWorkspace({
               info={info}
               busy={busy}
               onDirty={setReadingDirty}
+              rereadLabel="Releer volumen"
               onReread={
-                !selected.activeVolumeID &&
-                selected.status !== "reading" &&
-                (!run || ["read", "did-not-finish"].includes(selected.status))
+                !selected.activeVolumeID
                   ? () =>
                       void action(async () =>
                         commit(

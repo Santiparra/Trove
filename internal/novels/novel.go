@@ -183,7 +183,8 @@ func (n Novel) Validate() error {
 			}
 		}
 		if n.Run() == nil && n.Completed != nil {
-			if (v.Number <= *n.Completed && !v.HasCompleted()) || (v.Number > *n.Completed && v.Cycle.Status == "read") {
+			primary := v.Cycle.RunID == "" || len(n.Readings) == 0 || v.Cycle.RunID == n.Readings[0].ID
+			if (v.Number <= *n.Completed && !v.HasCompleted()) || (v.Number > *n.Completed && v.Cycle.Status == "read" && primary) {
 				return errors.New("el historial contradice el progreso completado")
 			}
 		}

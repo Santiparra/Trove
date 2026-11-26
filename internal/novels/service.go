@@ -70,6 +70,41 @@ func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
 		if n.Completed != nil {
 			r.Completed = *n.Completed
 		}
+		if n.Status == "read" && r.ReturnTo != nil {
+			resume := r.ReturnTo
+			n.Status, n.Completed, n.ActiveRunID = resume.Status, resume.Completed, resume.ActiveRunID
+			for _, id := range resume.PendingCycleIDs {
+				for i := range n.Volumes {
+					v := &n.Volumes[i]
+					for j, c := range v.History {
+						if c.ID == id {
+							v.History = append(v.History[:j], v.History[j+1:]...)
+							v.History = append(v.History, v.Cycle)
+							v.Cycle = c
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+	if n.ActiveRunID == "" && n.ActiveVolumeID == "" && len(n.Readings) > 0 {
+		initial := &n.Readings[0]
+		initial.Cycle.Status = n.Status
+		initial.VolumeIDs = []string{}
+		initial.Completed = 0
+		if n.Completed != nil {
+			initial.Completed = *n.Completed
+		}
+		for i := range n.Volumes {
+			v := &n.Volumes[i]
+			if v.Cycle.HasReading() {
+				initial.VolumeIDs = append(initial.VolumeIDs, v.ID)
+				if v.Cycle.RunID == "" {
+					v.Cycle.RunID = initial.ID
+				}
+			}
+		}
 	}
 	previous, err := s.repository.GetNovel(ctx, n.ID)
 	if err != nil && !errors.Is(err, ErrNotFound) {
@@ -127,10 +162,16 @@ func reconcile(n *Novel) error {
 	if n.Completed != nil {
 		for number := 1; number <= *n.Completed; number++ {
 			v := volumeAt(n, number)
+			if len(n.Readings) > 0 && v.Cycle.RunID != "" && v.Cycle.RunID != n.Readings[0].ID {
+				continue
+			}
 			v.Cycle.Status = "read"
 		}
 		for i := range n.Volumes {
 			v := &n.Volumes[i]
+			if len(n.Readings) > 0 && v.Cycle.RunID != "" && v.Cycle.RunID != n.Readings[0].ID {
+				continue
+			}
 			if v.Number > *n.Completed && v.Cycle.Status == "read" {
 				v.Cycle.Status = "to-read"
 			}

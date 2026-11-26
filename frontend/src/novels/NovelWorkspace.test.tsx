@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import {
@@ -185,6 +186,63 @@ it("prepara un recorrido con los volúmenes elegidos sin iniciarlos automáticam
   ).toHaveProperty("disabled", false);
   expect(api.StartVolume).not.toHaveBeenCalled();
   expect(api.FinishVolume).not.toHaveBeenCalled();
+});
+
+it("ofrece ambas relecturas desde sus historiales mientras la novela sigue en curso", async () => {
+  const active = volume(3);
+  active.cycle = new Cycle({
+    id: "reading-3",
+    status: "reading",
+    startedOn: "2026-01-01",
+  });
+  const n = novel({
+    status: "reading",
+    completed: 2,
+    total: null,
+    volumes: [volume(1), volume(2), active],
+  });
+  api.List.mockResolvedValue([n]);
+  api.Get.mockResolvedValue(n);
+  const rereading = volume(1);
+  rereading.cycle = new Cycle({
+    id: "reread-1",
+    status: "reading",
+    startedOn: "2026-01-01",
+  });
+  api.RereadVolume.mockResolvedValue(
+    new Novel({
+      ...n,
+      activeVolumeID: "volume-1",
+      previousStatus: "reading",
+      volumes: [rereading, volume(2), active],
+    }),
+  );
+  mount();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Ver todas las novelas" }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
+  );
+  const history = await screen.findByRole("region", {
+    name: "Recorridos de novela",
+  });
+  expect(
+    within(history).getByRole("button", { name: "Releer novela" }),
+  ).toHaveProperty("disabled", false);
+  fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 1" }));
+  const volumeHistory = screen.getByRole("region", {
+    name: "Lecturas del volumen 1",
+  });
+  const reread = within(volumeHistory).getByRole("button", {
+    name: "Releer volumen",
+  });
+  expect(reread).toHaveProperty("disabled", false);
+  fireEvent.click(reread);
+  await waitFor(() =>
+    expect(api.RereadVolume).toHaveBeenCalledExactlyOnceWith(n.id, "volume-1"),
+  );
+  expect(api.RereadNovel).not.toHaveBeenCalled();
 });
 
 it("lista una novela y su progreso, no una entrada por volumen", async () => {

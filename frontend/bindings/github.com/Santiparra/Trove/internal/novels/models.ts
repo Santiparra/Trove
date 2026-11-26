@@ -338,11 +338,52 @@ export class PortalEntry {
     }
 }
 
+/**
+ * ReadingProgress preserves an unfinished journey while a reread is followed.
+ */
+export class ReadingProgress {
+    "status": string;
+    "completed": number | null;
+    "activeRunID": string;
+    "pendingCycleIDs": string[];
+
+    /** Creates a new ReadingProgress instance. */
+    constructor($$source: Partial<ReadingProgress> = {}) {
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("completed" in $$source)) {
+            this["completed"] = null;
+        }
+        if (!("activeRunID" in $$source)) {
+            this["activeRunID"] = "";
+        }
+        if (!("pendingCycleIDs" in $$source)) {
+            this["pendingCycleIDs"] = [];
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReadingProgress instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReadingProgress {
+        const $$createField3_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("pendingCycleIDs" in $$parsedSource) {
+            $$parsedSource["pendingCycleIDs"] = $$createField3_0($$parsedSource["pendingCycleIDs"]);
+        }
+        return new ReadingProgress($$parsedSource as Partial<ReadingProgress>);
+    }
+}
+
 export class ReadingRun {
     "id": string;
     "cycle": books$0.Cycle;
     "volumeIDs": string[];
     "completed": number;
+    "returnTo"?: ReadingProgress | null;
 
     /** Creates a new ReadingRun instance. */
     constructor($$source: Partial<ReadingRun> = {}) {
@@ -368,12 +409,16 @@ export class ReadingRun {
     static createFrom($$source: any = {}): ReadingRun {
         const $$createField1_0 = $$createType15;
         const $$createField2_0 = $$createType8;
+        const $$createField4_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("cycle" in $$parsedSource) {
             $$parsedSource["cycle"] = $$createField1_0($$parsedSource["cycle"]);
         }
         if ("volumeIDs" in $$parsedSource) {
             $$parsedSource["volumeIDs"] = $$createField2_0($$parsedSource["volumeIDs"]);
+        }
+        if ("returnTo" in $$parsedSource) {
+            $$parsedSource["returnTo"] = $$createField4_0($$parsedSource["returnTo"]);
         }
         return new ReadingRun($$parsedSource as Partial<ReadingRun>);
     }
@@ -451,10 +496,10 @@ export class Volume {
      * Creates a new Volume instance from a string or object.
      */
     static createFrom($$source: any = {}): Volume {
-        const $$createField1_0 = $$createType17;
-        const $$createField6_0 = $$createType18;
+        const $$createField1_0 = $$createType19;
+        const $$createField6_0 = $$createType20;
         const $$createField7_0 = $$createType15;
-        const $$createField8_0 = $$createType19;
+        const $$createField8_0 = $$createType21;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("catalog" in $$parsedSource) {
             $$parsedSource["catalog"] = $$createField1_0($$parsedSource["catalog"]);
@@ -555,7 +600,9 @@ const $$createType12 = $Create.Nullable($$createType11);
 const $$createType13 = Volume.createFrom;
 const $$createType14 = $Create.Array($$createType13);
 const $$createType15 = books$0.Cycle.createFrom;
-const $$createType16 = novelcatalog$0.Publication.createFrom;
+const $$createType16 = ReadingProgress.createFrom;
 const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = books$0.Edition.createFrom;
-const $$createType19 = $Create.Array($$createType15);
+const $$createType18 = novelcatalog$0.Publication.createFrom;
+const $$createType19 = $Create.Nullable($$createType18);
+const $$createType20 = books$0.Edition.createFrom;
+const $$createType21 = $Create.Array($$createType15);

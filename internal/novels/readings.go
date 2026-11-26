@@ -10,10 +10,19 @@ import (
 )
 
 type ReadingRun struct {
-	ID        string      `json:"id"`
-	Cycle     books.Cycle `json:"cycle"`
-	VolumeIDs []string    `json:"volumeIDs"`
-	Completed int         `json:"completed"`
+	ID        string           `json:"id"`
+	Cycle     books.Cycle      `json:"cycle"`
+	VolumeIDs []string         `json:"volumeIDs"`
+	Completed int              `json:"completed"`
+	ReturnTo  *ReadingProgress `json:"returnTo,omitempty"`
+}
+
+// ReadingProgress preserves an unfinished journey while a reread is followed.
+type ReadingProgress struct {
+	Status          string   `json:"status"`
+	Completed       *int     `json:"completed"`
+	ActiveRunID     string   `json:"activeRunID"`
+	PendingCycleIDs []string `json:"pendingCycleIDs"`
 }
 
 func (v Volume) HasCompleted() bool {
@@ -97,6 +106,40 @@ func (n Novel) validateReadings() error {
 			}
 		}
 	}
+	for i, r := range n.Readings {
+		if p := r.ReturnTo; p != nil {
+			if !books.ValidStatus(p.Status) || p.Status == "read" || (p.Completed != nil && (*p.Completed < 0 || *p.Completed > MaxVolumes)) {
+				return errors.New("seguimiento de retorno inválido")
+			}
+			if p.ActiveRunID != "" {
+				found := false
+				for j := 0; j < i; j++ {
+					if n.Readings[j].ID == p.ActiveRunID {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return errors.New("recorrido de retorno inexistente")
+				}
+			}
+			seen := map[string]bool{}
+			for _, id := range p.PendingCycleIDs {
+				found := false
+				for _, v := range n.Volumes {
+					for _, c := range append(append([]books.Cycle{}, v.History...), v.Cycle) {
+						if c.ID == id {
+							found = true
+						}
+					}
+				}
+				if !found || seen[id] {
+					return errors.New("lectura de retorno inexistente o duplicada")
+				}
+				seen[id] = true
+			}
+		}
+	}
 	return nil
 }
 
@@ -123,9 +166,22 @@ func archiveVolume(v *Volume) {
 	v.Cycle = books.Cycle{ID: rand.Text(), Status: "to-read", Edition: v.Edition.ReadingEdition()}
 }
 func prepareRunVolume(n *Novel, v *Volume) {
-	if r := n.Run(); r != nil && n.ActiveVolumeID == "" && v.Cycle.RunID != r.ID {
+	if n.ActiveVolumeID != "" {
+		return
+	}
+	id := ""
+	if r := n.Run(); r != nil {
+		id = r.ID
+	} else if len(n.Readings) > 0 {
+		id = n.Readings[0].ID
+	}
+	if id != "" && v.Cycle.RunID != id {
+		if n.Run() == nil && v.Cycle.RunID == "" {
+			v.Cycle.RunID = id
+			return
+		}
 		archiveVolume(v)
-		v.Cycle.RunID = r.ID
+		v.Cycle.RunID = id
 	}
 }
 
@@ -142,11 +198,17 @@ func (s *Service) RereadNovel(ctx context.Context, id string, volumeIDs []string
 }
 
 func beginRun(n Novel, volumeIDs []string) (Novel, error) {
-	if n.ActiveVolumeID != "" || (n.Run() != nil && n.Status != "read" && n.Status != "did-not-finish") {
-		return Novel{}, errors.New("terminá el recorrido actual antes de iniciar otro")
+	if n.ActiveVolumeID != "" {
+		return Novel{}, errors.New("terminá la relectura individual antes de iniciar otro recorrido")
 	}
-	if n.Status == "reading" {
-		return Novel{}, errors.New("terminá o pausá la lectura actual antes de iniciar otro recorrido")
+	var resume *ReadingProgress
+	if n.Status != "read" {
+		resume = &ReadingProgress{Status: n.Status, Completed: n.Completed, ActiveRunID: n.ActiveRunID, PendingCycleIDs: []string{}}
+		for _, v := range n.Volumes {
+			if v.Cycle.HasReading() && v.Cycle.Status != "read" && v.Cycle.Status != "did-not-finish" {
+				resume.PendingCycleIDs = append(resume.PendingCycleIDs, v.Cycle.ID)
+			}
+		}
 	}
 	selected := map[string]bool{}
 	for _, id := range volumeIDs {
@@ -185,7 +247,7 @@ func beginRun(n Novel, volumeIDs []string) (Novel, error) {
 		n.Readings = append(n.Readings, initial)
 	}
 	runID := rand.Text()
-	run := ReadingRun{ID: runID, Cycle: books.Cycle{ID: runID, Status: "up-next"}, VolumeIDs: []string{}}
+	run := ReadingRun{ID: runID, Cycle: books.Cycle{ID: runID, Status: "up-next"}, VolumeIDs: []string{}, ReturnTo: resume}
 	for _, v := range chosen {
 		run.VolumeIDs = append(run.VolumeIDs, v.ID)
 	}
@@ -202,7 +264,7 @@ func (s *Service) RereadVolume(ctx context.Context, id, volumeID string) (Novel,
 	if err != nil {
 		return Novel{}, err
 	}
-	if n.ActiveVolumeID != "" || n.Status == "reading" || (n.Run() != nil && n.Status != "read" && n.Status != "did-not-finish") {
+	if n.ActiveVolumeID != "" {
 		return Novel{}, errors.New("terminá la lectura actual antes de releer otro volumen")
 	}
 	for i := range n.Volumes {
@@ -210,6 +272,9 @@ func (s *Service) RereadVolume(ctx context.Context, id, volumeID string) (Novel,
 		if v.ID == volumeID {
 			if !v.HasCompleted() {
 				return Novel{}, errors.New("el volumen todavía no tiene una lectura completada")
+			}
+			if v.Cycle.Status != "read" && v.Cycle.Status != "did-not-finish" {
+				return Novel{}, errors.New("el volumen ya tiene una lectura en curso; podés retomarla sin crear otra")
 			}
 			archiveVolume(v)
 			v.Cycle.Status = "reading"

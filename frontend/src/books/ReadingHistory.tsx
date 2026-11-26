@@ -24,6 +24,8 @@ export default function ReadingHistory({
   onSave,
   onDirty,
   onReread,
+  canReread,
+  rereadLabel = "Releer",
   title = "Historial de lecturas",
   allowAdd = true,
   editableCurrent = true,
@@ -36,6 +38,8 @@ export default function ReadingHistory({
   onSave: (input: ReadingInput) => Promise<boolean>;
   onDirty: (dirty: boolean) => void;
   onReread?: () => void;
+  canReread?: boolean;
+  rereadLabel?: string;
   title?: string;
   allowAdd?: boolean;
   editableCurrent?: boolean;
@@ -77,15 +81,16 @@ export default function ReadingHistory({
       <div className="card-heading">
         <h2>{title}</h2>
         {onReread &&
-          (current.status === "read" ||
-            (current.status === "did-not-finish" &&
-              history.some((c) => c.status === "read"))) && (
+          (canReread ??
+            (current.status === "read" ||
+              (current.status === "did-not-finish" &&
+                history.some((c) => c.status === "read")))) && (
             <button
               className="secondary"
               disabled={busy || !!draft}
               onClick={onReread}
             >
-              Releer
+              {rereadLabel}
             </button>
           )}
       </div>
