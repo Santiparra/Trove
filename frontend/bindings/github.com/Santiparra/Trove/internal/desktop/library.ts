@@ -59,6 +59,12 @@ export function ListSeriesBooks(id: string, medium: string): $CancellablePromise
     });
 }
 
+export function RereadBook(id: string, medium: string): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(57592594, id, medium).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
 export function SaveBook(input: books$0.Input): $CancellablePromise<books$0.Book> {
     return $Call.ByID(1589590406, input).then(($result: any) => {
         return $$createType0($result);
@@ -67,6 +73,12 @@ export function SaveBook(input: books$0.Input): $CancellablePromise<books$0.Book
 
 export function SaveBookNotes(id: string, notes: string, medium: string): $CancellablePromise<books$0.Book> {
     return $Call.ByID(3460747587, id, notes, medium).then(($result: any) => {
+        return $$createType0($result);
+    });
+}
+
+export function SaveBookReading(id: string, medium: string, input: books$0.ReadingInput): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(876148018, id, medium, input).then(($result: any) => {
         return $$createType0($result);
     });
 }

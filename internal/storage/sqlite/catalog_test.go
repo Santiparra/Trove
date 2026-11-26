@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -34,7 +35,7 @@ func TestLinkAndArchivePreservePersonalDataAndCatalogIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if linked.Title != b.Title || linked.Notes != b.Notes || linked.Cycle != b.Cycle || linked.Edition.ID != b.Edition.ID || linked.Series.ID != b.Series.ID || !linked.Favorite || !linked.Edition.Owned || linked.Edition.Catalog == nil {
+	if linked.Title != b.Title || linked.Notes != b.Notes || !reflect.DeepEqual(linked.Cycle, b.Cycle) || linked.Edition.ID != b.Edition.ID || linked.Series.ID != b.Series.ID || !linked.Favorite || !linked.Edition.Owned || linked.Edition.Catalog == nil {
 		t.Fatal("vincular alteró datos propios")
 	}
 	result, err := service.AddCatalog(ctx, selectedSnapshot(), "", "to-read")
@@ -60,7 +61,7 @@ func TestLinkAndArchivePreservePersonalDataAndCatalogIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	restored, err := service.Get(ctx, b.ID)
-	if err != nil || restored.Edition.Catalog.Edition.ID != "20" || len(restored.Edition.Identifiers) != 2 || restored.Cycle != b.Cycle {
+	if err != nil || restored.Edition.Catalog.Edition.ID != "20" || len(restored.Edition.Identifiers) != 2 || !reflect.DeepEqual(restored.Cycle, b.Cycle) {
 		t.Fatal("recuperación perdió snapshot/identificadores/historial")
 	}
 	unlinked, err := service.UnlinkCatalog(ctx, b.ID)
@@ -138,7 +139,7 @@ func TestSchemaThreeUpgradeNormalizesIdentifiersWithoutChangingRawData(t *testin
 	if err != nil || b.Edition.Identifier != "978-0-547-92822-7" || len(b.Edition.Identifiers) != 2 || b.Cycle.FinishedOn != "" || b.Notes != "Conservar" {
 		t.Fatal("migración cambió datos propios")
 	}
-	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-6-*.sqlite"))
+	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-7-*.sqlite"))
 	if err != nil || len(paths) != 1 {
 		t.Fatal("falta copia previa")
 	}

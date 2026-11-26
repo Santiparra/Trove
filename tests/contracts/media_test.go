@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"github.com/Santiparra/Trove/internal/books"
@@ -73,7 +74,7 @@ func TestAdmission_C33_ReadingMediaAreIsolatedAcrossAllOperations(t *testing.T) 
 		t.Fatal("aceptó un medio desconocido")
 	}
 	untouched, err := h.library.GetBook(book.ID, books.MediumBooks)
-	if err != nil || untouched.Title != book.Title || untouched.Cycle != book.Cycle || untouched.Notes != book.Notes || untouched.Favorite {
+	if err != nil || untouched.Title != book.Title || !reflect.DeepEqual(untouched.Cycle, book.Cycle) || untouched.Notes != book.Notes || untouched.Favorite {
 		t.Fatal("se modificaron Libros")
 	}
 	if _, err = h.library.SaveBookNotes(novel.ID, "Nota del volumen", wrong); err != nil {

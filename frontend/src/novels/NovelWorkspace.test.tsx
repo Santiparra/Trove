@@ -10,6 +10,7 @@ import { Info } from "../../bindings/github.com/Santiparra/Trove/internal/deskto
 import {
   Novel,
   Volume,
+  ReadingRun,
 } from "../../bindings/github.com/Santiparra/Trove/internal/novels/models";
 import {
   Edition,
@@ -38,6 +39,10 @@ const api = vi.hoisted(() => ({
   LinkCatalog: vi.fn(),
   UnlinkCatalog: vi.fn(),
   RefreshCatalog: vi.fn(),
+  RereadNovel: vi.fn(),
+  RereadVolume: vi.fn(),
+  SaveReading: vi.fn(),
+  SaveRun: vi.fn(),
 }));
 vi.mock(
   "../../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
@@ -134,6 +139,53 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+it("prepara un recorrido con los volúmenes elegidos sin iniciarlos automáticamente", async () => {
+  const n = novel({
+    status: "read",
+    completed: 3,
+    total: 3,
+    volumes: [volume(1), volume(2), volume(3)],
+  });
+  api.List.mockResolvedValue([n]);
+  api.Get.mockResolvedValue(n);
+  const run = new ReadingRun({
+    id: "run",
+    cycle: new Cycle({ id: "run", status: "up-next" }),
+    volumeIDs: ["volume-2"],
+    completed: 0,
+  });
+  api.RereadNovel.mockResolvedValue(
+    new Novel({
+      ...n,
+      status: "up-next",
+      completed: 0,
+      activeRunID: "run",
+      readings: [run],
+    }),
+  );
+  mount();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Ver todas las novelas" }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
+  );
+  await screen.findByRole("region", { name: "Detalle de novela" });
+  fireEvent.click(screen.getByRole("button", { name: "Releer novela" }));
+  fireEvent.click(screen.getByLabelText("Volumen 1"));
+  fireEvent.click(screen.getByLabelText("Volumen 3"));
+  fireEvent.click(screen.getByRole("button", { name: "Crear recorrido" }));
+  await waitFor(() =>
+    expect(api.RereadNovel).toHaveBeenCalledExactlyOnceWith(n.id, ["volume-2"]),
+  );
+  await screen.findByRole("group", { name: "Progreso: 0/1" });
+  expect(
+    screen.getByRole("button", { name: "Empezar volumen 2" }),
+  ).toHaveProperty("disabled", false);
+  expect(api.StartVolume).not.toHaveBeenCalled();
+  expect(api.FinishVolume).not.toHaveBeenCalled();
+});
 
 it("lista una novela y su progreso, no una entrada por volumen", async () => {
   const n = novel({

@@ -12,6 +12,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as books$0 from "../books/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as novelcatalog$0 from "../novelcatalog/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -106,8 +109,32 @@ export function RefreshCatalog(id: string, $number: number, refreshSeries: boole
     });
 }
 
+export function RereadNovel(id: string, volumeIDs: string[]): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(2287062617, id, volumeIDs).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+export function RereadVolume(id: string, volumeID: string): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(1224863611, id, volumeID).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
 export function Save(input: novels$0.Input): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(1599254661, input).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+export function SaveReading(id: string, volumeID: string, input: books$0.ReadingInput): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(1148490075, id, volumeID, input).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
+export function SaveRun(id: string, input: books$0.ReadingInput): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(3236486954, id, input).then(($result: any) => {
         return $$createType4($result);
     });
 }

@@ -24,7 +24,7 @@ import (
 )
 
 const Format = "trove-library"
-const Version = 6
+const Version = 7
 
 func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 
@@ -57,11 +57,16 @@ type Edition struct {
 	Catalog     *catalog.Snapshot    `json:"catalog,omitempty"`
 }
 type Cycle struct {
-	ID         string `json:"id"`
-	EditionID  string `json:"editionId"`
-	Status     string `json:"status"`
-	StartedOn  string `json:"startedOn"`
-	FinishedOn string `json:"finishedOn"`
+	ID         string                `json:"id"`
+	EditionID  string                `json:"editionId"`
+	Status     string                `json:"status"`
+	StartedOn  string                `json:"startedOn"`
+	FinishedOn string                `json:"finishedOn"`
+	Current    bool                  `json:"current,omitempty"`
+	Position   int                   `json:"position,omitempty"`
+	Rating     *float64              `json:"rating,omitempty"`
+	Edition    *books.ReadingEdition `json:"edition,omitempty"`
+	RunID      string                `json:"runID,omitempty"`
 }
 type Catalog struct {
 	Novels   []novels.Novel `json:"novels,omitempty"`
@@ -155,6 +160,7 @@ func (d *Document) Validate() error {
 	}
 	workEditions := map[string]int{}
 	workCycles := map[string]int{}
+	currentCycles := map[string]int{}
 	for _, v := range d.Catalog.Editions {
 		if v.ID == "" || editions[v.ID] != "" || !works[v.WorkID] {
 			return errors.New("edición duplicada, sin identidad o sin obra válida")
@@ -193,10 +199,26 @@ func (d *Document) Validate() error {
 			return errors.New("finalización anterior al inicio en un ciclo")
 		}
 		workCycles[work]++
+		if d.Version >= 7 {
+			if err := (books.Cycle{ID: v.ID, Status: v.Status, StartedOn: v.StartedOn, FinishedOn: v.FinishedOn, Rating: v.Rating, Edition: v.Edition, RunID: v.RunID}).Validate(); err != nil {
+				return err
+			}
+			if v.Current {
+				currentCycles[v.EditionID]++
+			}
+			if v.Position < 0 || v.RunID != "" {
+				return errors.New("orden o recorrido inválido para lectura de libro")
+			}
+		}
 	}
 	for id := range works {
 		if workEditions[id] == 0 || workCycles[id] == 0 {
 			return errors.New("obra sin edición o registro de lectura")
+		}
+	}
+	for id := range editions {
+		if d.Version >= 7 && currentCycles[id] != 1 {
+			return errors.New("la edición debe tener una única lectura actual")
 		}
 	}
 	if d.Version < 4 && len(d.Catalog.Novels) > 0 {
@@ -222,6 +244,11 @@ func (d *Document) Validate() error {
 				id  string
 			}{{volumeIDs, v.ID}, {novelEditionIDs, v.Edition.ID}, {novelCycleIDs, v.Cycle.ID}} {
 				if err := add(entry.ids, entry.id); err != nil {
+					return err
+				}
+			}
+			for _, c := range v.History {
+				if err := add(novelCycleIDs, c.ID); err != nil {
 					return err
 				}
 			}

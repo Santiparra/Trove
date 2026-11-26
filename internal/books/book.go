@@ -49,12 +49,71 @@ type Edition struct {
 	Owned       bool                 `json:"owned"`
 }
 
-// Cycle is a single reading. A future rereading will create a new cycle, not reset this one.
+// Cycle is a single reading. Rereading creates a new cycle rather than resetting it.
 type Cycle struct {
-	ID         string `json:"id"`
-	Status     string `json:"status"`
-	StartedOn  string `json:"startedOn"`
-	FinishedOn string `json:"finishedOn"`
+	ID         string          `json:"id"`
+	Status     string          `json:"status"`
+	StartedOn  string          `json:"startedOn"`
+	FinishedOn string          `json:"finishedOn"`
+	Rating     *float64        `json:"rating,omitempty"`
+	Edition    *ReadingEdition `json:"edition,omitempty"`
+	RunID      string          `json:"runID,omitempty"`
+}
+
+// ReadingEdition is the edition used for this reading, independent of ownership.
+type ReadingEdition struct {
+	Language   string `json:"language"`
+	Format     string `json:"format"`
+	Identifier string `json:"identifier"`
+}
+
+func (e Edition) ReadingEdition() *ReadingEdition {
+	return &ReadingEdition{Language: e.Language, Format: e.Format, Identifier: e.Identifier}
+}
+
+func (c Cycle) Validate() error {
+	if c.ID == "" || !ValidStatus(c.Status) {
+		return errors.New("identidad o estado de lectura inválidos")
+	}
+	for _, d := range []string{c.StartedOn, c.FinishedOn} {
+		if d != "" {
+			if _, err := time.Parse("2006-01-02", d); err != nil {
+				return errors.New("fecha de lectura inválida")
+			}
+		}
+	}
+	if c.StartedOn != "" && c.FinishedOn != "" && c.FinishedOn < c.StartedOn {
+		return errors.New("la fecha de finalización no puede ser anterior al inicio")
+	}
+	if c.Rating != nil {
+		v := *c.Rating
+		if math.IsNaN(v) || math.IsInf(v, 0) || v < 1 || v > 10 || math.Round(v*4) != v*4 {
+			return errors.New("el puntaje debe estar entre 1 y 10 en pasos de 0,25")
+		}
+	}
+	if c.Edition != nil && !ValidFormat(c.Edition.Format) {
+		return errors.New("formato de lectura inválido")
+	}
+	return nil
+}
+
+func (c Cycle) HasReading() bool {
+	return c.StartedOn != "" || c.FinishedOn != "" || c.Rating != nil || c.Status == "read" || c.Status == "reading" || c.Status == "paused" || c.Status == "did-not-finish"
+}
+
+// ReadingInput edits a particular cycle. An empty ID adds history, never replaces current.
+type ReadingInput struct {
+	ID         string          `json:"id"`
+	Status     string          `json:"status"`
+	StartedOn  string          `json:"startedOn"`
+	FinishedOn string          `json:"finishedOn"`
+	Rating     *float64        `json:"rating"`
+	Edition    *ReadingEdition `json:"edition"`
+}
+
+func (in ReadingInput) Cycle(id string) (Cycle, error) {
+	c := Cycle{ID: id, Status: in.Status, StartedOn: in.StartedOn, FinishedOn: in.FinishedOn, Rating: in.Rating, Edition: in.Edition}
+	return c, c.Validate()
 }
 
 type Book struct {
@@ -65,6 +124,7 @@ type Book struct {
 	Series   *Series  `json:"series"`
 	Edition  Edition  `json:"edition"`
 	Cycle    Cycle    `json:"cycle"`
+	History  []Cycle  `json:"history,omitempty"`
 	Notes    string   `json:"notes"`
 	AddedOn  string   `json:"addedOn"`
 	Favorite bool     `json:"favorite"`

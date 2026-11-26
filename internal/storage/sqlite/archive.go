@@ -93,7 +93,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 6 {
+	if version < 1 || version > 7 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
 	medium := "'books'"
@@ -198,15 +198,34 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err != nil {
 		return doc, err
 	}
-	rows, err = db.QueryContext(ctx, "SELECT id,edition_id,status,started_on,finished_on FROM reading_cycles ORDER BY id")
+	extra := "0,0,'{}'"
+	if version >= 7 {
+		extra = "is_current,position,details_json"
+	}
+	rows, err = db.QueryContext(ctx, "SELECT id,edition_id,status,started_on,finished_on,"+extra+" FROM reading_cycles ORDER BY id")
 	if err != nil {
 		return doc, err
 	}
 	for rows.Next() {
 		var v backup.Cycle
-		if err = rows.Scan(&v.ID, &v.EditionID, &v.Status, &v.StartedOn, &v.FinishedOn); err != nil {
+		var raw string
+		if err = rows.Scan(&v.ID, &v.EditionID, &v.Status, &v.StartedOn, &v.FinishedOn, &v.Current, &v.Position, &raw); err != nil {
 			rows.Close()
 			return doc, err
+		}
+		if doc.Version >= 7 {
+			if version < 7 {
+				v.Current = true
+			}
+			var c books.Cycle
+			if err = readCycleDetails(raw, &c); err != nil {
+				rows.Close()
+				return doc, err
+			}
+			v.Rating, v.Edition, v.RunID = c.Rating, c.Edition, c.RunID
+		} else {
+			v.Current = false
+			v.Position = 0
 		}
 		doc.Catalog.Cycles = append(doc.Catalog.Cycles, v)
 	}
@@ -302,7 +321,15 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 		}
 	}
 	for _, v := range doc.Catalog.Cycles {
-		if _, err = tx.ExecContext(ctx, "INSERT INTO reading_cycles(id,edition_id,status,started_on,finished_on) VALUES(?,?,?,?,?)", v.ID, v.EditionID, v.Status, v.StartedOn, v.FinishedOn); err != nil {
+		current := v.Current
+		if doc.Version < 7 {
+			current = true
+		}
+		raw, jsonErr := cycleJSON(books.Cycle{Rating: v.Rating, Edition: v.Edition, RunID: v.RunID})
+		if jsonErr != nil {
+			return jsonErr
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO reading_cycles(id,edition_id,status,started_on,finished_on,is_current,position,details_json) VALUES(?,?,?,?,?,?,?,?)", v.ID, v.EditionID, v.Status, v.StartedOn, v.FinishedOn, current, v.Position, raw); err != nil {
 			return err
 		}
 	}

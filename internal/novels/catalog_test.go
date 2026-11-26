@@ -2,6 +2,7 @@ package novels_test
 
 import (
 	"github.com/Santiparra/Trove/internal/catalog"
+	"reflect"
 	"testing"
 
 	"github.com/Santiparra/Trove/internal/novelcatalog"
@@ -77,7 +78,7 @@ func TestLinkAndRefreshPreserveManualNovelAndVolumeData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n.Catalog != nil || n.Volumes[0].Catalog != nil || n.Volumes[0].ID != before.ID || n.Volumes[0].Edition.ID != before.Edition.ID || n.Volumes[0].Cycle != before.Cycle || n.Volumes[0].Notes != before.Notes {
+	if n.Catalog != nil || n.Volumes[0].Catalog != nil || n.Volumes[0].ID != before.ID || n.Volumes[0].Edition.ID != before.Edition.ID || !reflect.DeepEqual(n.Volumes[0].Cycle, before.Cycle) || n.Volumes[0].Notes != before.Notes {
 		t.Fatal("desvincular destruyó identidad o historial")
 	}
 }

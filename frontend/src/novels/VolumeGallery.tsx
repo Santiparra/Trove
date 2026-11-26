@@ -28,7 +28,10 @@ export default function VolumeGallery({
         const title =
           v?.title || v?.catalog?.title || ref?.title || `Volumen ${label}`;
         const state = v?.cycle.status || "unregistered";
-        const pending = number === next && state !== "read";
+        const run = n.readings?.find((r) => r.id === n.activeRunID);
+        const pending =
+          number === next &&
+          (state !== "read" || (!!run && v?.cycle.runID !== run.id));
         return (
           <button
             key={ref?.id || v?.id || number}

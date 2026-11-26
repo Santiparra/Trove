@@ -90,8 +90,8 @@ func (l *Library) ListSeries(medium string) ([]books.Series, error) {
 	return s.ListSeries(context.Background())
 }
 func (l *Library) SaveBook(input books.Input) (books.Book, error) {
-	l.gate.RLock()
-	defer l.gate.RUnlock()
+	l.gate.Lock()
+	defer l.gate.Unlock()
 	medium := input.Medium
 	if medium == "" {
 		medium = books.MediumBooks
@@ -103,13 +103,32 @@ func (l *Library) SaveBook(input books.Input) (books.Book, error) {
 	return s.Save(context.Background(), input)
 }
 func (l *Library) ChangeBookStatus(id, status, medium string) (books.Book, error) {
-	l.gate.RLock()
-	defer l.gate.RUnlock()
+	l.gate.Lock()
+	defer l.gate.Unlock()
 	s, err := l.scoped(medium, true)
 	if err != nil {
 		return books.Book{}, err
 	}
 	return s.ChangeStatus(context.Background(), id, status)
+}
+
+func (l *Library) RereadBook(id, medium string) (books.Book, error) {
+	l.gate.Lock()
+	defer l.gate.Unlock()
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.Reread(context.Background(), id)
+}
+func (l *Library) SaveBookReading(id, medium string, input books.ReadingInput) (books.Book, error) {
+	l.gate.Lock()
+	defer l.gate.Unlock()
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.SaveReading(context.Background(), id, input)
 }
 func (l *Library) DeleteBook(id, medium string) error {
 	l.gate.RLock()

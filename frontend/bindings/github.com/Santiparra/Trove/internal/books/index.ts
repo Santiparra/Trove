@@ -8,6 +8,8 @@ export {
     Dashboard,
     Edition,
     Input,
+    ReadingEdition,
+    ReadingInput,
     SearchResults,
     Series,
     StatusCount

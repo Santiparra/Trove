@@ -120,7 +120,7 @@ func TestFailedEditPreservesSavedBookAndSeriesCanBeCleared(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.db.Exec(`CREATE TRIGGER reject_update BEFORE UPDATE ON reading_cycles BEGIN SELECT RAISE(ABORT,'synthetic failure'); END`)
+	_, err = s.db.Exec(`CREATE TRIGGER reject_update BEFORE INSERT ON reading_cycles BEGIN SELECT RAISE(ABORT,'synthetic failure'); END`)
 	if err != nil {
 		t.Fatal(err)
 	}

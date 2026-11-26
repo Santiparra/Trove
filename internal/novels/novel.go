@@ -25,10 +25,15 @@ type Volume struct {
 	Description string                    `json:"description"`
 	Edition     books.Edition             `json:"edition"`
 	Cycle       books.Cycle               `json:"cycle"`
+	History     []books.Cycle             `json:"history,omitempty"`
 	Notes       string                    `json:"notes"`
 	Favorite    bool                      `json:"favorite"`
 }
 type Novel struct {
+	Readings        []ReadingRun         `json:"readings,omitempty"`
+	ActiveRunID     string               `json:"activeRunID,omitempty"`
+	ActiveVolumeID  string               `json:"activeVolumeID,omitempty"`
+	PreviousStatus  string               `json:"previousStatus,omitempty"`
 	StatusChangedAt string               `json:"statusChangedAt,omitempty"`
 	Catalog         *novelcatalog.Series `json:"catalog,omitempty"`
 	ID              string               `json:"id"`
@@ -126,7 +131,7 @@ func (n Novel) Validate() error {
 	if n.Completed != nil && (*n.Completed < 0 || *n.Completed > MaxVolumes || (n.Total != nil && *n.Completed > *n.Total)) {
 		return errors.New("el progreso no puede superar el total ni ser negativo")
 	}
-	if n.Status == "read" && n.Total != nil && (n.Completed == nil || *n.Completed != *n.Total) {
+	if n.Run() == nil && n.Status == "read" && n.Total != nil && (n.Completed == nil || *n.Completed != *n.Total) {
 		return errors.New("una novela leída con total conocido debe tener progreso completo")
 	}
 	if n.Status == "reading" && n.NextNumber() == 0 {
@@ -157,6 +162,18 @@ func (n Novel) Validate() error {
 		if v.Edition.ID == "" || v.Cycle.ID == "" || !books.ValidFormat(v.Edition.Format) || !books.ValidStatus(v.Cycle.Status) || !validDate(v.Cycle.StartedOn) || !validDate(v.Cycle.FinishedOn) || (v.Cycle.StartedOn != "" && v.Cycle.FinishedOn != "" && v.Cycle.FinishedOn < v.Cycle.StartedOn) {
 			return errors.New("edición o fechas del volumen inválidas")
 		}
+		if err := v.Cycle.Validate(); err != nil {
+			return err
+		}
+		for _, c := range v.History {
+			if cycleIDs[c.ID] {
+				return errors.New("identidad de lectura duplicada")
+			}
+			cycleIDs[c.ID] = true
+			if err := c.Validate(); err != nil {
+				return err
+			}
+		}
 		if v.Edition.Catalog != nil {
 			return errors.New("las publicaciones de novelas deben usar su propio vínculo de catálogo")
 		}
@@ -165,20 +182,44 @@ func (n Novel) Validate() error {
 				return errors.New("identificador de volumen inválido")
 			}
 		}
-		if n.Completed != nil && ((v.Number <= *n.Completed) != (v.Cycle.Status == "read")) {
-			return errors.New("el historial contradice el progreso completado")
+		if n.Run() == nil && n.Completed != nil {
+			if (v.Number <= *n.Completed && !v.HasCompleted()) || (v.Number > *n.Completed && v.Cycle.Status == "read") {
+				return errors.New("el historial contradice el progreso completado")
+			}
 		}
 	}
-	if n.Completed != nil {
+	if n.Run() == nil && n.Completed != nil {
 		for number := 1; number <= *n.Completed; number++ {
 			if !numbers[number] {
 				return errors.New("faltan los registros del progreso histórico conocido")
 			}
 		}
 	}
+	if err := n.validateReadings(); err != nil {
+		return err
+	}
 	return nil
 }
 func (n Novel) NextNumber() int {
+	if n.ActiveVolumeID != "" {
+		for _, v := range n.Volumes {
+			if v.ID == n.ActiveVolumeID {
+				return v.Number
+			}
+		}
+	}
+	if run := n.Run(); run != nil {
+		if n.Status == "read" || n.Completed == nil || *n.Completed >= len(run.VolumeIDs) {
+			return 0
+		}
+		id := run.VolumeIDs[*n.Completed]
+		for _, v := range n.Volumes {
+			if v.ID == id {
+				return v.Number
+			}
+		}
+		return 0
+	}
 	if n.Completed == nil || n.Status == "read" || (n.Total != nil && *n.Completed >= *n.Total) {
 		return 0
 	}

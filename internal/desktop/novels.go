@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"github.com/Santiparra/Trove/internal/novels"
 	"github.com/Santiparra/Trove/internal/providers"
@@ -74,6 +75,18 @@ func (n *Novels) FinishVolume(id string) (novels.Novel, error) {
 }
 func (n *Novels) SaveVolume(id string, input novels.VolumeInput) (novels.Novel, error) {
 	return n.mutate(func() (novels.Novel, error) { return n.service.SaveVolume(context.Background(), id, input) })
+}
+func (n *Novels) RereadNovel(id string, volumeIDs []string) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) { return n.service.RereadNovel(context.Background(), id, volumeIDs) })
+}
+func (n *Novels) RereadVolume(id, volumeID string) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) { return n.service.RereadVolume(context.Background(), id, volumeID) })
+}
+func (n *Novels) SaveReading(id, volumeID string, input books.ReadingInput) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) { return n.service.SaveReading(context.Background(), id, volumeID, input) })
+}
+func (n *Novels) SaveRun(id string, input books.ReadingInput) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) { return n.service.SaveRun(context.Background(), id, input) })
 }
 func (n *Novels) Delete(id string) error {
 	_, err := n.mutate(func() (novels.Novel, error) { return novels.Novel{}, n.service.Delete(context.Background(), id) })

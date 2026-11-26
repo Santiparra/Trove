@@ -89,6 +89,9 @@ func (s *Service) ChangeStatus(ctx context.Context, id, status string) (Book, er
 	if err != nil {
 		return Book{}, err
 	}
+	if b.Cycle.Status == "read" && status == "reading" {
+		return s.Reread(ctx, id)
+	}
 	cycle, err := b.Cycle.Transition(status, s.today(), false, false)
 	if err != nil {
 		return Book{}, err
@@ -193,6 +196,9 @@ func (s *Service) save(ctx context.Context, input Input, snapshot *catalog.Snaps
 		}
 	}
 	book.Title, book.Authors, book.AddedOn, book.Notes = in.Title, in.Authors, in.AddedOn, in.Notes
+	if in.ID != "" && book.Cycle.Edition == nil {
+		book.Cycle.Edition = book.Edition.ReadingEdition()
+	}
 	book.Favorite, book.Edition.Owned = in.Favorite, in.Owned
 	book.Edition.Language, book.Edition.Format, book.Edition.Identifier = in.Language, in.Format, in.Identifier
 	retained := []catalog.Identifier{}
@@ -206,10 +212,27 @@ func (s *Service) save(ctx context.Context, input Input, snapshot *catalog.Snaps
 		book.Edition.Catalog = snapshot
 		book.Edition.Identifiers = catalog.MergeIdentifiers(book.Edition.Identifiers, snapshot.Identifiers)
 	}
+	if book.Cycle.Status == "read" && in.Status == "reading" {
+		if book.Cycle.Edition == nil {
+			book.Cycle.Edition = book.Edition.ReadingEdition()
+		}
+		book.History = append(book.History, book.Cycle)
+		book.Cycle = Cycle{ID: s.newID(), Edition: book.Edition.ReadingEdition()}
+		// Dates shown by the general editor belong to the previous reading.
+		if !in.StartedOnEdited {
+			in.StartedOn = ""
+		}
+		if !in.FinishedOnEdited {
+			in.FinishedOn = ""
+		}
+	}
 	book.Cycle.StartedOn, book.Cycle.FinishedOn = in.StartedOn, in.FinishedOn
 	book.Cycle, err = book.Cycle.Transition(in.Status, s.today(), in.StartedOnEdited, in.FinishedOnEdited)
 	if err != nil {
 		return Book{}, err
+	}
+	if book.Cycle.Edition == nil {
+		book.Cycle.Edition = book.Edition.ReadingEdition()
 	}
 	book.Series = nil
 	if in.SeriesName != "" {

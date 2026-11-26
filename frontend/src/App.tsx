@@ -414,7 +414,7 @@ export default function App() {
     operation: () => PromiseLike<Book>,
     message: string,
   ) {
-    if (busy) return;
+    if (busy) return false;
     setBusy(true);
     clearMessages();
     try {
@@ -422,8 +422,10 @@ export default function App() {
       setSelected((current) => (current?.id === result.id ? result : current));
       setRevision((value) => value + 1);
       setNotice(message);
+      return true;
     } catch (error) {
       setActionError(errorMessage(error));
+      return false;
     } finally {
       setBusy(false);
     }
@@ -850,6 +852,23 @@ export default function App() {
                 onDelete={requestDelete}
                 onStatus={changeStatus}
                 onSeries={openSeries}
+                onReading={(input) =>
+                  updatePersonal(
+                    () =>
+                      Library.SaveBookReading(
+                        selected.id,
+                        currentMedium,
+                        input,
+                      ),
+                    "Lectura guardada sin modificar el resto del historial.",
+                  )
+                }
+                onReread={() =>
+                  void updatePersonal(
+                    () => Library.RereadBook(selected.id, currentMedium),
+                    "Relectura iniciada. La lectura anterior se conserva en el historial.",
+                  )
+                }
                 onSearch={allSearchResults}
                 onFavorite={(book, value) =>
                   void updatePersonal(

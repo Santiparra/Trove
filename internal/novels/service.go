@@ -65,6 +65,12 @@ func volumeAt(n *Novel, number int) *Volume {
 	return &n.Volumes[len(n.Volumes)-1]
 }
 func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
+	if r := n.Run(); r != nil && n.ActiveVolumeID == "" {
+		r.Cycle.Status = n.Status
+		if n.Completed != nil {
+			r.Completed = *n.Completed
+		}
+	}
 	previous, err := s.repository.GetNovel(ctx, n.ID)
 	if err != nil && !errors.Is(err, ErrNotFound) {
 		return Novel{}, err
@@ -81,6 +87,33 @@ func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
 	return s.repository.SaveNovel(ctx, n)
 }
 func reconcile(n *Novel) error {
+	if n.ActiveVolumeID != "" {
+		return nil
+	}
+	if r := n.Run(); r != nil {
+		if n.Completed == nil || *n.Completed < 0 || *n.Completed > len(r.VolumeIDs) {
+			return errors.New("progreso fuera del recorrido seleccionado")
+		}
+		if n.Status == "read" {
+			count := len(r.VolumeIDs)
+			n.Completed = &count
+		}
+		for i, id := range r.VolumeIDs {
+			for j := range n.Volumes {
+				v := &n.Volumes[j]
+				if v.ID != id {
+					continue
+				}
+				if i < *n.Completed {
+					prepareRunVolume(n, v)
+					v.Cycle.Status = "read"
+				} else if v.Cycle.RunID == r.ID && v.Cycle.Status == "read" {
+					v.Cycle.Status = "to-read"
+				}
+			}
+		}
+		return nil
+	}
 	if n.Total != nil && (*n.Total < 1 || *n.Total > MaxVolumes) {
 		return errors.New("total de volúmenes inválido")
 	}
@@ -124,11 +157,24 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 		}
 	}
 	previousStatus := n.Status
+	previousCompleted := n.Completed
+	if in.ID != "" && previousStatus == "read" && in.Status == "reading" {
+		var err error
+		n, err = beginRun(n, nil)
+		if err != nil {
+			return Novel{}, err
+		}
+		// Keep the new journey's progress, not the completed previous journey.
+		in.Completed = n.Completed
+	}
 	if in.ProgressVolumeID != "" {
 		found := false
 		for _, v := range n.Volumes {
 			if v.ID == in.ProgressVolumeID {
-				completed := v.Number - 1
+				completed, err := n.completedBefore(v.Number)
+				if err != nil {
+					return Novel{}, err
+				}
 				in.Completed = &completed
 				found = true
 				break
@@ -145,7 +191,10 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 		found := false
 		for _, ref := range n.Catalog.Books {
 			if ref.ID == in.ProgressBookID {
-				completed := ref.Number - 1
+				completed, err := n.completedBefore(ref.Number)
+				if err != nil {
+					return Novel{}, err
+				}
 				in.Completed = &completed
 				found = true
 				break
@@ -163,6 +212,28 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 		}
 	}
 	n.Status, n.Total, n.Completed, n.Notes, n.Favorite, n.AddedOn = in.Status, in.Total, in.Completed, in.Notes, in.Favorite, in.AddedOn
+	if n.ActiveVolumeID != "" {
+		if (previousCompleted == nil) != (n.Completed == nil) || (previousCompleted != nil && *previousCompleted != *n.Completed) {
+			return Novel{}, errors.New("terminá la relectura individual antes de ajustar el progreso general")
+		}
+		for i := range n.Volumes {
+			v := &n.Volumes[i]
+			if v.ID != n.ActiveVolumeID {
+				continue
+			}
+			var err error
+			v.Cycle, err = v.Cycle.Transition(in.Status, s.today(), false, false)
+			if err != nil {
+				return Novel{}, err
+			}
+			if in.Status == "read" || in.Status == "did-not-finish" {
+				n.ActiveVolumeID = ""
+				n.Status = n.PreviousStatus
+				n.PreviousStatus = ""
+			}
+			return s.persist(ctx, n)
+		}
+	}
 	if err := reconcile(&n); err != nil {
 		return Novel{}, err
 	}
@@ -171,6 +242,7 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 	}
 	if n.Status == "reading" && previousStatus != "reading" && n.NextNumber() > 0 {
 		v := volumeAt(&n, n.NextNumber())
+		prepareRunVolume(&n, v)
 		var err error
 		v.Cycle, err = v.Cycle.Transition("reading", s.today(), false, false)
 		if err != nil {
@@ -185,12 +257,41 @@ func (s *Service) Save(ctx context.Context, in Input) (Novel, error) {
 			}
 		}
 	}
+	if r := n.Run(); r != nil && n.ActiveVolumeID == "" {
+		var err error
+		r.Cycle, err = r.Cycle.Transition(n.Status, s.today(), false, false)
+		if err != nil {
+			return Novel{}, err
+		}
+	}
 	return s.persist(ctx, n)
 }
 func (s *Service) ChangeStatus(ctx context.Context, id, status string) (Novel, error) {
 	n, err := s.Get(ctx, id)
 	if err != nil {
 		return Novel{}, err
+	}
+	if n.ActiveVolumeID != "" {
+		if status == "read" {
+			return s.Finish(ctx, id)
+		}
+		for i := range n.Volumes {
+			v := &n.Volumes[i]
+			if v.ID != n.ActiveVolumeID {
+				continue
+			}
+			v.Cycle, err = v.Cycle.Transition(status, s.today(), false, false)
+			if err != nil {
+				return Novel{}, err
+			}
+			n.Status = status
+			if status == "did-not-finish" {
+				n.ActiveVolumeID = ""
+				n.Status = n.PreviousStatus
+				n.PreviousStatus = ""
+			}
+			return s.persist(ctx, n)
+		}
 	}
 	return s.Save(ctx, Input{ID: n.ID, Title: n.Title, Authors: n.Authors, Status: status, Total: n.Total, Completed: n.Completed, Notes: n.Notes, Favorite: n.Favorite, AddedOn: n.AddedOn})
 }
@@ -204,11 +305,15 @@ func (s *Service) Start(ctx context.Context, id string) (Novel, error) {
 		return Novel{}, errors.New("indicá progreso conocido y un volumen pendiente antes de empezar")
 	}
 	v := volumeAt(&n, number)
+	prepareRunVolume(&n, v)
 	v.Cycle, err = v.Cycle.Transition("reading", s.today(), false, false)
 	if err != nil {
 		return Novel{}, err
 	}
 	n.Status = "reading"
+	if r := n.Run(); r != nil && n.ActiveVolumeID == "" && r.Cycle.StartedOn == "" {
+		r.Cycle.StartedOn = s.today()
+	}
 	return s.persist(ctx, n)
 }
 func (s *Service) Finish(ctx context.Context, id string) (Novel, error) {
@@ -221,9 +326,28 @@ func (s *Service) Finish(ctx context.Context, id string) (Novel, error) {
 		return Novel{}, errors.New("no hay un volumen pendiente con número conocido")
 	}
 	v := volumeAt(&n, number)
+	prepareRunVolume(&n, v)
 	v.Cycle, err = v.Cycle.Transition("read", s.today(), false, false)
 	if err != nil {
 		return Novel{}, err
+	}
+	if n.ActiveVolumeID != "" {
+		n.ActiveVolumeID = ""
+		n.Status = n.PreviousStatus
+		n.PreviousStatus = ""
+		return s.persist(ctx, n)
+	}
+	if r := n.Run(); r != nil {
+		count := *n.Completed + 1
+		n.Completed = &count
+		n.Status = "up-next"
+		if count == len(r.VolumeIDs) {
+			n.Status = "read"
+			if r.Cycle.StartedOn != "" {
+				r.Cycle.FinishedOn = s.today()
+			}
+		}
+		return s.persist(ctx, n)
 	}
 	n.Completed = &number
 	n.Status = "up-next"
@@ -260,6 +384,9 @@ func (s *Service) SaveVolume(ctx context.Context, id string, in VolumeInput) (No
 		}
 	}
 	v := volumeAt(&n, in.Number)
+	if v.Cycle.Edition == nil {
+		v.Cycle.Edition = v.Edition.ReadingEdition()
+	}
 	v.Label = strings.TrimSpace(in.Label)
 	if isbn := catalog.ISBN13(in.Identifier); v.Catalog != nil && isbn != "" && v.Catalog.ISBN != "" && isbn != v.Catalog.ISBN {
 		return Novel{}, errors.New("el ISBN no coincide con la publicación vinculada; elegí otra publicación antes de cambiarlo")
@@ -271,7 +398,7 @@ func (s *Service) SaveVolume(ctx context.Context, id string, in VolumeInput) (No
 		v.Edition.Identifiers = catalog.MergeIdentifiers(v.Edition.Identifiers, catalog.NormalizeIdentifier(v.Catalog.ISBN, "ranobedb"))
 	}
 	v.Cycle.StartedOn, v.Cycle.FinishedOn = in.StartedOn, in.FinishedOn
-	if n.Completed != nil && in.Number <= *n.Completed {
+	if n.Run() == nil && n.Completed != nil && in.Number <= *n.Completed && n.ActiveVolumeID != v.ID {
 		v.Cycle.Status = "read"
 	}
 	return s.persist(ctx, n)

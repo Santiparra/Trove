@@ -17,6 +17,7 @@ export class Book {
     "series": Series | null;
     "edition": Edition;
     "cycle": Cycle;
+    "history"?: Cycle[];
     "notes": string;
     "addedOn": string;
     "favorite": boolean;
@@ -65,6 +66,7 @@ export class Book {
         const $$createField4_0 = $$createType2;
         const $$createField5_0 = $$createType3;
         const $$createField6_0 = $$createType4;
+        const $$createField7_0 = $$createType5;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
             $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
@@ -77,6 +79,9 @@ export class Book {
         }
         if ("cycle" in $$parsedSource) {
             $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
+        }
+        if ("history" in $$parsedSource) {
+            $$parsedSource["history"] = $$createField7_0($$parsedSource["history"]);
         }
         return new Book($$parsedSource as Partial<Book>);
     }
@@ -106,7 +111,7 @@ export class CatalogResult {
      * Creates a new CatalogResult instance from a string or object.
      */
     static createFrom($$source: any = {}): CatalogResult {
-        const $$createField0_0 = $$createType5;
+        const $$createField0_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("book" in $$parsedSource) {
             $$parsedSource["book"] = $$createField0_0($$parsedSource["book"]);
@@ -116,13 +121,16 @@ export class CatalogResult {
 }
 
 /**
- * Cycle is a single reading. A future rereading will create a new cycle, not reset this one.
+ * Cycle is a single reading. Rereading creates a new cycle rather than resetting it.
  */
 export class Cycle {
     "id": string;
     "status": string;
     "startedOn": string;
     "finishedOn": string;
+    "rating"?: number | null;
+    "edition"?: ReadingEdition | null;
+    "runID"?: string;
 
     /** Creates a new Cycle instance. */
     constructor($$source: Partial<Cycle> = {}) {
@@ -146,7 +154,11 @@ export class Cycle {
      * Creates a new Cycle instance from a string or object.
      */
     static createFrom($$source: any = {}): Cycle {
+        const $$createField5_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("edition" in $$parsedSource) {
+            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
+        }
         return new Cycle($$parsedSource as Partial<Cycle>);
     }
 }
@@ -187,9 +199,9 @@ export class Dashboard {
      * Creates a new Dashboard instance from a string or object.
      */
     static createFrom($$source: any = {}): Dashboard {
-        const $$createField2_0 = $$createType7;
-        const $$createField3_0 = $$createType8;
-        const $$createField4_0 = $$createType8;
+        const $$createField2_0 = $$createType10;
+        const $$createField3_0 = $$createType11;
+        const $$createField4_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
             $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
@@ -244,8 +256,8 @@ export class Edition {
      * Creates a new Edition instance from a string or object.
      */
     static createFrom($$source: any = {}): Edition {
-        const $$createField0_0 = $$createType10;
-        const $$createField1_0 = $$createType12;
+        const $$createField0_0 = $$createType13;
+        const $$createField1_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identifiers" in $$parsedSource) {
             $$parsedSource["identifiers"] = $$createField0_0($$parsedSource["identifiers"]);
@@ -353,6 +365,86 @@ export class Input {
     }
 }
 
+/**
+ * ReadingEdition is the edition used for this reading, independent of ownership.
+ */
+export class ReadingEdition {
+    "language": string;
+    "format": string;
+    "identifier": string;
+
+    /** Creates a new ReadingEdition instance. */
+    constructor($$source: Partial<ReadingEdition> = {}) {
+        if (!("language" in $$source)) {
+            this["language"] = "";
+        }
+        if (!("format" in $$source)) {
+            this["format"] = "";
+        }
+        if (!("identifier" in $$source)) {
+            this["identifier"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReadingEdition instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReadingEdition {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new ReadingEdition($$parsedSource as Partial<ReadingEdition>);
+    }
+}
+
+/**
+ * ReadingInput edits a particular cycle. An empty ID adds history, never replaces current.
+ */
+export class ReadingInput {
+    "id": string;
+    "status": string;
+    "startedOn": string;
+    "finishedOn": string;
+    "rating": number | null;
+    "edition": ReadingEdition | null;
+
+    /** Creates a new ReadingInput instance. */
+    constructor($$source: Partial<ReadingInput> = {}) {
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("status" in $$source)) {
+            this["status"] = "";
+        }
+        if (!("startedOn" in $$source)) {
+            this["startedOn"] = "";
+        }
+        if (!("finishedOn" in $$source)) {
+            this["finishedOn"] = "";
+        }
+        if (!("rating" in $$source)) {
+            this["rating"] = null;
+        }
+        if (!("edition" in $$source)) {
+            this["edition"] = null;
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new ReadingInput instance from a string or object.
+     */
+    static createFrom($$source: any = {}): ReadingInput {
+        const $$createField5_0 = $$createType8;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("edition" in $$parsedSource) {
+            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
+        }
+        return new ReadingInput($$parsedSource as Partial<ReadingInput>);
+    }
+}
+
 export class SearchResults {
     "matches": Book[];
     "total": number;
@@ -373,7 +465,7 @@ export class SearchResults {
      * Creates a new SearchResults instance from a string or object.
      */
     static createFrom($$source: any = {}): SearchResults {
-        const $$createField0_0 = $$createType8;
+        const $$createField0_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("matches" in $$parsedSource) {
             $$parsedSource["matches"] = $$createField0_0($$parsedSource["matches"]);
@@ -446,11 +538,14 @@ const $$createType1 = Series.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = Edition.createFrom;
 const $$createType4 = Cycle.createFrom;
-const $$createType5 = Book.createFrom;
-const $$createType6 = StatusCount.createFrom;
-const $$createType7 = $Create.Array($$createType6);
-const $$createType8 = $Create.Array($$createType5);
-const $$createType9 = catalog$0.Identifier.createFrom;
+const $$createType5 = $Create.Array($$createType4);
+const $$createType6 = Book.createFrom;
+const $$createType7 = ReadingEdition.createFrom;
+const $$createType8 = $Create.Nullable($$createType7);
+const $$createType9 = StatusCount.createFrom;
 const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = catalog$0.Snapshot.createFrom;
-const $$createType12 = $Create.Nullable($$createType11);
+const $$createType11 = $Create.Array($$createType6);
+const $$createType12 = catalog$0.Identifier.createFrom;
+const $$createType13 = $Create.Array($$createType12);
+const $$createType14 = catalog$0.Snapshot.createFrom;
+const $$createType15 = $Create.Nullable($$createType14);

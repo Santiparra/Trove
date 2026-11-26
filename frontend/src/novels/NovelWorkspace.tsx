@@ -12,6 +12,7 @@ import type {
   NovelPreview,
 } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import BookProfile from "../books/BookProfile";
+import ReadingHistory from "../books/ReadingHistory";
 import { dateLabel, errorMessage } from "../books/presentation";
 import NovelEditor from "./NovelEditor";
 import VolumeEditor from "./VolumeEditor";
@@ -37,9 +38,33 @@ import {
 } from "../../bindings/github.com/Santiparra/Trove/internal/novelcatalog/models";
 
 function progress(n: Novel) {
-  return `${n.completed ?? "?"}/${n.total ?? "?"}`;
+  return `${n.completed ?? "?"}/${progressTotal(n) ?? "?"}`;
+}
+function currentRun(n: Novel) {
+  return n.readings?.find((r) => r.id === n.activeRunID);
+}
+function progressTotal(n: Novel) {
+  return currentRun(n)?.volumeIDs.length ?? n.total;
+}
+function lastNumber(n: Novel) {
+  const run = currentRun(n);
+  if (run)
+    return (
+      n.volumes.find(
+        (v) => v.id === run.volumeIDs[Math.max(0, (n.completed || 0) - 1)],
+      )?.number || 0
+    );
+  return n.completed || 0;
 }
 function nextNumber(n: Novel) {
+  if (n.activeVolumeID)
+    return n.volumes.find((v) => v.id === n.activeVolumeID)?.number || 0;
+  const run = currentRun(n);
+  if (run)
+    return n.status === "read" || n.completed == null
+      ? 0
+      : n.volumes.find((v) => v.id === run.volumeIDs[n.completed!])?.number ||
+          0;
   return n.completed == null ||
     n.status === "read" ||
     (n.total != null && n.completed >= n.total)
@@ -89,6 +114,10 @@ export default function NovelWorkspace({
     number: number;
   } | null>(null);
   const [notes, setNotes] = useState("");
+  const [readingDirty, setReadingDirty] = useState(false);
+  const [runDirty, setRunDirty] = useState(false);
+  const [historyRevision, setHistoryRevision] = useState(0);
+  const [rereadSelection, setRereadSelection] = useState<string[] | null>(null);
   const [all, setAll] = useState(false);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [portalError, setPortalError] = useState("");
@@ -134,7 +163,7 @@ export default function NovelWorkspace({
   const shownNumber = selected
     ? (viewedNumber ??
       (nextNumber(selected) ||
-        selected.completed ||
+        lastNumber(selected) ||
         selected.volumes[selected.volumes.length - 1]?.number ||
         0))
     : 0;
@@ -249,24 +278,42 @@ export default function NovelWorkspace({
   );
   useEffect(() => {
     if (!editing && !volumeEdit)
-      onDirty(!!selected && notes !== selected.notes);
-  }, [notes, selected?.notes, selected?.id, editing, volumeEdit, onDirty]);
+      onDirty(
+        (!!selected && notes !== selected.notes) || readingDirty || runDirty,
+      );
+  }, [
+    notes,
+    selected?.notes,
+    selected?.id,
+    editing,
+    volumeEdit,
+    readingDirty,
+    runDirty,
+    onDirty,
+  ]);
   function leave(action: () => void) {
     if (busy || !canLeave()) return;
+    if (readingDirty || runDirty) {
+      setHistoryRevision((v) => v + 1);
+      setReadingDirty(false);
+      setRunDirty(false);
+    }
     onDirty(false);
     setNotes(selected?.notes || "");
     setError("");
     action();
   }
   async function action(operation: () => PromiseLike<void>) {
-    if (busy) return;
+    if (busy) return false;
     setBusy(true);
     onBusy(true);
     setError("");
     try {
       await operation();
+      return true;
     } catch (reason) {
       setError(errorMessage(reason));
+      return false;
     } finally {
       setBusy(false);
       onBusy(false);
@@ -274,6 +321,7 @@ export default function NovelWorkspace({
   }
   function commit(n: Novel, message: string, showCurrent = false) {
     setSelected(n);
+    setRereadSelection(null);
     if (showCurrent) setViewedNumber(null);
     setEditing(false);
     setVolumeEdit(null);
@@ -517,6 +565,12 @@ export default function NovelWorkspace({
       />
     );
   if (selected) {
+    const run = currentRun(selected);
+    const rereadable = selected.volumes.filter(
+      (v) =>
+        v.cycle.status === "read" ||
+        v.history?.some((c) => c.status === "read"),
+    );
     const next = nextNumber(selected);
     const shown = shownNumber;
     const current = selected.volumes.find((volume) => volume.number === shown);
@@ -664,6 +718,16 @@ export default function NovelWorkspace({
                 aria-label="Seguimiento de novela"
               >
                 <h3>Seguimiento</h3>
+                {run && (
+                  <span className="management-hint">
+                    Recorrido de relectura · {run.volumeIDs.length} volúmenes
+                  </span>
+                )}
+                {selected.activeVolumeID && (
+                  <span className="management-hint">
+                    Relectura individual en curso
+                  </span>
+                )}
                 <select
                   className="novel-status-select"
                   style={{
@@ -705,6 +769,8 @@ export default function NovelWorkspace({
                       title="Aumentar progreso sin cambiar fechas"
                       disabled={
                         busy ||
+                        !!run ||
+                        !!selected.activeVolumeID ||
                         selected.completed == null ||
                         (selected.total != null &&
                           selected.completed >= selected.total)
@@ -718,6 +784,8 @@ export default function NovelWorkspace({
                       title="Reducir progreso sin cambiar fechas"
                       disabled={
                         busy ||
+                        !!run ||
+                        !!selected.activeVolumeID ||
                         selected.completed == null ||
                         selected.completed <= 0
                       }
@@ -727,10 +795,29 @@ export default function NovelWorkspace({
                     </button>
                   </span>
                   <strong className="novel-progress">
-                    /{selected.total ?? "?"}
+                    /{progressTotal(selected) ?? "?"}
                   </strong>
                 </div>
                 <span className="management-hint">Volúmenes completados</span>
+                {!!rereadable.length && (
+                  <button
+                    className="secondary"
+                    disabled={
+                      busy ||
+                      !!selected.activeVolumeID ||
+                      selected.status === "reading" ||
+                      (!!run &&
+                        !["read", "did-not-finish"].includes(selected.status))
+                    }
+                    onClick={() =>
+                      leave(() =>
+                        setRereadSelection(rereadable.map((v) => v.id)),
+                      )
+                    }
+                  >
+                    Releer novela
+                  </button>
+                )}
                 {viewedNumber != null && !!next && viewedNumber !== next && (
                   <button
                     className="quiet"
@@ -894,6 +981,126 @@ export default function NovelWorkspace({
             </>
           }
         >
+          {rereadSelection && (
+            <section
+              className="portal-card reread-selection"
+              aria-label="Nuevo recorrido de novela"
+            >
+              <h2>Releer novela</h2>
+              <p>
+                Elegí los volúmenes del nuevo recorrido. Sus lecturas anteriores
+                se conservan; se iniciarán cuando elijas Empezar volumen.
+              </p>
+              {rereadable.map((v) => (
+                <label key={v.id}>
+                  <input
+                    type="checkbox"
+                    disabled={busy}
+                    checked={rereadSelection.includes(v.id)}
+                    onChange={(e) =>
+                      setRereadSelection((old) =>
+                        e.target.checked
+                          ? [...(old || []), v.id]
+                          : (old || []).filter((id) => id !== v.id),
+                      )
+                    }
+                  />
+                  Volumen {volumeLabel(selected, v.number)}
+                  {v.title ? ` · ${v.title}` : ""}
+                </label>
+              ))}
+              <div className="catalog-actions">
+                <button
+                  className="primary"
+                  disabled={busy || !rereadSelection.length}
+                  onClick={() =>
+                    void action(async () =>
+                      commit(
+                        await Novels.RereadNovel(selected.id, rereadSelection),
+                        "Nuevo recorrido preparado. El historial anterior se conserva.",
+                        true,
+                      ),
+                    )
+                  }
+                >
+                  Crear recorrido
+                </button>
+                <button
+                  className="quiet"
+                  disabled={busy}
+                  onClick={() => setRereadSelection(null)}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </section>
+          )}
+          {run && (
+            <ReadingHistory
+              key={`${selected.id}-runs-${historyRevision}`}
+              title="Recorridos de novela"
+              current={run.cycle}
+              history={selected.readings
+                ?.filter((r) => r.id !== run.id)
+                .map((r) => r.cycle)}
+              labels={Object.fromEntries(
+                (selected.readings || []).map((r, i) => [
+                  r.id,
+                  `${i === 0 ? "Lectura inicial" : `Recorrido ${i + 1}`} · ${r.completed}/${r.volumeIDs.length} volúmenes · ${r.volumeIDs
+                    .map((id) => {
+                      const v = selected.volumes.find((v) => v.id === id);
+                      return v ? volumeLabel(selected, v.number) : "";
+                    })
+                    .join(", ")}`,
+                ]),
+              )}
+              info={info}
+              busy={busy}
+              allowAdd={false}
+              onDirty={setRunDirty}
+              onSave={(input) =>
+                action(async () =>
+                  commit(
+                    await Novels.SaveRun(selected.id, input),
+                    "Recorrido corregido.",
+                  ),
+                )
+              }
+            />
+          )}
+          {current && (
+            <ReadingHistory
+              key={`${selected.id}-${current.id}-${historyRevision}`}
+              title={`Lecturas del volumen ${shownLabel}`}
+              current={current.cycle}
+              history={current.history}
+              info={info}
+              busy={busy}
+              onDirty={setReadingDirty}
+              onReread={
+                !selected.activeVolumeID &&
+                selected.status !== "reading" &&
+                (!run || ["read", "did-not-finish"].includes(selected.status))
+                  ? () =>
+                      void action(async () =>
+                        commit(
+                          await Novels.RereadVolume(selected.id, current.id),
+                          "Relectura de volumen iniciada.",
+                          true,
+                        ),
+                      )
+                  : undefined
+              }
+              onSave={(input) =>
+                action(async () =>
+                  commit(
+                    await Novels.SaveReading(selected.id, current.id, input),
+                    "Lectura del volumen guardada.",
+                  ),
+                )
+              }
+            />
+          )}
           {linking && (
             <section className="edition-picker" aria-label="Vincular novela">
               <div className="card-heading">
@@ -956,7 +1163,13 @@ export default function NovelWorkspace({
             <VolumeGallery
               novel={selected}
               busy={busy}
-              next={selected.completed != null ? selected.completed + 1 : next}
+              next={
+                run || selected.activeVolumeID
+                  ? next
+                  : selected.completed != null
+                    ? selected.completed + 1
+                    : next
+              }
               onVolume={(number) =>
                 leave(() => {
                   if (

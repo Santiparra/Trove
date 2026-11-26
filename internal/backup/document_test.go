@@ -38,7 +38,7 @@ func validDocument() Document {
 	return Document{Format: Format, Version: Version, Generation: "synthetic", CreatedAt: "2026-01-01T00:00:00Z", Catalog: Catalog{
 		Works:    []Work{{ID: "work", Medium: "books", Title: "Obra sintética"}},
 		Editions: []Edition{{ID: "edition", WorkID: "work"}},
-		Cycles:   []Cycle{{ID: "cycle", EditionID: "edition", Status: "read"}},
+		Cycles:   []Cycle{{ID: "cycle", EditionID: "edition", Status: "read", Current: true}},
 	}}
 }
 

@@ -64,7 +64,7 @@ func (s *Store) initialize(path string) error {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql", "migrations/005_novels.sql", "migrations/006_novel_catalog.sql"}
+	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql", "migrations/005_novels.sql", "migrations/006_novel_catalog.sql", "migrations/007_reading_history.sql"}
 	if version > len(files) {
 		return errors.New("la base pertenece a una versión más nueva de Trove")
 	}
@@ -104,11 +104,11 @@ func (s *Store) initialize(path string) error {
 
 const selectBooks = `SELECT b.id, b.title, b.authors_json, b.notes, b.added_on,
  s.id, s.name, b.series_position, b.favorite,
- e.id, e.language, e.format, e.identifier, e.owned, c.id, c.status, c.started_on, c.finished_on, b.medium, s.medium, e.identifiers_json, e.catalog_json
+ e.id, e.language, e.format, e.identifier, e.owned, c.id, c.status, c.started_on, c.finished_on, b.medium, s.medium, e.identifiers_json, e.catalog_json, c.details_json
  FROM books b
  LEFT JOIN series s ON s.id=b.series_id
  JOIN editions e ON e.book_id=b.id
- JOIN reading_cycles c ON c.edition_id=e.id`
+ JOIN reading_cycles c ON c.edition_id=e.id AND c.is_current=1`
 
 type scanner interface{ Scan(...any) error }
 
@@ -119,13 +119,17 @@ func scanBook(row scanner) (books.Book, error) {
 	var pos sql.NullFloat64
 	var ids string
 	var metadata sql.NullString
+	var details string
 	err := row.Scan(&b.ID, &b.Title, &authors, &b.Notes, &b.AddedOn, &sid, &name, &pos, &b.Favorite,
 		&b.Edition.ID, &b.Edition.Language, &b.Edition.Format, &b.Edition.Identifier, &b.Edition.Owned,
-		&b.Cycle.ID, &b.Cycle.Status, &b.Cycle.StartedOn, &b.Cycle.FinishedOn, &b.Medium, &seriesMedium, &ids, &metadata)
+		&b.Cycle.ID, &b.Cycle.Status, &b.Cycle.StartedOn, &b.Cycle.FinishedOn, &b.Medium, &seriesMedium, &ids, &metadata, &details)
 	if errors.Is(err, sql.ErrNoRows) {
 		return b, books.ErrNotFound
 	}
 	if err != nil {
+		return b, err
+	}
+	if err = readCycleDetails(details, &b.Cycle); err != nil {
 		return b, err
 	}
 	if err = json.Unmarshal([]byte(authors), &b.Authors); err != nil {
@@ -154,7 +158,11 @@ func scanBook(row scanner) (books.Book, error) {
 func (s *Store) Get(ctx context.Context, id string) (books.Book, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return scanBook(s.db.QueryRowContext(ctx, selectBooks+" WHERE b.id=?", id))
+	b, err := scanBook(s.db.QueryRowContext(ctx, selectBooks+" WHERE b.id=?", id))
+	if err == nil {
+		b.History, err = readHistory(ctx, s.db, b.Edition.ID)
+	}
+	return b, err
 }
 
 func (s *Store) List(ctx context.Context, query, medium string) ([]books.Book, error) {
@@ -192,7 +200,17 @@ func (s *Store) List(ctx context.Context, query, medium string) ([]books.Book, e
 			result = append(result, b)
 		}
 	}
-	return result, rows.Err()
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	for i := range result {
+		result[i].History, err = readHistory(ctx, s.db, result[i].Edition.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return result, nil
 }
 
 func (s *Store) ListSeries(ctx context.Context, medium string) ([]books.Series, error) {
@@ -274,9 +292,7 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	if err != nil {
 		return b, err
 	}
-	_, err = tx.ExecContext(ctx, `INSERT INTO reading_cycles(id,edition_id,status,started_on,finished_on) VALUES(?,?,?,?,?)
- ON CONFLICT(id) DO UPDATE SET status=excluded.status,started_on=excluded.started_on,finished_on=excluded.finished_on`, b.Cycle.ID, b.Edition.ID, b.Cycle.Status, b.Cycle.StartedOn, b.Cycle.FinishedOn)
-	if err != nil {
+	if err = writeBookReadings(ctx, tx, b); err != nil {
 		return b, err
 	}
 	if err = tx.Commit(); err != nil {

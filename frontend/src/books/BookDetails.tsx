@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type {
   Book,
   Series,
+  ReadingInput,
 } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import Icon from "../components/Icon";
@@ -9,6 +10,7 @@ import StatusSelect from "./StatusSelect";
 import { dateLabel } from "./presentation";
 import { readingLabels } from "./readingMedia";
 import BookProfile from "./BookProfile";
+import ReadingHistory from "./ReadingHistory";
 
 export default function BookDetails({
   book,
@@ -29,6 +31,8 @@ export default function BookDetails({
   onUnlink,
   editions,
   localOnly,
+  onReading,
+  onReread,
 }: {
   book: Book;
   info: Info;
@@ -41,7 +45,9 @@ export default function BookDetails({
   onSearch: (query: string) => void;
   onFavorite: (book: Book, value: boolean) => void;
   onOwned: (book: Book, value: boolean) => void;
-  onNotes: (book: Book, notes: string) => Promise<void>;
+  onNotes: (book: Book, notes: string) => Promise<unknown>;
+  onReading: (input: ReadingInput) => Promise<boolean>;
+  onReread: () => void;
   onDirty: (value: boolean) => void;
   onCatalog: () => void;
   onRefresh: () => void;
@@ -50,9 +56,13 @@ export default function BookDetails({
   localOnly: boolean;
 }) {
   const [notes, setNotes] = useState(book.notes);
+  const [readingDirty, setReadingDirty] = useState(false);
   const labels = readingLabels(book.medium);
   useEffect(() => setNotes(book.notes), [book.id, book.notes]);
-  useEffect(() => onDirty(notes !== book.notes), [notes, book.notes, onDirty]);
+  useEffect(
+    () => onDirty(notes !== book.notes || readingDirty),
+    [notes, book.notes, readingDirty, onDirty],
+  );
   return (
     <BookProfile
       book={book}
@@ -135,6 +145,16 @@ export default function BookDetails({
       }
     >
       {editions}
+      <ReadingHistory
+        key={book.id}
+        current={book.cycle}
+        history={book.history}
+        info={info}
+        busy={busy}
+        onSave={onReading}
+        onReread={onReread}
+        onDirty={setReadingDirty}
+      />
       {!!book.edition.catalog?.warnings?.length && (
         <ul className="catalog-warnings">
           {book.edition.catalog.warnings.map((warning, index) => (

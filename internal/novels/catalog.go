@@ -55,6 +55,9 @@ func applyPublication(n *Novel, series novelcatalog.Series, pub novelcatalog.Pub
 		series.Language, series.Format = pub.Language, pub.ReleaseFormat
 	}
 	v := volumeAt(n, pub.Number)
+	if v.Cycle.HasReading() && v.Cycle.Edition == nil {
+		v.Cycle.Edition = v.Edition.ReadingEdition()
+	}
 	old := v.Catalog
 	personalISBN := catalog.ISBN13(v.Edition.Identifier)
 	ownedISBN := old != nil && old.ISBN != "" && personalISBN == old.ISBN
@@ -82,7 +85,7 @@ func applyPublication(n *Novel, series novelcatalog.Series, pub novelcatalog.Pub
 	if v.Edition.Format == "" || (old != nil && v.Edition.Format == old.Format) {
 		v.Edition.Format = pub.Format
 	}
-	if n.Completed != nil && v.Number <= *n.Completed {
+	if n.Run() == nil && n.ActiveVolumeID != v.ID && n.Completed != nil && v.Number <= *n.Completed {
 		v.Cycle.Status = "read"
 	}
 	v.Catalog = &pub

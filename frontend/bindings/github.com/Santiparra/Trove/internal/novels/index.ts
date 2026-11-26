@@ -8,6 +8,7 @@ export {
     Input,
     Novel,
     PortalEntry,
+    ReadingRun,
     StatusCount,
     Volume,
     VolumeInput

@@ -2,6 +2,7 @@ package novels
 
 import (
 	"context"
+	"errors"
 	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"sort"
 	"strconv"
@@ -103,8 +104,16 @@ func (s *Service) Dashboard(ctx context.Context) (Dashboard, error) {
 		number := n.NextNumber()
 		if number == 0 && n.Completed != nil {
 			number = *n.Completed
+			if r := n.Run(); r != nil && r.Completed > 0 {
+				for _, v := range n.Volumes {
+					if v.ID == r.VolumeIDs[r.Completed-1] {
+						number = v.Number
+						break
+					}
+				}
+			}
 		}
-		entry := PortalEntry{ID: n.ID, Title: n.Title, Authors: n.Authors, Status: n.Status, Completed: n.Completed, Total: n.Total, Number: number, Label: n.Label(number), CoverURL: n.Cover(number)}
+		entry := PortalEntry{ID: n.ID, Title: n.Title, Authors: n.Authors, Status: n.Status, Completed: n.Completed, Total: n.ProgressTotal(), Number: number, Label: n.Label(number), CoverURL: n.Cover(number)}
 		if n.Status == "reading" && len(d.Reading) < 4 {
 			d.Reading = append(d.Reading, entry)
 		}
@@ -142,11 +151,14 @@ func (s *Service) SetCompleted(ctx context.Context, id string, completed int, ma
 	if err != nil {
 		return Novel{}, err
 	}
+	if n.ActiveVolumeID != "" {
+		return Novel{}, errors.New("terminá la relectura individual antes de ajustar el progreso general")
+	}
 	n.Completed = &completed
-	if n.Status == "read" && n.Total != nil && completed < *n.Total {
+	if n.Status == "read" && n.ProgressTotal() != nil && completed < *n.ProgressTotal() {
 		n.Status = "up-next"
 	}
-	if markRead && n.Total != nil && completed == *n.Total {
+	if markRead && n.ProgressTotal() != nil && completed == *n.ProgressTotal() {
 		n.Status = "read"
 	}
 	if err = reconcile(&n); err != nil {
