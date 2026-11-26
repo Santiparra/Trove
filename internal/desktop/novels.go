@@ -79,6 +79,9 @@ func (n *Novels) SaveVolume(id string, input novels.VolumeInput) (novels.Novel, 
 func (n *Novels) RereadNovel(id string, volumeIDs []string) (novels.Novel, error) {
 	return n.mutate(func() (novels.Novel, error) { return n.service.RereadNovel(context.Background(), id, volumeIDs) })
 }
+func (n *Novels) SetRating(id, mode string, value *float64) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) { return n.service.SetRating(context.Background(), id, mode, value) })
+}
 func (n *Novels) RereadVolume(id, volumeID string) (novels.Novel, error) {
 	return n.mutate(func() (novels.Novel, error) { return n.service.RereadVolume(context.Background(), id, volumeID) })
 }

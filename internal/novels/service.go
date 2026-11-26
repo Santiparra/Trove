@@ -65,7 +65,9 @@ func volumeAt(n *Novel, number int) *Volume {
 	return &n.Volumes[len(n.Volumes)-1]
 }
 func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
+	n.calculateRating()
 	if r := n.Run(); r != nil && n.ActiveVolumeID == "" {
+		syncRating(r, n)
 		r.Cycle.Status = n.Status
 		if n.Completed != nil {
 			r.Completed = *n.Completed
@@ -73,6 +75,8 @@ func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
 		if n.Status == "read" && r.ReturnTo != nil {
 			resume := r.ReturnTo
 			n.Status, n.Completed, n.ActiveRunID = resume.Status, resume.Completed, resume.ActiveRunID
+			n.RatingMode, n.Rating = resume.RatingMode, resume.Rating
+			n.calculateRating()
 			for _, id := range resume.PendingCycleIDs {
 				for i := range n.Volumes {
 					v := &n.Volumes[i]
@@ -90,6 +94,7 @@ func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
 	}
 	if n.ActiveRunID == "" && n.ActiveVolumeID == "" && len(n.Readings) > 0 {
 		initial := &n.Readings[0]
+		syncRating(initial, n)
 		initial.Cycle.Status = n.Status
 		initial.VolumeIDs = []string{}
 		initial.Completed = 0

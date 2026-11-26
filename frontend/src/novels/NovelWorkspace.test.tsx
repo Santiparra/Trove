@@ -44,6 +44,7 @@ const api = vi.hoisted(() => ({
   RereadVolume: vi.fn(),
   SaveReading: vi.fn(),
   SaveRun: vi.fn(),
+  SetRating: vi.fn(),
 }));
 vi.mock(
   "../../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
@@ -140,6 +141,39 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+it("guarda el modo automático de novela y muestra la media recibida sin cuantizarla", async () => {
+  const n = novel({ status: "reading", completed: 0, volumes: [volume(1)] });
+  api.List.mockResolvedValue([n]);
+  api.Get.mockResolvedValue(n);
+  api.SetRating.mockResolvedValue(
+    new Novel({ ...n, ratingMode: "auto", rating: 25.25 / 3 }),
+  );
+  mount();
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Ver todas las novelas" }),
+  );
+  fireEvent.click(
+    await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
+  );
+  const dropdown = await screen.findByRole("combobox", {
+    name: "Puntaje de la novela",
+  });
+  const management = screen.getByRole("region", {
+    name: "Seguimiento de novela",
+  });
+  expect(management.contains(dropdown)).toBe(true);
+  fireEvent.change(dropdown, {
+    target: { value: "auto" },
+  });
+  expect(screen.queryByRole("button", { name: "Guardar puntaje" })).toBeNull();
+  await waitFor(() =>
+    expect(api.SetRating).toHaveBeenCalledExactlyOnceWith(n.id, "auto", null),
+  );
+  expect(
+    await within(dropdown).findByRole("option", { name: "Auto · 8,42" }),
+  ).toBeTruthy();
+});
 
 it("prepara un recorrido con los volúmenes elegidos sin iniciarlos automáticamente", async () => {
   const n = novel({

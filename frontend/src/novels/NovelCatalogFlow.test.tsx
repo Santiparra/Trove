@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import {
   Info,
   NovelPreview,
@@ -394,7 +400,7 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   expect(screen.getByText("Enriched synopsis 1")).toBeTruthy();
   fireEvent.click(screen.getByText("Identificadores y fuentes"));
   expect(
-    screen.getByRole("button", { name: "Refrescar catálogo" }),
+    screen.getByRole("button", { name: "Refrescar metadata" }),
   ).toHaveProperty("disabled", true);
   expect(
     screen.getByRole("button", { name: "Elegir volumen o publicación" }),
@@ -403,7 +409,9 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
 });
 it("deja metadata fuera de gestión rápida y las fuentes antes de la galería", async () => {
-  await openLocal(local());
+  const n = local();
+  api.RefreshCatalog.mockResolvedValue(n);
+  await openLocal(n);
   const sources = document.querySelector<HTMLDetailsElement>(
     ".profile-identifiers",
   )!;
@@ -415,17 +423,18 @@ it("deja metadata fuera de gestión rápida y las fuentes antes de la galería",
   ).toBeTruthy();
   expect(sources.open).toBe(false);
   const metadata = screen.getByText("Catálogo y metadata");
-  expect(sources.contains(metadata)).toBe(true);
+  expect(sources.contains(metadata)).toBe(false);
   expect(
     screen
       .getByRole("complementary", { name: "Gestión del libro" })
       .contains(metadata),
   ).toBe(false);
-  fireEvent.click(screen.getByText("Identificadores y fuentes"));
-  expect(sources.open).toBe(true);
-  expect(
-    screen.getByRole("button", { name: "Refrescar catálogo" }),
-  ).toBeTruthy();
+  const refresh = screen.getByRole("button", { name: "Refrescar metadata" });
+  expect(sources.open).toBe(false);
+  fireEvent.click(refresh);
+  await waitFor(() =>
+    expect(api.RefreshCatalog).toHaveBeenCalledWith(n.id, 1, true),
+  );
 });
 it("mantiene la galería antes de recibir metadata y al cambiar a volúmenes futuros", async () => {
   let resolve!: (value: NovelPreview) => void;

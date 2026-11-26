@@ -5,6 +5,10 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as catalog$0 from "../catalog/models.js";
+
 export class Author {
     "id": string;
     "name": string;
@@ -114,6 +118,7 @@ export class Candidate {
 }
 
 export class Publication {
+    "rating"?: catalog$0.Rating | null;
     "label"?: string;
     "hardcoverCategory"?: string;
     "releaseTitle": string;
@@ -211,14 +216,18 @@ export class Publication {
      * Creates a new Publication instance from a string or object.
      */
     static createFrom($$source: any = {}): Publication {
-        const $$createField21_0 = $$createType1;
-        const $$createField22_0 = $$createType2;
+        const $$createField0_0 = $$createType1;
+        const $$createField22_0 = $$createType3;
+        const $$createField23_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rating" in $$parsedSource) {
+            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+        }
         if ("sources" in $$parsedSource) {
-            $$parsedSource["sources"] = $$createField21_0($$parsedSource["sources"]);
+            $$parsedSource["sources"] = $$createField22_0($$parsedSource["sources"]);
         }
         if ("warnings" in $$parsedSource) {
-            $$parsedSource["warnings"] = $$createField22_0($$parsedSource["warnings"]);
+            $$parsedSource["warnings"] = $$createField23_0($$parsedSource["warnings"]);
         }
         return new Publication($$parsedSource as Partial<Publication>);
     }
@@ -297,8 +306,8 @@ export class SearchResult {
      * Creates a new SearchResult instance from a string or object.
      */
     static createFrom($$source: any = {}): SearchResult {
-        const $$createField0_0 = $$createType4;
-        const $$createField4_0 = $$createType2;
+        const $$createField0_0 = $$createType6;
+        const $$createField4_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
             $$parsedSource["items"] = $$createField0_0($$parsedSource["items"]);
@@ -311,6 +320,7 @@ export class SearchResult {
 }
 
 export class Series {
+    "rating"?: catalog$0.Rating | null;
     "id": string;
     "title": string;
     "originalTitle": string;
@@ -362,14 +372,18 @@ export class Series {
      * Creates a new Series instance from a string or object.
      */
     static createFrom($$source: any = {}): Series {
-        const $$createField5_0 = $$createType6;
+        const $$createField0_0 = $$createType1;
         const $$createField6_0 = $$createType8;
+        const $$createField7_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rating" in $$parsedSource) {
+            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+        }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField5_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField6_0($$parsedSource["authors"]);
         }
         if ("books" in $$parsedSource) {
-            $$parsedSource["books"] = $$createField6_0($$parsedSource["books"]);
+            $$parsedSource["books"] = $$createField7_0($$parsedSource["books"]);
         }
         return new Series($$parsedSource as Partial<Series>);
     }
@@ -409,12 +423,14 @@ export class Source {
 }
 
 // Private type creation functions
-const $$createType0 = Source.createFrom;
-const $$createType1 = $Create.Map($Create.Any, $$createType0);
-const $$createType2 = $Create.Array($Create.Any);
-const $$createType3 = Candidate.createFrom;
-const $$createType4 = $Create.Array($$createType3);
-const $$createType5 = Author.createFrom;
+const $$createType0 = catalog$0.Rating.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = Source.createFrom;
+const $$createType3 = $Create.Map($Create.Any, $$createType2);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = Candidate.createFrom;
 const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = BookRef.createFrom;
+const $$createType7 = Author.createFrom;
 const $$createType8 = $Create.Array($$createType7);
+const $$createType9 = BookRef.createFrom;
+const $$createType10 = $Create.Array($$createType9);

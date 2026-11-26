@@ -13,6 +13,7 @@ import type {
 } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import BookProfile from "../books/BookProfile";
 import ReadingHistory from "../books/ReadingHistory";
+import RatingEditor, { ExternalRating } from "../books/RatingEditor";
 import { dateLabel, errorMessage } from "../books/presentation";
 import NovelEditor from "./NovelEditor";
 import VolumeEditor from "./VolumeEditor";
@@ -617,6 +618,23 @@ export default function NovelWorkspace({
         <BookProfile
           sourcesBeforeChildren
           compactManagement
+          ratingBadge={
+            selected.catalog ? (
+              <ExternalRating
+                rating={selected.catalog.rating}
+                provider="RanobeDB · novela"
+              />
+            ) : null
+          }
+          subtitleDetails={
+            current?.catalog ? (
+              <ExternalRating
+                compact
+                rating={current.catalog.rating}
+                provider={`RanobeDB · volumen ${shownLabel}`}
+              />
+            ) : null
+          }
           loading={metadataLoading}
           metadataActions={
             <section
@@ -642,7 +660,7 @@ export default function NovelWorkspace({
                         })
                       }
                     >
-                      Refrescar catálogo
+                      Refrescar metadata
                     </button>
                     <button
                       className="quiet danger-text"
@@ -718,6 +736,49 @@ export default function NovelWorkspace({
                 aria-label="Seguimiento de novela"
               >
                 <h3>Seguimiento</h3>
+                <div className="personal-rating-controls">
+                  <RatingEditor
+                    key={`${selected.id}-rating`}
+                    title="Puntaje de la novela"
+                    label="Novela"
+                    value={selected.rating}
+                    mode={selected.ratingMode}
+                    allowAuto
+                    busy={busy}
+                    onSave={(mode, value) =>
+                      action(async () =>
+                        commit(
+                          await Novels.SetRating(selected.id, mode, value),
+                          "Puntaje de novela guardado.",
+                        ),
+                      )
+                    }
+                  />
+                  {current && (
+                    <RatingEditor
+                      key={`${current.id}-${current.cycle.id}-rating`}
+                      title={`Puntaje del volumen ${shownLabel}`}
+                      label={`Vol. ${shownLabel}`}
+                      value={current.cycle.rating}
+                      busy={busy}
+                      onSave={(_, rating) =>
+                        action(async () =>
+                          commit(
+                            await Novels.SaveReading(selected.id, current.id, {
+                              id: current.cycle.id,
+                              status: current.cycle.status,
+                              startedOn: current.cycle.startedOn,
+                              finishedOn: current.cycle.finishedOn,
+                              rating,
+                              edition: current.cycle.edition || null,
+                            }),
+                            "Puntaje del volumen guardado.",
+                          ),
+                        )
+                      }
+                    />
+                  )}
+                </div>
                 {run && (
                   <span className="management-hint">
                     Recorrido de relectura · {run.volumeIDs.length} volúmenes

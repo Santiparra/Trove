@@ -258,6 +258,8 @@ func (p *Hardcover) Editions(ctx context.Context, id string) ([]catalog.Edition,
 func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 	var data struct {
 		Books []struct {
+			Rating        *float64     `json:"rating"`
+			RatingsCount  *int         `json:"ratings_count"`
 			ID            int64        `json:"id"`
 			Title         string       `json:"title"`
 			Description   string       `json:"description"`
@@ -284,7 +286,7 @@ func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 			return catalog.Work{}, errors.New("Hardcover devolvió una redirección circular")
 		}
 		seen[id] = true
-		query := `query TroveWork($id:Int!){books(where:{id:{_eq:$id}},limit:1){id title canonical_id description image{url} contributions(where:{contributor_role:{slug:{_eq:"author"}},contributable_type:{_eq:"Book"}}){author{name}} book_series(limit:12){position compilation series{id name}}}}`
+		query := `query TroveWork($id:Int!){books(where:{id:{_eq:$id}},limit:1){id title canonical_id description rating ratings_count image{url} contributions(where:{contributor_role:{slug:{_eq:"author"}},contributable_type:{_eq:"Book"}}){author{name}} book_series(limit:12){position compilation series{id name}}}}`
 		if err := p.query(ctx, query, map[string]int64{"id": id}, &data); err != nil {
 			return catalog.Work{}, err
 		}
@@ -297,6 +299,12 @@ func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 			continue
 		}
 		out := catalog.Work{ID: strconv.FormatInt(v.ID, 10), Title: v.Title, Description: plain(v.Description), CoverURL: cover(v.Image), Authors: []string{}, Series: []catalog.Series{}}
+		if v.Rating != nil && (v.RatingsCount == nil || *v.RatingsCount > 0) {
+			r := &catalog.Rating{Provider: catalog.Hardcover, Entity: "work", ID: out.ID, Value: *v.Rating, Scale: 5, Votes: v.RatingsCount, FetchedAt: time.Now().UTC().Format(time.RFC3339Nano)}
+			if r.Validate() == nil {
+				out.Rating = r
+			}
+		}
 		for _, author := range v.Contributions {
 			if author.Author.Name != "" {
 				out.Authors = append(out.Authors, author.Author.Name)

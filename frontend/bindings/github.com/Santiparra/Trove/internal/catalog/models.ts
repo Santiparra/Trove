@@ -99,6 +99,54 @@ export class Identifier {
     }
 }
 
+/**
+ * Rating preserves the provider's aggregate, never a personal or blended score.
+ */
+export class Rating {
+    "provider": string;
+    "entity": string;
+    "id": string;
+    "value": number;
+    "scale": number;
+    "votes": number | null;
+    "fetchedAt": string;
+
+    /** Creates a new Rating instance. */
+    constructor($$source: Partial<Rating> = {}) {
+        if (!("provider" in $$source)) {
+            this["provider"] = "";
+        }
+        if (!("entity" in $$source)) {
+            this["entity"] = "";
+        }
+        if (!("id" in $$source)) {
+            this["id"] = "";
+        }
+        if (!("value" in $$source)) {
+            this["value"] = 0;
+        }
+        if (!("scale" in $$source)) {
+            this["scale"] = 0;
+        }
+        if (!("votes" in $$source)) {
+            this["votes"] = null;
+        }
+        if (!("fetchedAt" in $$source)) {
+            this["fetchedAt"] = "";
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new Rating instance from a string or object.
+     */
+    static createFrom($$source: any = {}): Rating {
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        return new Rating($$parsedSource as Partial<Rating>);
+    }
+}
+
 export class SearchResult {
     "works": Work[];
     "warnings": string[];
@@ -268,6 +316,7 @@ export class Source {
 }
 
 export class Work {
+    "rating"?: Rating | null;
     "matchedEditionId"?: string;
     "id": string;
     "title": string;
@@ -304,14 +353,18 @@ export class Work {
      * Creates a new Work instance from a string or object.
      */
     static createFrom($$source: any = {}): Work {
-        const $$createField3_0 = $$createType4;
-        const $$createField6_0 = $$createType9;
+        const $$createField0_0 = $$createType9;
+        const $$createField4_0 = $$createType4;
+        const $$createField7_0 = $$createType11;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("rating" in $$parsedSource) {
+            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+        }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField4_0($$parsedSource["authors"]);
         }
         if ("series" in $$parsedSource) {
-            $$parsedSource["series"] = $$createField6_0($$parsedSource["series"]);
+            $$parsedSource["series"] = $$createField7_0($$parsedSource["series"]);
         }
         return new Work($$parsedSource as Partial<Work>);
     }
@@ -326,5 +379,7 @@ const $$createType4 = $Create.Array($Create.Any);
 const $$createType5 = Edition.createFrom;
 const $$createType6 = Source.createFrom;
 const $$createType7 = $Create.Map($Create.Any, $$createType6);
-const $$createType8 = Series.createFrom;
-const $$createType9 = $Create.Array($$createType8);
+const $$createType8 = Rating.createFrom;
+const $$createType9 = $Create.Nullable($$createType8);
+const $$createType10 = Series.createFrom;
+const $$createType11 = $Create.Array($$createType10);

@@ -129,6 +129,7 @@ export class Cycle {
     "startedOn": string;
     "finishedOn": string;
     "rating"?: number | null;
+    "ratingAutomatic"?: boolean;
     "edition"?: ReadingEdition | null;
     "runID"?: string;
 
@@ -154,10 +155,10 @@ export class Cycle {
      * Creates a new Cycle instance from a string or object.
      */
     static createFrom($$source: any = {}): Cycle {
-        const $$createField5_0 = $$createType8;
+        const $$createField6_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField6_0($$parsedSource["edition"]);
         }
         return new Cycle($$parsedSource as Partial<Cycle>);
     }

@@ -203,6 +203,8 @@ export class Input {
 }
 
 export class Novel {
+    "ratingMode"?: string;
+    "rating"?: number | null;
     "readings"?: ReadingRun[];
     "activeRunID"?: string;
     "activeVolumeID"?: string;
@@ -260,22 +262,22 @@ export class Novel {
      * Creates a new Novel instance from a string or object.
      */
     static createFrom($$source: any = {}): Novel {
-        const $$createField0_0 = $$createType10;
-        const $$createField5_0 = $$createType12;
-        const $$createField8_0 = $$createType8;
-        const $$createField15_0 = $$createType14;
+        const $$createField2_0 = $$createType10;
+        const $$createField7_0 = $$createType12;
+        const $$createField10_0 = $$createType8;
+        const $$createField17_0 = $$createType14;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("readings" in $$parsedSource) {
-            $$parsedSource["readings"] = $$createField0_0($$parsedSource["readings"]);
+            $$parsedSource["readings"] = $$createField2_0($$parsedSource["readings"]);
         }
         if ("catalog" in $$parsedSource) {
-            $$parsedSource["catalog"] = $$createField5_0($$parsedSource["catalog"]);
+            $$parsedSource["catalog"] = $$createField7_0($$parsedSource["catalog"]);
         }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField8_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField10_0($$parsedSource["authors"]);
         }
         if ("volumes" in $$parsedSource) {
-            $$parsedSource["volumes"] = $$createField15_0($$parsedSource["volumes"]);
+            $$parsedSource["volumes"] = $$createField17_0($$parsedSource["volumes"]);
         }
         return new Novel($$parsedSource as Partial<Novel>);
     }
@@ -342,6 +344,8 @@ export class PortalEntry {
  * ReadingProgress preserves an unfinished journey while a reread is followed.
  */
 export class ReadingProgress {
+    "ratingMode"?: string;
+    "rating"?: number | null;
     "status": string;
     "completed": number | null;
     "activeRunID": string;
@@ -369,16 +373,18 @@ export class ReadingProgress {
      * Creates a new ReadingProgress instance from a string or object.
      */
     static createFrom($$source: any = {}): ReadingProgress {
-        const $$createField3_0 = $$createType8;
+        const $$createField5_0 = $$createType8;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("pendingCycleIDs" in $$parsedSource) {
-            $$parsedSource["pendingCycleIDs"] = $$createField3_0($$parsedSource["pendingCycleIDs"]);
+            $$parsedSource["pendingCycleIDs"] = $$createField5_0($$parsedSource["pendingCycleIDs"]);
         }
         return new ReadingProgress($$parsedSource as Partial<ReadingProgress>);
     }
 }
 
 export class ReadingRun {
+    "ratingMode"?: string;
+    "ratingFrozen"?: boolean;
     "id": string;
     "cycle": books$0.Cycle;
     "volumeIDs": string[];
@@ -407,18 +413,18 @@ export class ReadingRun {
      * Creates a new ReadingRun instance from a string or object.
      */
     static createFrom($$source: any = {}): ReadingRun {
-        const $$createField1_0 = $$createType15;
-        const $$createField2_0 = $$createType8;
-        const $$createField4_0 = $$createType17;
+        const $$createField3_0 = $$createType15;
+        const $$createField4_0 = $$createType8;
+        const $$createField6_0 = $$createType17;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField1_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField3_0($$parsedSource["cycle"]);
         }
         if ("volumeIDs" in $$parsedSource) {
-            $$parsedSource["volumeIDs"] = $$createField2_0($$parsedSource["volumeIDs"]);
+            $$parsedSource["volumeIDs"] = $$createField4_0($$parsedSource["volumeIDs"]);
         }
         if ("returnTo" in $$parsedSource) {
-            $$parsedSource["returnTo"] = $$createField4_0($$parsedSource["returnTo"]);
+            $$parsedSource["returnTo"] = $$createField6_0($$parsedSource["returnTo"]);
         }
         return new ReadingRun($$parsedSource as Partial<ReadingRun>);
     }

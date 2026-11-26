@@ -31,6 +31,7 @@ type Series struct {
 	Position *float64 `json:"position"`
 }
 type Work struct {
+	Rating           *Rating  `json:"rating,omitempty"`
 	MatchedEditionID string   `json:"matchedEditionId,omitempty"`
 	ID               string   `json:"id"`
 	Title            string   `json:"title"`
@@ -91,6 +92,14 @@ func ValidCoverURL(value string) bool {
 	return false
 }
 func (s Snapshot) Validate() error {
+	if r := s.Work.Rating; r != nil {
+		if err := r.Validate(); err != nil {
+			return err
+		}
+		if r.Provider != Hardcover || r.Entity != "work" || r.ID != s.Work.ID {
+			return errors.New("puntaje ajeno a la obra")
+		}
+	}
 	if s.Provider != Hardcover || !ValidID(Hardcover, s.Work.ID) || !ValidID(Hardcover, s.Edition.ID) || s.Edition.WorkID != s.Work.ID {
 		return errors.New("referencias de catálogo inválidas")
 	}

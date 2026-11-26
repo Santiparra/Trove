@@ -10,15 +10,19 @@ import (
 )
 
 type ReadingRun struct {
-	ID        string           `json:"id"`
-	Cycle     books.Cycle      `json:"cycle"`
-	VolumeIDs []string         `json:"volumeIDs"`
-	Completed int              `json:"completed"`
-	ReturnTo  *ReadingProgress `json:"returnTo,omitempty"`
+	RatingMode   string           `json:"ratingMode,omitempty"`
+	RatingFrozen bool             `json:"ratingFrozen,omitempty"`
+	ID           string           `json:"id"`
+	Cycle        books.Cycle      `json:"cycle"`
+	VolumeIDs    []string         `json:"volumeIDs"`
+	Completed    int              `json:"completed"`
+	ReturnTo     *ReadingProgress `json:"returnTo,omitempty"`
 }
 
 // ReadingProgress preserves an unfinished journey while a reread is followed.
 type ReadingProgress struct {
+	RatingMode      string   `json:"ratingMode,omitempty"`
+	Rating          *float64 `json:"rating,omitempty"`
 	Status          string   `json:"status"`
 	Completed       *int     `json:"completed"`
 	ActiveRunID     string   `json:"activeRunID"`
@@ -58,6 +62,12 @@ func (n Novel) validateReadings() error {
 		volumes[v.ID] = v
 	}
 	for _, r := range n.Readings {
+		if err := validateRating(r.RatingMode, r.Cycle.Rating); err != nil {
+			return err
+		}
+		if r.Cycle.RatingAutomatic != (r.RatingMode == "auto") {
+			return errors.New("el origen del puntaje del recorrido no coincide con su modo")
+		}
 		if r.ID == "" || ids[r.ID] || r.Cycle.ID != r.ID || r.Completed < 0 || r.Completed > len(r.VolumeIDs) {
 			return errors.New("recorrido de novela inválido")
 		}
@@ -108,6 +118,9 @@ func (n Novel) validateReadings() error {
 	}
 	for i, r := range n.Readings {
 		if p := r.ReturnTo; p != nil {
+			if err := validateRating(p.RatingMode, p.Rating); err != nil {
+				return err
+			}
 			if !books.ValidStatus(p.Status) || p.Status == "read" || (p.Completed != nil && (*p.Completed < 0 || *p.Completed > MaxVolumes)) {
 				return errors.New("seguimiento de retorno inválido")
 			}
@@ -204,6 +217,7 @@ func beginRun(n Novel, volumeIDs []string) (Novel, error) {
 	var resume *ReadingProgress
 	if n.Status != "read" {
 		resume = &ReadingProgress{Status: n.Status, Completed: n.Completed, ActiveRunID: n.ActiveRunID, PendingCycleIDs: []string{}}
+		resume.RatingMode, resume.Rating = n.RatingMode, n.Rating
 		for _, v := range n.Volumes {
 			if v.Cycle.HasReading() && v.Cycle.Status != "read" && v.Cycle.Status != "did-not-finish" {
 				resume.PendingCycleIDs = append(resume.PendingCycleIDs, v.Cycle.ID)
@@ -234,6 +248,7 @@ func beginRun(n Novel, volumeIDs []string) (Novel, error) {
 	if len(n.Readings) == 0 {
 		initialID := rand.Text()
 		initial := ReadingRun{ID: initialID, Cycle: books.Cycle{ID: initialID, Status: n.Status}, VolumeIDs: []string{}}
+		syncRating(&initial, n)
 		for i := range n.Volumes {
 			v := &n.Volumes[i]
 			if v.Cycle.HasReading() {
@@ -252,6 +267,7 @@ func beginRun(n Novel, volumeIDs []string) (Novel, error) {
 		run.VolumeIDs = append(run.VolumeIDs, v.ID)
 	}
 	n.Readings = append(n.Readings, run)
+	n.RatingMode, n.Rating = "", nil
 	n.ActiveRunID = runID
 	zero := 0
 	n.Completed = &zero
@@ -363,14 +379,34 @@ func (s *Service) SaveRun(ctx context.Context, id string, in books.ReadingInput)
 		if r.ID != in.ID {
 			continue
 		}
+		originalRating := in.Rating
+		if r.Cycle.RatingAutomatic {
+			if (in.Rating == nil) != (r.Cycle.Rating == nil) || (in.Rating != nil && *in.Rating != *r.Cycle.Rating) {
+				return Novel{}, errors.New("la nota automática histórica se conserva; corregí las fechas sin cambiar su valor")
+			}
+			in.Rating = nil
+		}
 		c, err := in.Cycle(r.ID)
 		if err != nil {
 			return Novel{}, err
+		}
+		if r.Cycle.RatingAutomatic {
+			c.Rating = originalRating
+			c.RatingAutomatic = true
+		}
+		if r.RatingMode == "" && c.Rating != nil {
+			r.RatingMode = "manual"
+		}
+		if r.RatingMode == "manual" && c.Rating == nil {
+			r.RatingMode = ""
 		}
 		if r.ID == n.ActiveRunID && c.Status != r.Cycle.Status {
 			return Novel{}, errors.New("el estado del recorrido actual se cambia desde Seguimiento")
 		}
 		r.Cycle = c
+		if r.ID == n.ActiveRunID || (n.ActiveRunID == "" && i == 0) {
+			n.RatingMode, n.Rating = r.RatingMode, c.Rating
+		}
 		return s.persist(ctx, n)
 	}
 	return Novel{}, ErrNotFound

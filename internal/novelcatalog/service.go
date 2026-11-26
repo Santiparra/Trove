@@ -62,6 +62,7 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 	now := time.Now().UTC().Format(time.RFC3339Nano)
 	base := Publication{SeriesID: series.ID, BookID: ref.ID, Number: number, Order: ref.Order, Title: book.Title, OriginalTitle: book.OriginalTitle, Description: book.Description, CoverURL: book.CoverURL, Evidence: "ranobedb-main", FetchedAt: now, Sources: map[string]Source{}, Warnings: []string{}}
 	bookSource := Source{Provider: RanobeDB, Entity: "book", ID: book.ID, FetchedAt: now}
+	base.Rating = book.Rating
 	if book.FetchedAt != "" {
 		bookSource.FetchedAt = book.FetchedAt
 	}
@@ -126,6 +127,7 @@ func (s *Service) Resolve(ctx context.Context, series Series, number int, releas
 			publication.Label = PrintedLabel(book.Title, book.OriginalTitle)
 		}
 		publication.FetchedAt, publication.Evidence = now, "ranobedb-main"
+		publication.Rating = book.Rating
 		publication.Sources = map[string]Source{}
 		publication.Warnings = []string{}
 		rSource := Source{Provider: RanobeDB, Entity: "release", ID: releaseID, FetchedAt: now}

@@ -11,6 +11,48 @@ import { Info } from "../../bindings/github.com/Santiparra/Trove/internal/deskto
 import ReadingHistory from "./ReadingHistory";
 
 afterEach(cleanup);
+
+it("conserva el valor automático completo al corregir fechas y lo muestra con dos decimales", async () => {
+  const rating = 25.25 / 3;
+  const c = new Cycle({
+    id: "auto",
+    status: "read",
+    rating,
+    ratingAutomatic: true,
+  });
+  const onSave = vi.fn().mockResolvedValue(true);
+  render(
+    <ReadingHistory
+      current={c}
+      info={info}
+      busy={false}
+      onSave={onSave}
+      onDirty={vi.fn()}
+      allowAdd={false}
+    />,
+  );
+  expand();
+  fireEvent.click(
+    screen.getByRole("button", { name: "Corregir lectura actual" }),
+  );
+  expect(screen.getByLabelText("Puntaje de esta lectura")).toHaveProperty(
+    "disabled",
+    true,
+  );
+  expect(screen.getByLabelText("Puntaje de esta lectura")).toHaveProperty(
+    "value",
+    "8.42",
+  );
+  fireEvent.change(screen.getByLabelText("Fin de esta lectura"), {
+    target: { value: "2020-01-02" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Guardar lectura" }));
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "auto", rating, finishedOn: "2020-01-02" }),
+    ),
+  );
+});
 const info = new Info({
   statuses: [
     { value: "read", label: "Leído" },

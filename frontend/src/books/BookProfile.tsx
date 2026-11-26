@@ -8,6 +8,7 @@ import CatalogImage from "../catalog/CatalogImage";
 import Icon from "../components/Icon";
 import { seriesLabel } from "./presentation";
 import DescriptionText from "../components/DescriptionText";
+import { ExternalRating } from "./RatingEditor";
 
 export default function BookProfile({
   book = null,
@@ -29,6 +30,8 @@ export default function BookProfile({
   sourcesBeforeChildren = false,
   metadataActions,
   compactManagement = false,
+  ratingBadge,
+  subtitleDetails,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -53,6 +56,8 @@ export default function BookProfile({
   sourcesBeforeChildren?: boolean;
   metadataActions?: ReactNode;
   compactManagement?: boolean;
+  ratingBadge?: ReactNode;
+  subtitleDetails?: ReactNode;
 }) {
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
@@ -126,8 +131,21 @@ export default function BookProfile({
               </p>
             )
           )}
-          <h1>{title}</h1>
-          {subtitle && <p className="novel-subtitle">{subtitle}</p>}
+          <div className="profile-heading-row">
+            <div className="profile-heading-copy">
+              <h1>{title}</h1>
+              {subtitle && <p className="novel-subtitle">{subtitle}</p>}
+              {subtitleDetails}
+            </div>
+            {ratingBadge === undefined
+              ? snapshot && (
+                  <ExternalRating
+                    rating={snapshot.work.rating}
+                    provider="Hardcover · obra"
+                  />
+                )
+              : ratingBadge}
+          </div>
           <p className="hero-author">
             {authors.length
               ? authors.map((author, index) => (
@@ -196,10 +214,10 @@ export default function BookProfile({
           {management}
         </aside>
       </div>
+      {metadataActions}
       {!sourcesBeforeChildren && children}
       <details className="profile-identifiers">
         <summary>Identificadores y fuentes</summary>
-        {metadataActions}
         {book?.edition.identifier && (
           <p>ISBN / ID local: {book.edition.identifier}</p>
         )}

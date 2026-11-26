@@ -77,6 +77,7 @@ type rnBookRef struct {
 	Image         *rnImage `json:"image"`
 }
 type rnSeries struct {
+	Rating        *rnRating   `json:"rating"`
 	ID            int64       `json:"id"`
 	Title         string      `json:"title"`
 	OriginalTitle string      `json:"title_orig"`
@@ -92,6 +93,22 @@ type rnSeries struct {
 	Book struct {
 		Image *rnImage `json:"image"`
 	} `json:"book"`
+}
+
+type rnRating struct {
+	Score float64 `json:"score"`
+	Count int     `json:"count"`
+}
+
+func ranobeRating(raw *rnRating, entity, id, at string) *catalog.Rating {
+	if raw == nil || raw.Count < 1 {
+		return nil
+	}
+	r := &catalog.Rating{Provider: catalog.RanobeDB, Entity: entity, ID: id, Value: raw.Score, Scale: 10, Votes: &raw.Count, FetchedAt: at}
+	if r.Validate() != nil {
+		return nil
+	}
+	return r
 }
 
 func rnDate(value int) string {
@@ -275,6 +292,7 @@ func (p *RanobeDB) Series(ctx context.Context, id string) (novelcatalog.Series, 
 	}
 	sort.Slice(refs, func(i, j int) bool { return refs[i].Order < refs[j].Order })
 	s := novelcatalog.Series{ID: id, Title: raw.Title, OriginalTitle: raw.OriginalTitle, Description: plain(raw.Description), Authors: []novelcatalog.Author{}, Books: []novelcatalog.BookRef{}, FetchedAt: time.Now().UTC().Format(time.RFC3339Nano), Language: "en", Format: "print"}
+	s.Rating = ranobeRating(raw.Rating, "series", id, s.FetchedAt)
 	for i, b := range refs {
 		s.Books = append(s.Books, novelcatalog.BookRef{Label: novelcatalog.PrintedLabel(b.Title, b.OriginalTitle), ID: strconv.FormatInt(b.ID, 10), Number: i + 1, Order: b.Order, Title: b.Title, OriginalTitle: b.OriginalTitle, CoverURL: rnCover(b.Image)})
 	}
@@ -304,6 +322,7 @@ func (p *RanobeDB) Book(ctx context.Context, seriesID, bookID string) (novelcata
 	}
 	var data struct {
 		Book struct {
+			Rating        *rnRating   `json:"rating"`
 			ID            int64       `json:"id"`
 			Title         string      `json:"title"`
 			OriginalTitle string      `json:"title_orig"`
@@ -329,6 +348,7 @@ func (p *RanobeDB) Book(ctx context.Context, seriesID, bookID string) (novelcata
 	}
 	result := novelcatalog.Book{ID: bookID, SeriesID: seriesID, Title: b.Title, OriginalTitle: b.OriginalTitle, Description: plain(b.Description), CoverURL: rnCover(b.Image), Releases: []novelcatalog.Release{}}
 	result.FetchedAt = time.Now().UTC().Format(time.RFC3339Nano)
+	result.Rating = ranobeRating(b.Rating, "book", bookID, result.FetchedAt)
 	for _, r := range b.Releases {
 		if r.ID > 0 && !r.Hidden && !novelcatalog.ExplicitManga(r.Title) {
 			result.Releases = append(result.Releases, rnOption(r))

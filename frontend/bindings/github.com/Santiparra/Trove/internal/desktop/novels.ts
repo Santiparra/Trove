@@ -157,6 +157,12 @@ export function SetCompleted(id: string, completed: number, markRead: boolean): 
     });
 }
 
+export function SetRating(id: string, mode: string, value: number | null): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(3764504205, id, mode, value).then(($result: any) => {
+        return $$createType4($result);
+    });
+}
+
 export function StartVolume(id: string): $CancellablePromise<novels$0.Novel> {
     return $Call.ByID(2896909894, id).then(($result: any) => {
         return $$createType4($result);

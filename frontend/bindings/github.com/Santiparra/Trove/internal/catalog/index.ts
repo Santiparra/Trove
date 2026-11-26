@@ -4,6 +4,7 @@
 export {
     Edition,
     Identifier,
+    Rating,
     SearchResult,
     Series,
     Snapshot,

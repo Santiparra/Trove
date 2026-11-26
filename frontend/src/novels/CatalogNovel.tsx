@@ -11,6 +11,7 @@ import {
 } from "../../bindings/github.com/Santiparra/Trove/internal/novelcatalog/models";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import BookProfile from "../books/BookProfile";
+import { ExternalRating } from "../books/RatingEditor";
 import { errorMessage } from "../books/presentation";
 import { printedLabel } from "./presentation";
 import VolumeGallery from "./VolumeGallery";
@@ -243,6 +244,20 @@ export default function CatalogNovel({
     <BookProfile
       sourcesBeforeChildren
       compactManagement
+      ratingBadge={
+        !loadingSeries ? (
+          <ExternalRating rating={series.rating} provider="RanobeDB · novela" />
+        ) : null
+      }
+      subtitleDetails={
+        ready ? (
+          <ExternalRating
+            compact
+            rating={p.rating}
+            provider={`RanobeDB · volumen ${label}`}
+          />
+        ) : null
+      }
       book={book}
       ariaLabel="Detalle de novela de catálogo"
       subtitle={`${loadingSeries ? "Consultando novela" : "Novela ligera"} · Volumen ${label}${p.title ? ` · ${p.title}` : ""}`}

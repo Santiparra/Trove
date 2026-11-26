@@ -11,6 +11,7 @@ import { dateLabel } from "./presentation";
 import { readingLabels } from "./readingMedia";
 import BookProfile from "./BookProfile";
 import ReadingHistory from "./ReadingHistory";
+import RatingEditor from "./RatingEditor";
 
 export default function BookDetails({
   book,
@@ -77,6 +78,21 @@ export default function BookDetails({
             options={info.statuses}
             disabled={busy}
             onChange={onStatus}
+          />
+          <RatingEditor
+            key={`${book.id}-${book.cycle.id}`}
+            value={book.cycle.rating}
+            busy={busy}
+            onSave={(_, rating) =>
+              onReading({
+                id: book.cycle.id,
+                status: book.cycle.status,
+                startedOn: book.cycle.startedOn,
+                finishedOn: book.cycle.finishedOn,
+                rating,
+                edition: book.cycle.edition || null,
+              })
+            }
           />
           <div className="personal-flags">
             <button

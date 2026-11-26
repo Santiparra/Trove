@@ -6,6 +6,7 @@ import type {
 import type { Info } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import { dateLabel, errorMessage } from "./presentation";
 import "./reading-history.css";
+import { ratingLabel } from "./RatingEditor";
 
 export function hasReading(c: Cycle) {
   return !!(
@@ -59,6 +60,8 @@ export default function ReadingHistory({
       (b.finishedOn || b.startedOn).localeCompare(a.finishedOn || a.startedOn),
     );
   const readings = [current, ...previous];
+  const automaticDraft = !!readings.find((c) => c.id === draft?.id)
+    ?.ratingAutomatic;
   const count = readings.filter(hasReading).length;
   function edit(c?: Cycle) {
     const value: ReadingInput = {
@@ -116,7 +119,12 @@ export default function ReadingHistory({
                     c.status}{" "}
                   · {dateLabel(c.startedOn)} → {dateLabel(c.finishedOn)}
                 </span>
-                {c.rating != null && <span>Puntaje: {c.rating}/10</span>}
+                {c.rating != null && (
+                  <span>
+                    Puntaje: {ratingLabel(c.rating)}
+                    {c.ratingAutomatic ? " · Auto (guardado)" : ""}
+                  </span>
+                )}
                 {c.edition && (
                   <small>
                     {[
@@ -219,8 +227,12 @@ export default function ReadingHistory({
                   min="1"
                   max="10"
                   step="0.25"
-                  disabled={busy}
-                  value={draft.rating ?? ""}
+                  disabled={busy || automaticDraft}
+                  value={
+                    automaticDraft && draft.rating != null
+                      ? Number(draft.rating.toFixed(2))
+                      : (draft.rating ?? "")
+                  }
                   placeholder="Sin puntaje"
                   onChange={(e) =>
                     field(

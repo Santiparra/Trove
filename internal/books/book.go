@@ -51,13 +51,14 @@ type Edition struct {
 
 // Cycle is a single reading. Rereading creates a new cycle rather than resetting it.
 type Cycle struct {
-	ID         string          `json:"id"`
-	Status     string          `json:"status"`
-	StartedOn  string          `json:"startedOn"`
-	FinishedOn string          `json:"finishedOn"`
-	Rating     *float64        `json:"rating,omitempty"`
-	Edition    *ReadingEdition `json:"edition,omitempty"`
-	RunID      string          `json:"runID,omitempty"`
+	ID              string          `json:"id"`
+	Status          string          `json:"status"`
+	StartedOn       string          `json:"startedOn"`
+	FinishedOn      string          `json:"finishedOn"`
+	Rating          *float64        `json:"rating,omitempty"`
+	RatingAutomatic bool            `json:"ratingAutomatic,omitempty"`
+	Edition         *ReadingEdition `json:"edition,omitempty"`
+	RunID           string          `json:"runID,omitempty"`
 }
 
 // ReadingEdition is the edition used for this reading, independent of ownership.
@@ -87,7 +88,7 @@ func (c Cycle) Validate() error {
 	}
 	if c.Rating != nil {
 		v := *c.Rating
-		if math.IsNaN(v) || math.IsInf(v, 0) || v < 1 || v > 10 || math.Round(v*4) != v*4 {
+		if math.IsNaN(v) || math.IsInf(v, 0) || v < 1 || v > 10 || (!c.RatingAutomatic && math.Round(v*4) != v*4) {
 			return errors.New("el puntaje debe estar entre 1 y 10 en pasos de 0,25")
 		}
 	}

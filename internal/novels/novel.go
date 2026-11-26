@@ -30,6 +30,8 @@ type Volume struct {
 	Favorite    bool                      `json:"favorite"`
 }
 type Novel struct {
+	RatingMode      string               `json:"ratingMode,omitempty"`
+	Rating          *float64             `json:"rating,omitempty"`
 	Readings        []ReadingRun         `json:"readings,omitempty"`
 	ActiveRunID     string               `json:"activeRunID,omitempty"`
 	ActiveVolumeID  string               `json:"activeVolumeID,omitempty"`
@@ -109,6 +111,9 @@ func (n *Novel) Canonicalize() {
 	sort.Slice(n.Volumes, func(i, j int) bool { return n.Volumes[i].Number < n.Volumes[j].Number })
 }
 func (n Novel) Validate() error {
+	if err := validateRating(n.RatingMode, n.Rating); err != nil {
+		return err
+	}
 	if n.StatusChangedAt != "" {
 		if _, err := time.Parse(time.RFC3339Nano, n.StatusChangedAt); err != nil {
 			return errors.New("fecha de cambio de estado inválida")
@@ -165,7 +170,13 @@ func (n Novel) Validate() error {
 		if err := v.Cycle.Validate(); err != nil {
 			return err
 		}
+		if v.Cycle.RatingAutomatic {
+			return errors.New("el puntaje de volumen debe ser personal")
+		}
 		for _, c := range v.History {
+			if c.RatingAutomatic {
+				return errors.New("el puntaje histórico de volumen debe ser personal")
+			}
 			if cycleIDs[c.ID] {
 				return errors.New("identidad de lectura duplicada")
 			}

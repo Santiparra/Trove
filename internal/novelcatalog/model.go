@@ -60,16 +60,17 @@ type BookRef struct {
 	CoverURL      string  `json:"coverURL"`
 }
 type Series struct {
-	ID            string    `json:"id"`
-	Title         string    `json:"title"`
-	OriginalTitle string    `json:"originalTitle"`
-	Description   string    `json:"description"`
-	CoverURL      string    `json:"coverURL"`
-	Authors       []Author  `json:"authors"`
-	Books         []BookRef `json:"books"`
-	FetchedAt     string    `json:"fetchedAt"`
-	Language      string    `json:"language"`
-	Format        string    `json:"format"`
+	Rating        *catalog.Rating `json:"rating,omitempty"`
+	ID            string          `json:"id"`
+	Title         string          `json:"title"`
+	OriginalTitle string          `json:"originalTitle"`
+	Description   string          `json:"description"`
+	CoverURL      string          `json:"coverURL"`
+	Authors       []Author        `json:"authors"`
+	Books         []BookRef       `json:"books"`
+	FetchedAt     string          `json:"fetchedAt"`
+	Language      string          `json:"language"`
+	Format        string          `json:"format"`
 }
 type Release struct {
 	ID          string `json:"id"`
@@ -80,6 +81,7 @@ type Release struct {
 	PublishedOn string `json:"publishedOn"`
 }
 type Book struct {
+	Rating        *catalog.Rating
 	FetchedAt     string
 	ID            string
 	SeriesID      string
@@ -96,6 +98,7 @@ type Source struct {
 	FetchedAt string `json:"fetchedAt"`
 }
 type Publication struct {
+	Rating            *catalog.Rating   `json:"rating,omitempty"`
 	Label             string            `json:"label,omitempty"`
 	HardcoverCategory string            `json:"hardcoverCategory,omitempty"`
 	ReleaseTitle      string            `json:"releaseTitle"`
@@ -156,6 +159,14 @@ func ValidPublicationDate(value string) bool {
 	return err == nil
 }
 func (s Series) Validate() error {
+	if r := s.Rating; r != nil {
+		if err := r.Validate(); err != nil {
+			return err
+		}
+		if r.Provider != RanobeDB || r.Entity != "series" || r.ID != s.ID {
+			return errors.New("puntaje ajeno a la novela")
+		}
+	}
 	if s.Language != "" && !languageCode.MatchString(s.Language) {
 		return errors.New("idioma de publicación inválido")
 	}
@@ -180,6 +191,14 @@ func (s Series) Validate() error {
 	return nil
 }
 func (p Publication) Validate() error {
+	if r := p.Rating; r != nil {
+		if err := r.Validate(); err != nil {
+			return err
+		}
+		if r.Provider != RanobeDB || r.Entity != "book" || r.ID != p.BookID {
+			return errors.New("puntaje ajeno al volumen")
+		}
+	}
 	if p.HardcoverCategory != "" && !CompatibleHardcoverCategory(p.HardcoverCategory) {
 		return errors.New("categoría secundaria incompatible con novela")
 	}
