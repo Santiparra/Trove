@@ -32,6 +32,8 @@ export default function BookProfile({
   compactManagement = false,
   ratingBadge,
   subtitleDetails,
+  beforeBody,
+  metadataLast = false,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -58,6 +60,8 @@ export default function BookProfile({
   compactManagement?: boolean;
   ratingBadge?: ReactNode;
   subtitleDetails?: ReactNode;
+  beforeBody?: ReactNode;
+  metadataLast?: boolean;
 }) {
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
@@ -136,6 +140,71 @@ export default function BookProfile({
               <h1>{title}</h1>
               {subtitle && <p className="novel-subtitle">{subtitle}</p>}
               {subtitleDetails}
+              <p className="hero-author">
+                {authors.length
+                  ? authors.map((author, index) => (
+                      <span key={`${author}:${index}`}>
+                        {index > 0 && " · "}
+                        <button
+                          className="author-link"
+                          disabled={busy}
+                          onClick={() => onSearch(author)}
+                        >
+                          {author}
+                        </button>
+                      </span>
+                    ))
+                  : "Autoría sin especificar"}
+              </p>
+              <dl className="profile-facts">
+                {(book?.edition.language || snapshot?.edition.language) && (
+                  <>
+                    <dt>Idioma</dt>
+                    <dd>
+                      {book?.edition.language || snapshot?.edition.language}
+                    </dd>
+                  </>
+                )}
+                {(book?.edition.format || snapshot?.edition.format) && (
+                  <>
+                    <dt>Formato</dt>
+                    <dd>{displayFormat}</dd>
+                  </>
+                )}
+                {facts?.publisher && (
+                  <>
+                    <dt>Editorial</dt>
+                    <dd>{facts.publisher}</dd>
+                  </>
+                )}
+                {facts?.pages != null && (
+                  <>
+                    <dt>Páginas</dt>
+                    <dd>{facts.pages}</dd>
+                  </>
+                )}
+                {facts?.publishedOn && (
+                  <>
+                    <dt>Publicación</dt>
+                    <dd>{facts.publishedOn}</dd>
+                  </>
+                )}
+              </dl>
+              {loading && (
+                <div
+                  className="profile-loading-skeleton"
+                  role="status"
+                  aria-label="Cargando información del volumen"
+                  aria-busy="true"
+                >
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              )}
+              {synopsis && <DescriptionText text={synopsis} />}
             </div>
             {ratingBadge === undefined
               ? snapshot && (
@@ -146,76 +215,15 @@ export default function BookProfile({
                 )
               : ratingBadge}
           </div>
-          <p className="hero-author">
-            {authors.length
-              ? authors.map((author, index) => (
-                  <span key={`${author}:${index}`}>
-                    {index > 0 && " · "}
-                    <button
-                      className="author-link"
-                      disabled={busy}
-                      onClick={() => onSearch(author)}
-                    >
-                      {author}
-                    </button>
-                  </span>
-                ))
-              : "Autoría sin especificar"}
-          </p>
-          <dl className="profile-facts">
-            {(book?.edition.language || snapshot?.edition.language) && (
-              <>
-                <dt>Idioma</dt>
-                <dd>{book?.edition.language || snapshot?.edition.language}</dd>
-              </>
-            )}
-            {(book?.edition.format || snapshot?.edition.format) && (
-              <>
-                <dt>Formato</dt>
-                <dd>{displayFormat}</dd>
-              </>
-            )}
-            {facts?.publisher && (
-              <>
-                <dt>Editorial</dt>
-                <dd>{facts.publisher}</dd>
-              </>
-            )}
-            {facts?.pages != null && (
-              <>
-                <dt>Páginas</dt>
-                <dd>{facts.pages}</dd>
-              </>
-            )}
-            {facts?.publishedOn && (
-              <>
-                <dt>Publicación</dt>
-                <dd>{facts.publishedOn}</dd>
-              </>
-            )}
-          </dl>
-          {loading && (
-            <div
-              className="profile-loading-skeleton"
-              role="status"
-              aria-label="Cargando información del volumen"
-              aria-busy="true"
-            >
-              <span />
-              <span />
-              <span />
-              <span />
-              <span />
-            </div>
-          )}
-          {synopsis && <DescriptionText text={synopsis} />}
         </div>
         <aside className="profile-management" aria-label="Gestión del libro">
           {management}
         </aside>
       </div>
-      {metadataActions}
-      {!sourcesBeforeChildren && children}
+      {beforeBody}
+      {!metadataLast && metadataActions}
+      {(metadataLast || !sourcesBeforeChildren) && children}
+      {metadataLast && metadataActions}
       <details className="profile-identifiers">
         <summary>Identificadores y fuentes</summary>
         {book?.edition.identifier && (
@@ -245,7 +253,7 @@ export default function BookProfile({
         )}
         {sourceDetails}
       </details>
-      {sourcesBeforeChildren && children}
+      {!metadataLast && sourcesBeforeChildren && children}
     </section>
   );
 }

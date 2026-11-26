@@ -22,7 +22,7 @@ const novelAPI = vi.hoisted(() => ({
   Delete: vi.fn(),
   SearchCatalog: vi.fn(),
   OpenCatalog: vi.fn(),
-  BrowseCatalog:vi.fn(),
+  BrowseCatalog: vi.fn(),
   PrepareCatalog: vi.fn(),
   CatalogReleases: vi.fn(),
   PreviewPublication: vi.fn(),
@@ -285,6 +285,15 @@ describe("Catálogo de Libros", () => {
     );
     expect(screen.getByText("Descripción guardada")).toBeTruthy();
     expect(screen.getByRole("heading", { name: sample.title })).toBeTruthy();
+    const panels = screen
+      .getByLabelText("Notas personales del libro")
+      .closest(".reading-panels-two");
+    expect(panels).not.toBeNull();
+    expect(
+      screen
+        .getByRole("region", { name: "Historial de lecturas" })
+        .closest(".reading-panels-two"),
+    ).toBe(panels);
   });
   it("pide revisar una coincidencia local antes de vincular, sin guardar un duplicado manual", async () => {
     catalog.Preview.mockResolvedValue({

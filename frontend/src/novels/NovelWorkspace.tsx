@@ -616,23 +616,35 @@ export default function NovelWorkspace({
     return (
       <>
         <BookProfile
-          sourcesBeforeChildren
+          metadataLast
+          beforeBody={
+            !!current?.catalog?.warnings.length && (
+              <ul className="catalog-warnings">
+                {current.catalog.warnings.map((warning, index) => (
+                  <li key={index}>{warning}</li>
+                ))}
+              </ul>
+            )
+          }
           compactManagement
           ratingBadge={
-            selected.catalog ? (
-              <ExternalRating
-                rating={selected.catalog.rating}
-                provider="RanobeDB · novela"
-              />
-            ) : null
-          }
-          subtitleDetails={
-            current?.catalog ? (
-              <ExternalRating
-                compact
-                rating={current.catalog.rating}
-                provider={`RanobeDB · volumen ${shownLabel}`}
-              />
+            selected.catalog || current?.catalog ? (
+              <div className="profile-rating-stack">
+                {selected.catalog && (
+                  <ExternalRating
+                    rating={selected.catalog.rating}
+                    provider="RanobeDB · novela"
+                  />
+                )}
+                {current?.catalog && (
+                  <ExternalRating
+                    secondary
+                    caption={`Vol. ${shownLabel}`}
+                    rating={current.catalog.rating}
+                    provider={`RanobeDB · volumen ${shownLabel}`}
+                  />
+                )}
+              </div>
             ) : null
           }
           loading={metadataLoading}
@@ -697,6 +709,29 @@ export default function NovelWorkspace({
                   </button>
                 )}
               </div>
+              {linking && (
+                <section
+                  className="edition-picker"
+                  aria-label="Vincular novela"
+                >
+                  <div className="card-heading">
+                    <h2>Buscar novela para vincular</h2>
+                    <button className="quiet" onClick={() => setLinking(false)}>
+                      Cerrar búsqueda
+                    </button>
+                  </div>
+                  <NovelSearch
+                    value={linkQuery}
+                    onChange={setLinkQuery}
+                    disabled={busy}
+                    localOnly={localOnly}
+                    catalogOnly
+                    onAll={() => {}}
+                    onNovel={() => {}}
+                    onCandidate={(item) => candidate(item, selected)}
+                  />
+                </section>
+              )}
             </section>
           }
           book={book}
@@ -1023,168 +1058,6 @@ export default function NovelWorkspace({
             </>
           }
         >
-          {rereadSelection && (
-            <section
-              className="portal-card reread-selection"
-              aria-label="Nuevo recorrido de novela"
-            >
-              <h2>Releer novela</h2>
-              <p>
-                Elegí los volúmenes del nuevo recorrido. Sus lecturas anteriores
-                se conservan; se iniciarán cuando elijas Empezar volumen.
-              </p>
-              {rereadable.map((v) => (
-                <label key={v.id}>
-                  <input
-                    type="checkbox"
-                    disabled={busy}
-                    checked={rereadSelection.includes(v.id)}
-                    onChange={(e) =>
-                      setRereadSelection((old) =>
-                        e.target.checked
-                          ? [...(old || []), v.id]
-                          : (old || []).filter((id) => id !== v.id),
-                      )
-                    }
-                  />
-                  Volumen {volumeLabel(selected, v.number)}
-                  {v.title ? ` · ${v.title}` : ""}
-                </label>
-              ))}
-              <div className="catalog-actions">
-                <button
-                  className="primary"
-                  disabled={busy || !rereadSelection.length}
-                  onClick={() =>
-                    void action(async () =>
-                      commit(
-                        await Novels.RereadNovel(selected.id, rereadSelection),
-                        "Nuevo recorrido preparado. El historial anterior se conserva.",
-                        true,
-                      ),
-                    )
-                  }
-                >
-                  Crear recorrido
-                </button>
-                <button
-                  className="quiet"
-                  disabled={busy}
-                  onClick={() => setRereadSelection(null)}
-                >
-                  Cancelar
-                </button>
-              </div>
-            </section>
-          )}
-          {
-            <ReadingHistory
-              key={`${selected.id}-runs-${historyRevision}`}
-              title="Recorridos de novela"
-              current={
-                run?.cycle || {
-                  ...selected.readings?.[0]?.cycle,
-                  id: selected.readings?.[0]?.id || selected.id,
-                  status: selected.status,
-                  startedOn: selected.readings?.[0]?.cycle.startedOn || "",
-                  finishedOn: selected.readings?.[0]?.cycle.finishedOn || "",
-                }
-              }
-              history={selected.readings
-                ?.filter(
-                  (r) => r.id !== (run?.id || selected.readings?.[0]?.id),
-                )
-                .map((r) => r.cycle)}
-              labels={Object.fromEntries(
-                (selected.readings || []).map((r, i) => [
-                  r.id,
-                  `${i === 0 ? "Lectura inicial" : `Recorrido ${i + 1}`} · ${r.completed}/${r.volumeIDs.length} volúmenes · ${r.volumeIDs
-                    .map((id) => {
-                      const v = selected.volumes.find((v) => v.id === id);
-                      return v ? volumeLabel(selected, v.number) : "";
-                    })
-                    .join(", ")}`,
-                ]),
-              )}
-              info={info}
-              busy={busy}
-              allowAdd={false}
-              editableCurrent={!!run}
-              canReread={!!rereadable.length && !selected.activeVolumeID}
-              rereadLabel="Releer novela"
-              onReread={() =>
-                leave(() => setRereadSelection(rereadable.map((v) => v.id)))
-              }
-              onDirty={setRunDirty}
-              onSave={(input) =>
-                action(async () =>
-                  commit(
-                    await Novels.SaveRun(selected.id, input),
-                    "Recorrido corregido.",
-                  ),
-                )
-              }
-            />
-          }
-          {current && (
-            <ReadingHistory
-              key={`${selected.id}-${current.id}-${historyRevision}`}
-              title={`Lecturas del volumen ${shownLabel}`}
-              current={current.cycle}
-              history={current.history}
-              info={info}
-              busy={busy}
-              onDirty={setReadingDirty}
-              rereadLabel="Releer volumen"
-              onReread={
-                !selected.activeVolumeID
-                  ? () =>
-                      void action(async () =>
-                        commit(
-                          await Novels.RereadVolume(selected.id, current.id),
-                          "Relectura de volumen iniciada.",
-                          true,
-                        ),
-                      )
-                  : undefined
-              }
-              onSave={(input) =>
-                action(async () =>
-                  commit(
-                    await Novels.SaveReading(selected.id, current.id, input),
-                    "Lectura del volumen guardada.",
-                  ),
-                )
-              }
-            />
-          )}
-          {linking && (
-            <section className="edition-picker" aria-label="Vincular novela">
-              <div className="card-heading">
-                <h2>Buscar novela para vincular</h2>
-                <button className="quiet" onClick={() => setLinking(false)}>
-                  Cerrar búsqueda
-                </button>
-              </div>
-              <NovelSearch
-                value={linkQuery}
-                onChange={setLinkQuery}
-                disabled={busy}
-                localOnly={localOnly}
-                catalogOnly
-                onAll={() => {}}
-                onNovel={() => {}}
-                onCandidate={(item) => candidate(item, selected)}
-              />
-            </section>
-          )}
-          {!!current?.catalog?.warnings.length && (
-            <ul className="catalog-warnings">
-              {current.catalog.warnings.map((warning, index) => (
-                <li key={index}>{warning}</li>
-              ))}
-            </ul>
-          )}
           <section
             className="novel-volumes"
             aria-label="Volúmenes de la novela"
@@ -1247,34 +1120,175 @@ export default function NovelWorkspace({
               }
             />
           </section>
-          <section className="portal-card profile-notes">
-            <div className="card-heading">
-              <h2>Notas de la novela</h2>
-              <button
-                className="small-save"
-                disabled={busy || notes === selected.notes}
-                onClick={() =>
-                  void action(async () =>
+          <div className="reading-panels reading-panels-three">
+            <section className="portal-card profile-notes">
+              <div className="card-heading">
+                <h2>Notas de la novela</h2>
+                <button
+                  className="small-save"
+                  disabled={busy || notes === selected.notes}
+                  onClick={() =>
+                    void action(async () =>
+                      commit(
+                        await Novels.Save({ ...asInput(selected), notes }),
+                        "Notas de la novela guardadas.",
+                      ),
+                    )
+                  }
+                >
+                  Guardar notas
+                </button>
+              </div>
+              <label>
+                <span className="sr-only">Notas de la novela</span>
+                <textarea
+                  rows={4}
+                  disabled={busy}
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                />
+              </label>
+            </section>
+            <div className="novel-runs-column">
+              <ReadingHistory
+                key={`${selected.id}-runs-${historyRevision}`}
+                title="Recorridos de novela"
+                current={
+                  run?.cycle || {
+                    ...selected.readings?.[0]?.cycle,
+                    id: selected.readings?.[0]?.id || selected.id,
+                    status: selected.status,
+                    startedOn: selected.readings?.[0]?.cycle.startedOn || "",
+                    finishedOn: selected.readings?.[0]?.cycle.finishedOn || "",
+                  }
+                }
+                history={selected.readings
+                  ?.filter(
+                    (r) => r.id !== (run?.id || selected.readings?.[0]?.id),
+                  )
+                  .map((r) => r.cycle)}
+                labels={Object.fromEntries(
+                  (selected.readings || []).map((r, i) => [
+                    r.id,
+                    `${i === 0 ? "Lectura inicial" : `Recorrido ${i + 1}`} · ${r.completed}/${r.volumeIDs.length} volúmenes · ${r.volumeIDs
+                      .map((id) => {
+                        const v = selected.volumes.find((v) => v.id === id);
+                        return v ? volumeLabel(selected, v.number) : "";
+                      })
+                      .join(", ")}`,
+                  ]),
+                )}
+                info={info}
+                busy={busy}
+                allowAdd={false}
+                editableCurrent={!!run}
+                canReread={!!rereadable.length && !selected.activeVolumeID}
+                rereadLabel="Releer novela"
+                onReread={() =>
+                  leave(() => setRereadSelection(rereadable.map((v) => v.id)))
+                }
+                onDirty={setRunDirty}
+                onSave={(input) =>
+                  action(async () =>
                     commit(
-                      await Novels.Save({ ...asInput(selected), notes }),
-                      "Notas de la novela guardadas.",
+                      await Novels.SaveRun(selected.id, input),
+                      "Recorrido corregido.",
                     ),
                   )
                 }
-              >
-                Guardar notas
-              </button>
-            </div>
-            <label>
-              <span className="sr-only">Notas de la novela</span>
-              <textarea
-                rows={4}
-                disabled={busy}
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
               />
-            </label>
-          </section>
+              {rereadSelection && (
+                <section
+                  className="portal-card reread-selection"
+                  aria-label="Nuevo recorrido de novela"
+                >
+                  <h2>Releer novela</h2>
+                  <p>
+                    Elegí los volúmenes del nuevo recorrido. Sus lecturas
+                    anteriores se conservan; se iniciarán cuando elijas Empezar
+                    volumen.
+                  </p>
+                  {rereadable.map((v) => (
+                    <label key={v.id}>
+                      <input
+                        type="checkbox"
+                        disabled={busy}
+                        checked={rereadSelection.includes(v.id)}
+                        onChange={(e) =>
+                          setRereadSelection((old) =>
+                            e.target.checked
+                              ? [...(old || []), v.id]
+                              : (old || []).filter((id) => id !== v.id),
+                          )
+                        }
+                      />
+                      Volumen {volumeLabel(selected, v.number)}
+                      {v.title ? ` · ${v.title}` : ""}
+                    </label>
+                  ))}
+                  <div className="catalog-actions">
+                    <button
+                      className="primary"
+                      disabled={busy || !rereadSelection.length}
+                      onClick={() =>
+                        void action(async () =>
+                          commit(
+                            await Novels.RereadNovel(
+                              selected.id,
+                              rereadSelection,
+                            ),
+                            "Nuevo recorrido preparado. El historial anterior se conserva.",
+                            true,
+                          ),
+                        )
+                      }
+                    >
+                      Crear recorrido
+                    </button>
+                    <button
+                      className="quiet"
+                      disabled={busy}
+                      onClick={() => setRereadSelection(null)}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </section>
+              )}
+            </div>
+            {current && (
+              <ReadingHistory
+                key={`${selected.id}-${current.id}-${historyRevision}`}
+                title={`Lecturas del volumen ${shownLabel}`}
+                current={current.cycle}
+                history={current.history}
+                info={info}
+                busy={busy}
+                onDirty={setReadingDirty}
+                rereadLabel="Releer volumen"
+                onReread={
+                  !selected.activeVolumeID
+                    ? () =>
+                        void action(async () =>
+                          commit(
+                            await Novels.RereadVolume(selected.id, current.id),
+                            "Relectura de volumen iniciada.",
+                            true,
+                          ),
+                        )
+                    : undefined
+                }
+                onSave={(input) =>
+                  action(async () =>
+                    commit(
+                      await Novels.SaveReading(selected.id, current.id, input),
+                      "Lectura del volumen guardada.",
+                    ),
+                  )
+                }
+              />
+            )}
+          </div>
         </BookProfile>
         {confirmation && (
           <DeleteDialog

@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import {
   Info,
@@ -408,8 +409,10 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   expect(api.SearchCatalog).not.toHaveBeenCalled();
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
 });
-it("deja metadata fuera de gestión rápida y las fuentes antes de la galería", async () => {
+it("agrupa notas e historiales tras los volúmenes y deja metadata y fuentes al final", async () => {
   const n = local();
+  const warning = "Sin publicación coincidente para en / print.";
+  n.volumes[0].catalog!.warnings = [warning];
   api.RefreshCatalog.mockResolvedValue(n);
   await openLocal(n);
   const sources = document.querySelector<HTMLDetailsElement>(
@@ -419,10 +422,45 @@ it("deja metadata fuera de gestión rápida y las fuentes antes de la galería",
     name: "Volúmenes de la novela",
   });
   expect(
-    sources.compareDocumentPosition(gallery) & Node.DOCUMENT_POSITION_FOLLOWING,
+    gallery.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING,
   ).toBeTruthy();
   expect(sources.open).toBe(false);
   const metadata = screen.getByText("Catálogo y metadata");
+  const novelRating = screen.getByLabelText(
+    /^Puntaje externo de RanobeDB · novela:/,
+  );
+  const volumeRating = screen.getByLabelText(
+    /^Puntaje externo de RanobeDB · volumen 1:/,
+  );
+  expect(novelRating.parentElement).toBe(volumeRating.parentElement);
+  expect(within(volumeRating).getByText("Vol. 1")).toBeTruthy();
+  const panels = document.querySelector(".reading-panels-three")!;
+  expect(
+    screen
+      .getByLabelText("Notas de la novela")
+      .closest(".reading-panels-three"),
+  ).toBe(panels);
+  expect(
+    screen
+      .getByRole("region", { name: "Recorridos de novela" })
+      .closest(".reading-panels-three"),
+  ).toBe(panels);
+  expect(
+    screen
+      .getByRole("region", { name: "Lecturas del volumen 1" })
+      .closest(".reading-panels-three"),
+  ).toBe(panels);
+  const warningList = screen.getByText(warning).closest("ul")!;
+  for (const [before, after] of [
+    [warningList, gallery],
+    [gallery, panels],
+    [panels, metadata],
+    [metadata, sources],
+  ]) {
+    expect(
+      before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  }
   expect(sources.contains(metadata)).toBe(false);
   expect(
     screen

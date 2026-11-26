@@ -66,6 +66,16 @@ export default function BookDetails({
   );
   return (
     <BookProfile
+      metadataLast
+      beforeBody={
+        !!book.edition.catalog?.warnings?.length && (
+          <ul className="catalog-warnings">
+            {book.edition.catalog.warnings.map((warning, index) => (
+              <li key={index}>{warning}</li>
+            ))}
+          </ul>
+        )
+      }
       book={book}
       busy={busy}
       onBack={onBack}
@@ -161,45 +171,40 @@ export default function BookDetails({
       }
     >
       {editions}
-      <ReadingHistory
-        key={book.id}
-        current={book.cycle}
-        history={book.history}
-        info={info}
-        busy={busy}
-        onSave={onReading}
-        onReread={onReread}
-        onDirty={setReadingDirty}
-      />
-      {!!book.edition.catalog?.warnings?.length && (
-        <ul className="catalog-warnings">
-          {book.edition.catalog.warnings.map((warning, index) => (
-            <li key={index}>{warning}</li>
-          ))}
-        </ul>
-      )}
-      <section className="portal-card profile-notes">
-        <div className="card-heading">
-          <h2>Notas personales</h2>
-          <button
-            className="small-save"
-            disabled={busy || notes === book.notes}
-            onClick={() => void onNotes(book, notes)}
-          >
-            Guardar notas
-          </button>
-        </div>
-        <label className="inline-notes">
-          <span className="sr-only">Notas personales del {labels.item}</span>
-          <textarea
-            value={notes}
-            disabled={busy}
-            rows={4}
-            placeholder="Tus impresiones, ideas o recordatorios…"
-            onChange={(event) => setNotes(event.target.value)}
-          />
-        </label>
-      </section>
+      <div className="reading-panels reading-panels-two">
+        <section className="portal-card profile-notes">
+          <div className="card-heading">
+            <h2>Notas personales</h2>
+            <button
+              className="small-save"
+              disabled={busy || notes === book.notes}
+              onClick={() => void onNotes(book, notes)}
+            >
+              Guardar notas
+            </button>
+          </div>
+          <label className="inline-notes">
+            <span className="sr-only">Notas personales del {labels.item}</span>
+            <textarea
+              value={notes}
+              disabled={busy}
+              rows={4}
+              placeholder="Tus impresiones, ideas o recordatorios…"
+              onChange={(event) => setNotes(event.target.value)}
+            />
+          </label>
+        </section>
+        <ReadingHistory
+          key={book.id}
+          current={book.cycle}
+          history={book.history}
+          info={info}
+          busy={busy}
+          onSave={onReading}
+          onReread={onReread}
+          onDirty={setReadingDirty}
+        />
+      </div>
     </BookProfile>
   );
 }

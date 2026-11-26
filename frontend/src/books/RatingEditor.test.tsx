@@ -16,13 +16,25 @@ it("guarda al elegir un cuarto de punto o Sin puntuar, sin formulario ni confirm
     <RatingEditor value={8.25} busy={false} onSave={onSave} />,
   );
   const dropdown = screen.getByRole("combobox", { name: "Puntaje personal" });
-  expect(dropdown).toHaveProperty("value", "8.25");
-  expect(screen.getAllByRole("option")).toHaveLength(38);
+  const decimal = screen.getByRole("combobox", {
+    name: "Decimales de puntaje personal",
+  });
+  expect(dropdown).toHaveProperty("value", "8");
+  expect(decimal).toHaveProperty("value", "0.25");
+  expect(screen.getByRole("option", { name: "(8) Muy bueno" })).toBeTruthy();
+  expect(screen.getAllByRole("option")).toHaveLength(15);
   expect(screen.queryByRole("button", { name: "Guardar puntaje" })).toBeNull();
-  fireEvent.change(dropdown, { target: { value: "9.75" } });
+  fireEvent.change(decimal, { target: { value: "0.75" } });
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith("manual", 8.75));
+  rerender(<RatingEditor value={8.75} busy={false} onSave={onSave} />);
+  fireEvent.change(dropdown, { target: { value: "9" } });
   await waitFor(() => expect(onSave).toHaveBeenCalledWith("manual", 9.75));
   rerender(<RatingEditor value={9.75} busy={false} onSave={onSave} />);
-  expect(dropdown).toHaveProperty("value", "9.75");
+  expect(dropdown).toHaveProperty("value", "9");
+  fireEvent.change(dropdown, { target: { value: "10" } });
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith("manual", 10));
+  rerender(<RatingEditor value={10} busy={false} onSave={onSave} />);
+  expect(decimal).toHaveProperty("disabled", true);
   fireEvent.change(dropdown, { target: { value: "" } });
   await waitFor(() => expect(onSave).toHaveBeenCalledWith("", null));
 });
@@ -38,7 +50,9 @@ it("guarda Auto inmediatamente y muestra el valor calculado por Go en la selecci
       onSave={onSave}
     />,
   );
-  fireEvent.change(screen.getByRole("combobox"), { target: { value: "auto" } });
+  fireEvent.change(screen.getByRole("combobox", { name: "Puntaje personal" }), {
+    target: { value: "auto" },
+  });
   await waitFor(() =>
     expect(onSave).toHaveBeenCalledExactlyOnceWith("auto", null),
   );
@@ -51,9 +65,26 @@ it("guarda Auto inmediatamente y muestra el valor calculado por Go en la selecci
       onSave={onSave}
     />,
   );
-  expect(screen.getByRole("combobox")).toHaveProperty("value", "auto");
-  expect(screen.getByRole("combobox")).toHaveProperty("disabled", true);
+  expect(
+    screen.getByRole("combobox", { name: "Puntaje personal" }),
+  ).toHaveProperty("value", "auto");
+  expect(
+    screen.getByRole("combobox", { name: "Decimales de puntaje personal" }),
+  ).toHaveProperty("disabled", true);
   expect(screen.getByRole("option", { name: "Auto · 8,42" })).toBeTruthy();
+  rerender(
+    <RatingEditor
+      value={25.25 / 3}
+      mode="auto"
+      allowAuto
+      busy={false}
+      onSave={onSave}
+    />,
+  );
+  fireEvent.change(screen.getByRole("combobox", { name: "Puntaje personal" }), {
+    target: { value: "8" },
+  });
+  await waitFor(() => expect(onSave).toHaveBeenCalledWith("manual", 8));
 });
 
 it("muestra solo nota grande y cantidad, conservando detalles externos al pasar el cursor", () => {

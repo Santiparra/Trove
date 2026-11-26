@@ -242,20 +242,34 @@ export default function CatalogNovel({
     p.label || printedLabel(p.title, p.originalTitle) || `Lectura #${number}`;
   return (
     <BookProfile
-      sourcesBeforeChildren
+      metadataLast
+      beforeBody={
+        ready &&
+        !!p.warnings.length && (
+          <ul className="catalog-warnings">
+            {p.warnings.map((warning, i) => (
+              <li key={i}>{warning}</li>
+            ))}
+          </ul>
+        )
+      }
       compactManagement
       ratingBadge={
         !loadingSeries ? (
-          <ExternalRating rating={series.rating} provider="RanobeDB · novela" />
-        ) : null
-      }
-      subtitleDetails={
-        ready ? (
-          <ExternalRating
-            compact
-            rating={p.rating}
-            provider={`RanobeDB · volumen ${label}`}
-          />
+          <div className="profile-rating-stack">
+            <ExternalRating
+              rating={series.rating}
+              provider="RanobeDB · novela"
+            />
+            {ready && (
+              <ExternalRating
+                secondary
+                caption={`Vol. ${label}`}
+                rating={p.rating}
+                provider={`RanobeDB · volumen ${label}`}
+              />
+            )}
+          </div>
         ) : null
       }
       book={book}
@@ -494,13 +508,6 @@ export default function CatalogNovel({
           />
         )}
       </section>
-      {ready && !!p.warnings.length && (
-        <ul className="catalog-warnings">
-          {p.warnings.map((warning, index) => (
-            <li key={index}>{warning}</li>
-          ))}
-        </ul>
-      )}
     </BookProfile>
   );
 }

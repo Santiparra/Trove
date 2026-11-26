@@ -11,10 +11,14 @@ export function ExternalRating({
   rating,
   provider,
   compact = false,
+  caption,
+  secondary = false,
 }: {
   rating?: Rating | null;
   provider: string;
   compact?: boolean;
+  caption?: string;
+  secondary?: boolean;
 }) {
   const score = rating ? numberLabel((rating.value * 10) / rating.scale) : "—";
   const votes = rating?.votes;
@@ -27,10 +31,11 @@ export function ExternalRating({
     : `${provider} · Sin puntaje disponible`;
   return (
     <div
-      className={`external-rating ${compact ? "is-inline" : "is-badge"}`}
+      className={`external-rating ${compact ? "is-inline" : "is-badge"} ${secondary ? "is-secondary" : ""}`}
       aria-label={`Puntaje externo de ${provider}: ${score}/10, ${quantity}`}
       title={detail}
     >
+      {caption && <small className="rating-caption">{caption}</small>}
       <strong>{score}</strong>
       <small>{quantity}</small>
     </div>
@@ -60,9 +65,28 @@ export default function RatingEditor({
       ? "auto"
       : value == null || (allowAuto && !mode)
         ? ""
-        : String(value);
+        : String(Math.floor(value));
+  const fraction =
+    selected !== "" &&
+    selected !== "auto" &&
+    value != null &&
+    Number(selected) < 10
+      ? Math.round((value - Math.floor(value)) * 4) / 4
+      : 0;
+  const descriptions = [
+    "Pésimo",
+    "Horrible",
+    "Muy malo",
+    "Malo",
+    "Regular",
+    "Aceptable",
+    "Bueno",
+    "Muy bueno",
+    "Excelente",
+    "Obra maestra",
+  ];
   return (
-    <label className="rating-select" title={title}>
+    <div className="rating-select" title={title}>
       {label && <span className="rating-select-label">{label}</span>}
       <span className="rating-star" aria-hidden="true">
         ★
@@ -76,7 +100,9 @@ export default function RatingEditor({
           const next = event.target.value;
           void onSave(
             next === "auto" ? "auto" : next === "" ? "" : "manual",
-            next === "" || next === "auto" ? null : Number(next),
+            next === "" || next === "auto"
+              ? null
+              : Math.min(10, Number(next) + fraction),
           );
         }}
       >
@@ -87,12 +113,29 @@ export default function RatingEditor({
             {mode === "auto" && value != null ? ` · ${numberLabel(value)}` : ""}
           </option>
         )}
-        {Array.from({ length: 37 }, (_, i) => 1 + i / 4).map((score) => (
+        {Array.from({ length: 10 }, (_, i) => 10 - i).map((score) => (
           <option key={score} value={String(score)}>
-            {numberLabel(score)}
+            ({score}) {descriptions[score - 1]}
           </option>
         ))}
       </select>
-    </label>
+      <select
+        className="rating-decimal"
+        aria-label={`Decimales de ${title.toLowerCase()}`}
+        disabled={
+          busy || selected === "" || selected === "auto" || selected === "10"
+        }
+        value={String(fraction)}
+        onChange={(event) =>
+          void onSave("manual", Number(selected) + Number(event.target.value))
+        }
+      >
+        {[0, 0.25, 0.5, 0.75].map((part) => (
+          <option key={part} value={String(part)}>
+            ,{String(Math.round(part * 100)).padStart(2, "0")}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
