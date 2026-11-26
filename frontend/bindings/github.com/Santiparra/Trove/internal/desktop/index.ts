@@ -4,15 +4,18 @@
 import * as Backups from "./backups.js";
 import * as Catalog from "./catalog.js";
 import * as Library from "./library.js";
+import * as Novels from "./novels.js";
 export {
     Backups,
     Catalog,
-    Library
+    Library,
+    Novels
 };
 
 export {
     CatalogPreview,
     CatalogState,
     Choice,
-    Info
+    Info,
+    NovelPreview
 } from "./models.js";

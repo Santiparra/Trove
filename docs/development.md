@@ -1,32 +1,31 @@
-# Desarrollo en Windows x64
+# Development on Windows x64
 
-## Herramientas
+## Tools
 
-| Herramienta | Referencia verificada |
+| Tool | Verified reference |
 | --- | --- |
-| Go | 1.27.4; el módulo requiere 1.26 o posterior |
-| Node.js / npm | Node 26.13.0 y npm incluido |
+| Go | 1.27.4; the module requires 1.26 or later |
+| Node.js / npm | Node 26.13.0 and its bundled npm |
 | Wails CLI | 3.0.0 |
-| Git | Versión estable |
-| WebView2 Runtime | Necesario para ejecutar la ventana nativa |
+| Git | A stable release |
+| WebView2 Runtime | Required to run the native window |
 
-Go: [descargas oficiales](https://go.dev/dl/). Node: [descargas oficiales](https://nodejs.org/). WebView2: [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/).
+Official downloads: [Go](https://go.dev/dl/), [Node](https://nodejs.org/), and [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/).
 
-Después de instalar Go, desde cualquier carpeta:
+After installing Go, run from any directory:
 
 ```powershell
 go install github.com/wailsapp/wails/v3/cmd/wails3@v3.0.0
-go version
 node --version
 npm --version
 wails3 doctor
 ```
 
-PATH predeterminado: `C:\Program Files\Go\bin` y `%USERPROFILE%\go\bin`. Abrir una terminal nueva después de modificarlo; reiniciar también el editor si su terminal conserva el entorno anterior.
+Default PATH entries: `C:\Program Files\Go\bin` and `%USERPROFILE%\go\bin`. Open a new terminal after changing PATH; restart the editor if its terminal still has the old environment.
 
-SQLite está integrado mediante un driver Go sin CGo. React, Vite, TypeScript y las herramientas de frontend son dependencias locales, no instalaciones globales.
+SQLite is embedded through a pure-Go driver without CGo. React, Vite, TypeScript, and frontend tooling are local dependencies, not global installations.
 
-## Preparación y ejecución
+## Setup and execution
 
 ```powershell
 go mod download
@@ -34,15 +33,15 @@ npm --prefix frontend ci
 wails3 task dev
 ```
 
-Vite escucha en `127.0.0.1:9245`. El frontend tiene recarga rápida y los cambios de Go reinician el backend. Detener con Ctrl+C. Los datos de desarrollo están separados de pruebas y uso habitual.
+Vite listens on `127.0.0.1:9245`. The frontend supports hot reload, and Go changes restart the backend. Stop with Ctrl+C. Development data is separate from test and everyday-use profiles.
 
-## Verificación
+## Verification
 
 ```powershell
 powershell -NoProfile -File tools/verify.ps1
 ```
 
-Ejecuta Go y frontend. `-CheckBindings` regenera el contrato Wails y exige que coincida con los archivos del commit; usarlo con los cambios de bindings ya incorporados a un commit. No es una prueba del navegador o ventana nativa completos.
+This runs Go and frontend tests. `-CheckBindings` regenerates the Wails contract and requires it to match committed files; use it after committing binding changes. This is not an end-to-end test of a browser or native window.
 
 ```powershell
 wails3 task bindings
@@ -50,34 +49,36 @@ npm --prefix frontend run format
 wails3 task test
 ```
 
-Las carpetas temporales del script quedan en `.local/`. Los tests usan datos sintéticos, no bibliotecas personales ni APIs reales.
+The script keeps temporary directories under `.local/`. Tests use synthetic data, not personal libraries or real provider APIs.
 
-## Compilar
+## Building
 
-Build rápida local de prueba:
+Quick local test build:
 
 ```powershell
 wails3 task build
 .\bin\Trove-test.exe
 ```
 
-Paquete identificable, con licencia, instrucciones, metadatos y checksums:
+An identified package with license, instructions, metadata, and checksums:
 
 ```powershell
 powershell -NoProfile -File tools/build.ps1 -Version development -Profile test -BuildID local
 powershell -NoProfile -File tools/verify-without-git.ps1
 ```
 
-La salida está en `artifacts/portable/`. Para compilar no se necesita que la carpeta sea un repositorio Git. La revisión se inyecta explícitamente cuando está disponible; las compilaciones usan `-buildvcs=false`. El contrato sin Git reconstruye el ejecutable desde una copia de fuentes con los assets ya generados y prueba la identidad de ambos ejecutables desde directorios vacíos.
+Output is written to `artifacts/portable/`. Building does not require the directory to be a Git repository. Revision is injected explicitly when available; builds use `-buildvcs=false`. The no-Git contract rebuilds the executable from a source copy with generated frontend assets and tests both executable identities from empty directories.
 
-La versión de aplicación no es la versión del esquema SQLite ni la del respaldo JSON. Los scripts no incrementan archivos de versión ni crean commits.
+Application version, SQLite schema version, and JSON backup version are independent. Scripts do not increment version files or create commits.
 
-## Integración
+## Integration and documentation
 
-`dev` es la rama de integración de trabajo. Solo los PR cuyo destino es `main` y los pushes a `main` ejecutan GitHub Actions. Un push a `dev` por sí solo no inicia un workflow.
+`dev` is the working integration branch. Only PRs targeting `main` and pushes to `main` run GitHub Actions. A push to `dev` alone does not start a workflow.
 
-El check Windows valida contratos, frontend, bindings y paquete portable. El artefacto de PR usa perfil `test`. Después del merge, se repiten las verificaciones sobre el commit integrado y se publica el paquete `habitual` desde el artefacto de ese mismo run, sin recompilar en el job de publicación.
+The Windows check validates contracts, frontend, bindings, and the portable package. PR artifacts use the `test` profile. After merging, verification runs again on the integrated commit; the `habitual` package is published from that run's artifact without rebuilding in the publication job.
 
-Cada corte incorpora su documento de novedades en `docs/releases/` y actualiza `current.txt` para seleccionarlo. La verificación comprueba que existe y tiene contenido; la publicación lo usa como cuerpo de la release. El número real se asigna en Actions y no se adelanta en el documento. Ver el [procedimiento de notas](releases/README.md#preparar-las-notas-de-cada-corte).
+Public documentation is written in English. Consolidate README, technical/user guides, release notes, and the short [Spanish guide](es/guia.md) when preparing a PR to `main`; do not require a full documentation sweep for every development iteration. During implementation, keep only the decisions/contracts and specific test instructions needed for the work. The interface remains in Spanish, so preserve actual UI labels in instructions. The Spanish guide covers getting started and everyday use rather than mirroring every technical detail. Internal planning, notes, and development discussions remain in Spanish.
 
-Ver [contratos](testing.md), [arquitectura](architecture.md) y [releases](releases/README.md).
+Each release gets a new English notes document in `docs/releases/`, selected by `current.txt`. Verification checks that the document exists and has content; publication uses it as the release body. Actions assigns the actual version, which is not predicted in the document. Previously published notes retain their original content and language. See [preparing release notes](releases/README.md#preparing-release-notes).
+
+See [contracts](testing.md), [architecture](architecture.md), and [releases](releases/README.md).

@@ -138,7 +138,7 @@ func TestSchemaThreeUpgradeNormalizesIdentifiersWithoutChangingRawData(t *testin
 	if err != nil || b.Edition.Identifier != "978-0-547-92822-7" || len(b.Edition.Identifiers) != 2 || b.Cycle.FinishedOn != "" || b.Notes != "Conservar" {
 		t.Fatal("migración cambió datos propios")
 	}
-	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-4-*.sqlite"))
+	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-6-*.sqlite"))
 	if err != nil || len(paths) != 1 {
 		t.Fatal("falta copia previa")
 	}

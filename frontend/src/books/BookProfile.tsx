@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type {
   Book,
   Series,
@@ -7,6 +7,7 @@ import type { Snapshot } from "../../bindings/github.com/Santiparra/Trove/intern
 import CatalogImage from "../catalog/CatalogImage";
 import Icon from "../components/Icon";
 import { seriesLabel } from "./presentation";
+import DescriptionText from "../components/DescriptionText";
 
 export default function BookProfile({
   book = null,
@@ -17,6 +18,17 @@ export default function BookProfile({
   onSearch,
   management,
   children,
+  ariaLabel,
+  subtitle,
+  description,
+  coverURL,
+  editionInfo,
+  sourceDetails,
+  formatLabel,
+  loading = false,
+  sourcesBeforeChildren = false,
+  metadataActions,
+  compactManagement = false,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -26,19 +38,48 @@ export default function BookProfile({
   onSearch: (query: string) => void;
   management: ReactNode;
   children?: ReactNode;
+  ariaLabel?: string;
+  subtitle?: string;
+  description?: string;
+  coverURL?: string;
+  editionInfo?: {
+    publisher: string;
+    publishedOn: string;
+    pages: number | null;
+  };
+  sourceDetails?: ReactNode;
+  formatLabel?: string;
+  loading?: boolean;
+  sourcesBeforeChildren?: boolean;
+  metadataActions?: ReactNode;
+  compactManagement?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  useEffect(() => setExpanded(false), [book?.id, snapshot?.edition.id]);
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
   const identifiers = book?.edition.identifiers || snapshot?.identifiers || [];
+  const synopsis = description ?? snapshot?.description;
+  const facts = editionInfo ?? snapshot?.edition;
+  const displayFormat =
+    formatLabel ||
+    (
+      {
+        paperback: "Tapa blanda",
+        hardcover: "Tapa dura",
+        digital: "Digital",
+        audio: "Audio",
+        other: "Otro",
+      } as Record<string, string>
+    )[book?.edition.format || snapshot?.edition.format || ""] ||
+    book?.edition.format ||
+    snapshot?.edition.format;
   return (
     <section
-      className="book-page unified-book-page"
+      className={`book-page unified-book-page ${compactManagement ? "compact-management" : ""}`}
       aria-label={
-        book?.medium === "light-novels"
+        ariaLabel ||
+        (book?.medium === "light-novels"
           ? "Detalle del volumen"
-          : "Detalle del libro"
+          : "Detalle del libro")
       }
     >
       <button className="back-link" onClick={onBack} disabled={busy}>
@@ -47,7 +88,7 @@ export default function BookProfile({
       <div className="book-profile-grid">
         <div className="profile-cover">
           <CatalogImage
-            url={snapshot?.coverURL || ""}
+            url={coverURL ?? snapshot?.coverURL ?? ""}
             fallback={
               <div className="cover-placeholder" aria-hidden="true">
                 <Icon name="books" size={44} />
@@ -86,6 +127,7 @@ export default function BookProfile({
             )
           )}
           <h1>{title}</h1>
+          {subtitle && <p className="novel-subtitle">{subtitle}</p>}
           <p className="hero-author">
             {authors.length
               ? authors.map((author, index) => (
@@ -112,70 +154,52 @@ export default function BookProfile({
             {(book?.edition.format || snapshot?.edition.format) && (
               <>
                 <dt>Formato</dt>
-                <dd>
-                  {(
-                    {
-                      paperback: "Tapa blanda",
-                      hardcover: "Tapa dura",
-                      digital: "Digital",
-                      audio: "Audio",
-                      other: "Otro",
-                    } as Record<string, string>
-                  )[book?.edition.format || snapshot?.edition.format || ""] ||
-                    book?.edition.format ||
-                    snapshot?.edition.format}
-                </dd>
+                <dd>{displayFormat}</dd>
               </>
             )}
-            {snapshot?.edition.publisher && (
+            {facts?.publisher && (
               <>
                 <dt>Editorial</dt>
-                <dd>{snapshot.edition.publisher}</dd>
+                <dd>{facts.publisher}</dd>
               </>
             )}
-            {snapshot?.edition.pages != null && (
+            {facts?.pages != null && (
               <>
                 <dt>Páginas</dt>
-                <dd>{snapshot.edition.pages}</dd>
+                <dd>{facts.pages}</dd>
               </>
             )}
-            {snapshot?.edition.publishedOn && (
+            {facts?.publishedOn && (
               <>
                 <dt>Publicación</dt>
-                <dd>{snapshot.edition.publishedOn}</dd>
+                <dd>{facts.publishedOn}</dd>
               </>
             )}
           </dl>
-          {snapshot?.description && (
-            <div className="profile-description">
-              <p
-                className={
-                  !expanded && snapshot.description.length > 600
-                    ? "description-collapsed"
-                    : ""
-                }
-              >
-                {snapshot.description}
-              </p>
-              {snapshot.description.length > 600 && (
-                <button
-                  className="text-action"
-                  aria-expanded={expanded}
-                  onClick={() => setExpanded((value) => !value)}
-                >
-                  {expanded ? "Leer menos" : "Leer más"}
-                </button>
-              )}
+          {loading && (
+            <div
+              className="profile-loading-skeleton"
+              role="status"
+              aria-label="Cargando información del volumen"
+              aria-busy="true"
+            >
+              <span />
+              <span />
+              <span />
+              <span />
+              <span />
             </div>
           )}
+          {synopsis && <DescriptionText text={synopsis} />}
         </div>
         <aside className="profile-management" aria-label="Gestión del libro">
           {management}
         </aside>
       </div>
-      {children}
+      {!sourcesBeforeChildren && children}
       <details className="profile-identifiers">
         <summary>Identificadores y fuentes</summary>
+        {metadataActions}
         {book?.edition.identifier && (
           <p>ISBN / ID local: {book.edition.identifier}</p>
         )}
@@ -201,7 +225,9 @@ export default function BookProfile({
             ))}
           </>
         )}
+        {sourceDetails}
       </details>
+      {sourcesBeforeChildren && children}
     </section>
   );
 }

@@ -1,50 +1,52 @@
-# Contratos y pruebas
+# Contracts and testing
 
-La verificación se organiza por objetivos observables, no por porcentaje de cobertura ni cuota de funciones. El catálogo siguiente contiene **35 escenarios core**, complementados por los contratos de catálogo, proveedores, modo solo local e interacción descritos más abajo. Un escenario puede incluir una admisión y un rechazo pareados; no representa necesariamente un archivo o una función de test ni el total de pruebas de la aplicación.
+Verification is organized around observable outcomes, not coverage percentages or function quotas. The table contains **35 core scenarios**, supplemented by catalog, provider, local-only, and interaction contracts below. A scenario may combine acceptance and rejection cases; it is not necessarily one file or test function, or the application's total test count.
 
-## Catálogo de aceptación
+## Acceptance contracts
 
-| ID | Objetivo / admisión y límite | Evidencia automatizada |
+| ID | Outcome / acceptance and boundary | Automated evidence |
 | --- | --- | --- |
-| C01 | Iniciar biblioteca vacía sin proveedor ni repositorio requerido | `TestAdmission_C01_EmptyDirectoryStartsOffline` |
-| C02 | Separar biblioteca y salida de perfiles | `TestAdmission_C02_ProfilesDoNotShareLibraryOrBackupOutput` |
-| C03 | Conservar significado de DTOs y versión entre adaptadores | `TestAdmission_C03_WireDTOsPreserveMeaning` + bindings/TypeScript |
-| C04 | Rechazar entradas inválidas sin registros parciales | `TestAdmission_C04_InvalidWriteDoesNotCreatePartialRecords` |
-| C05 | Recuperar desde SQLite aislado sin JSON/manifiesto | `TestAdmission_C05_SQLiteRecoveryIsStandalone` |
-| C06 | Recuperar desde JSON aislado sin SQLite/manifiesto | `TestAdmission_C06_JSONRecoveryIsStandalone` |
-| C07 | Distinguir importación externa de restauración propia | `TestAdmission_C07_ExternalFileIsNotARecoveryBackup` |
-| C08 | Fallar al configurar respaldo sin bloquear trabajo local | `TestAdmission_C08_BackupConfigurationFailureDoesNotRejectLocalWork` |
-| C09 | Rechazar perfil/ruta inválidos sin destino alternativo oculto | `TestAdmission_C09_InvalidProfileOrDataRootHasNoSilentFallback` |
-| C10 | Guardar, editar y reabrir conservando identidad/serie | `TestBooksSurviveReopenAndShareSeries` |
-| C11 | Revertir transacciones fallidas y conservar edición previa | `TestSaveRollsBackAllTablesOnFailure`, `TestFailedEditPreservesSavedBookAndSeriesCanBeCleared` |
-| C12 | Rechazar esquema futuro y migrar el anterior con copia previa | `TestFutureSchemaIsRejected`, `TestVersionOneMigratesAndHasReadableSafetyCopy` |
-| C13 | Respetar fechas manuales/desconocidas y cronología | `TestValidationKeepsUnknownDatesAndRejectsInvalidInput`, `TestLiveReadingDates`, `TestSaveAppliesLiveDatesButHonorsManualEdits` |
-| C14 | Cambiar estado sin pisar otros datos | `TestQuickStatusChangesOnlyStatusAndUpdatesDashboard` |
-| C15 | Ordenar recientes solo por fechas conocidas y limitar preview | `TestDashboardUsesCompletionDatesAndLimitsRecentBooks` |
-| C16 | Eliminar un libro sin afectar otro y revertir fallo | `TestDeletePreservesOtherBooksAndRollsBackOnFailure` |
-| C17 | Mantener notas, propiedades y orden de serie independientes | `TestPersonalActionsAndSeriesOrdering` |
-| C18 | Validar formato, relaciones, campos y contenido faltante | `TestValidationRejectsBrokenRelationshipsAndFutureFormats`, `TestJSONRejectsUnknownFieldsAndTrailingData` |
-| C19 | Preservar todas las entidades y fechas en ambos respaldos | `TestArchiveRoundTripPreservesIDsAllCyclesAndUnknownDates` |
-| C20 | Conservar dos generaciones válidas y no duplicar sin cambios | `TestAutomaticGenerationsRetentionFailureAndRestoreBothFormats` |
-| C21 | No sustituir copia válida por generación incompleta/alterada | `TestIncompleteGenerationsAreIgnoredAndPreparedTamperingIsRejected` |
-| C22 | Congelar la preparación y cancelar sin tocar datos activos | `TestInvalidOrModifiedRestoreNeverTouchesActiveData` |
-| C23 | Recuperar biblioteca anterior si falla el reemplazo | `TestInstallRollbackLeavesPreviousLibraryReadable` |
-| C24 | No importar configuración de otro perfil al restaurar | `TestRestoreKeepsTargetProfileBackupConfiguration` |
-| C25 | Resguardar por temporizador, al cierre y tras reinicio | `TestDebounceAndShutdownSavePendingChangesWithoutManualExport` |
-| C26 | Esperar escrituras aceptadas y rechazar nuevas al cerrar | `TestShutdownWaitsForAcceptedWritesAndBacksThemUp` |
-| C27 | Navegar portal/estados/serie/búsqueda sin guardados implícitos | `frontend/src/App.test.tsx` |
-| C28 | Conservar borradores y datos confirmados ante errores de UI | `frontend/src/App.test.tsx` |
-| C29 | Exigir confirmación y distinguir éxito/error de recuperación | `frontend/src/backup/BackupPanel.test.tsx` |
-| C30 | Mantener el contrato Go/Wails/TypeScript generado | `tools/verify.ps1 -CheckBindings` y compilación TypeScript |
-| C31 | Compilar sin Git y consultar identidad desde carpeta vacía | `tools/verify-without-git.ps1` sobre fuentes y portable |
-| C32 | Distribuir solo archivos explícitos con versión/perfil/checksums correctos | `tools/build.ps1`, `tools/package.ps1` |
-| C33 | Aislar lecturas, series, búsquedas y todas las mutaciones entre Libros y Novelas ligeras | `TestAdmission_C33_ReadingMediaAreIsolatedAcrossAllOperations` + interfaz |
-| C34 | Recuperar ambos medios desde JSON o SQLite sin perder identidades | `TestAdmission_C34_MixedLibraryRestoresFromEitherRepresentation` |
-| C35 | Admitir respaldos anteriores y migrar sin fabricar fechas ni mezclar bibliotecas | `TestAdmission_C35_LegacyJSONRestoresAsBooksWithoutInventingDates`, `TestSchemaTwoMigrationKeepsBookAndSeriesIdentities`, `TestLegacyDocumentKeepsOriginalContentHash` |
+| C01 | Start an empty library without a provider or required repository | `TestAdmission_C01_EmptyDirectoryStartsOffline` |
+| C02 | Separate library data and backup output by profile | `TestAdmission_C02_ProfilesDoNotShareLibraryOrBackupOutput` |
+| C03 | Preserve DTO and version semantics across adapters | `TestAdmission_C03_WireDTOsPreserveMeaning` + bindings/TypeScript |
+| C04 | Reject invalid input without partial records | `TestAdmission_C04_InvalidWriteDoesNotCreatePartialRecords` |
+| C05 | Recover from standalone SQLite without JSON/manifest | `TestAdmission_C05_SQLiteRecoveryIsStandalone` |
+| C06 | Recover from standalone JSON without SQLite/manifest | `TestAdmission_C06_JSONRecoveryIsStandalone` |
+| C07 | Distinguish external imports from native recovery | `TestAdmission_C07_ExternalFileIsNotARecoveryBackup` |
+| C08 | Allow local work when backup configuration fails | `TestAdmission_C08_BackupConfigurationFailureDoesNotRejectLocalWork` |
+| C09 | Reject invalid profiles/paths without hidden fallback destinations | `TestAdmission_C09_InvalidProfileOrDataRootHasNoSilentFallback` |
+| C10 | Save, edit, and reopen while preserving identity and series | `TestBooksSurviveReopenAndShareSeries` |
+| C11 | Roll back failed transactions and preserve the previous edition | `TestSaveRollsBackAllTablesOnFailure`, `TestFailedEditPreservesSavedBookAndSeriesCanBeCleared` |
+| C12 | Reject future schemas and migrate an older schema with a safety copy | `TestFutureSchemaIsRejected`, `TestVersionOneMigratesAndHasReadableSafetyCopy` |
+| C13 | Respect manual/unknown dates and chronology | `TestValidationKeepsUnknownDatesAndRejectsInvalidInput`, `TestLiveReadingDates`, `TestSaveAppliesLiveDatesButHonorsManualEdits` |
+| C14 | Change status without overwriting other fields | `TestQuickStatusChangesOnlyStatusAndUpdatesDashboard` |
+| C15 | Order recent completions by known dates and limit previews | `TestDashboardUsesCompletionDatesAndLimitsRecentBooks` |
+| C16 | Delete one entry without affecting another and roll back on failure | `TestDeletePreservesOtherBooksAndRollsBackOnFailure` |
+| C17 | Keep notes, personal flags, and series ordering independent | `TestPersonalActionsAndSeriesOrdering` |
+| C18 | Validate format, relationships, fields, and missing content | `TestValidationRejectsBrokenRelationshipsAndFutureFormats`, `TestJSONRejectsUnknownFieldsAndTrailingData` |
+| C19 | Preserve all entities and dates in both backup representations | `TestArchiveRoundTripPreservesIDsAllCyclesAndUnknownDates` |
+| C20 | Retain two valid generations and avoid unchanged duplicates | `TestAutomaticGenerationsRetentionFailureAndRestoreBothFormats` |
+| C21 | Never replace a valid backup with an incomplete/altered generation | `TestIncompleteGenerationsAreIgnoredAndPreparedTamperingIsRejected` |
+| C22 | Freeze prepared recovery and cancel without touching active data | `TestInvalidOrModifiedRestoreNeverTouchesActiveData` |
+| C23 | Recover the previous library if replacement fails | `TestInstallRollbackLeavesPreviousLibraryReadable` |
+| C24 | Keep destination profile configuration when restoring | `TestRestoreKeepsTargetProfileBackupConfiguration` |
+| C25 | Back up after debounce, on shutdown, and after restart | `TestDebounceAndShutdownSavePendingChangesWithoutManualExport` |
+| C26 | Wait for accepted writes and reject new ones during shutdown | `TestShutdownWaitsForAcceptedWritesAndBacksThemUp` |
+| C27 | Navigate dashboard/states/series/search without implicit saves | `frontend/src/App.test.tsx` |
+| C28 | Preserve drafts and saved data after UI errors | `frontend/src/App.test.tsx` |
+| C29 | Require confirmation and distinguish recovery success/failure | `frontend/src/backup/BackupPanel.test.tsx` |
+| C30 | Keep the generated Go/Wails/TypeScript contract consistent | `tools/verify.ps1 -CheckBindings` and TypeScript compilation |
+| C31 | Build without Git and query identity from an empty directory | `tools/verify-without-git.ps1` against sources and portable |
+| C32 | Distribute only explicit files with correct version/profile/checksums | `tools/build.ps1`, `tools/package.ps1` |
+| C33 | Isolate reads, series, search, and all mutations across Books and Light Novels | `TestAdmission_C33_ReadingMediaAreIsolatedAcrossAllOperations` + UI |
+| C34 | Recover both reading media from JSON or SQLite without losing identity | `TestAdmission_C34_MixedLibraryRestoresFromEitherRepresentation` |
+| C35 | Accept older backups and migrate without inventing dates or merging libraries | `TestAdmission_C35_LegacyJSONRestoresAsBooksWithoutInventingDates`, `TestSchemaTwoMigrationKeepsBookAndSeriesIdentities`, `TestLegacyDocumentKeepsOriginalContentHash` |
 
-## Ejecución
+## Running verification
 
-La entrega de catálogo añade pruebas focalizadas en `internal/catalog`, `internal/providers`, `internal/credentials`, `internal/desktop/catalog_test.go` e `internal/storage/sqlite/catalog_test.go`: validación de ISBN/equivalencias, cascada por edición, protección de credenciales, seguridad de portadas, conservación de datos personales, detección de coincidencias y round-trip de snapshots. También comprueba prioridad de edición exacta, selección inicial informativa y alta con estado/serie sin fechas ficticias. `frontend/src/App.test.tsx` verifica búsqueda flotante local/remota, apertura directa de ficha, reconocimiento local antes del alta, configuración de claves, fallback manual, aislamiento de Novelas ligeras y conservación de borradores ante refrescos exitosos o fallidos. Las pruebas de proveedores usan respuestas sintéticas; no necesitan claves reales ni conectividad.
+Catalog tests in `internal/catalog`, `internal/providers`, `internal/credentials`, `internal/desktop/catalog_test.go`, and `internal/storage/sqlite/catalog_test.go` cover ISBN/equivalence validation, edition-specific cascading, credential protection, cover safety, preservation of personal data, match detection, and snapshot round trips. They also check exact-edition priority, informative initial selection, and creation with status/series without fabricated dates.
+
+`frontend/src/App.test.tsx` checks local/remote search popovers, direct detail navigation, local recognition before creation, key settings, manual fallback, Light Novels isolation, and preservation of drafts across successful or failed refreshes. Provider tests use synthetic responses and require neither real keys nor external connectivity.
 
 ```powershell
 powershell -NoProfile -File tools/verify.ps1
@@ -52,20 +54,27 @@ powershell -NoProfile -File tools/build.ps1 -Version development -Profile test -
 powershell -NoProfile -File tools/verify-without-git.ps1
 ```
 
-El runner de admisión `tests/contracts` atraviesa los adaptadores que Wails publica y utiliza SQLite real, carpetas nuevas y datos sintéticos. No levanta una ventana, APIs ni nube. La UI se prueba con Vitest/Testing Library y puente controlado; los bindings y sus consumidores se comprueban aparte contra Go.
+The `tests/contracts` admission runner exercises adapters exposed by Wails using real SQLite, fresh directories, and synthetic data. It does not open a window, start external APIs, or use cloud services. UI tests use Vitest/Testing Library and a controlled bridge; generated bindings and consumers are checked against Go separately.
 
-La compilación sin Git usa fuentes y frontend ya generado en una copia donde Git no descubre el repositorio. El portable consulta identidad con `--version` desde una carpeta vacía, sin abrir una biblioteca. No equivale a automatización gráfica completa.
+The no-Git build uses sources and generated frontend assets in a copy where Git cannot discover the repository. The portable queries identity with `--version` from an empty directory without opening a library. This is not full graphical automation.
 
-## Verificación remota
+## Remote verification
 
-GitHub Actions ejecuta el check **Windows x64** solo en PR hacia `main` o push a `main`. Una suite verde habilita la integración, pero no reemplaza comprobar interacción real, WebView2 y diálogos nativos en una PC. Los artefactos de PR permiten esa validación antes del merge.
+GitHub Actions runs **Windows x64** only for PRs targeting `main` or pushes to `main`. A passing suite enables integration but does not replace checking real interaction, WebView2, and native dialogs on a PC. PR artifacts allow that validation before merging.
 
-La lista crece cuando se añaden capacidades reales. Requisitos ambiguos se resuelven antes de convertirlos en expectativas; casos negativos y recuperación se añaden por el riesgo que protegen, no para aumentar el número de tests.
+The contract list grows with real capabilities. Ambiguous requirements are resolved before becoming assertions. Negative and recovery cases are added for the risks they protect, not to increase the test count.
 
-`frontend/src/books/BookSearch.test.tsx` verifica con reloj controlado la pausa de escritura, la cancelación de temporizadores pendientes y el orden local → proveedor, sin solicitudes reales. Los recorridos de autoría/serie desde fichas locales y remotas y el alta inmediata al elegir estado se verifican en `frontend/src/App.test.tsx`.
+## Focused contracts
 
-`internal/providers/health_test.go` verifica pausa tras fallos, una única recuperación concurrente, solicitudes en cola, invalidación al cambiar credenciales, cancelaciones, latencia sin espera local, 404/429, comprobaciones acotadas, respuestas incompatibles y cierre con cancelación. Usa reloj controlado y servidores HTTP sintéticos, sin claves reales ni servicios externos. `frontend/src/catalog/ProviderHealth.test.tsx` comprueba resumen, estados diferenciados, acción manual y refresco exclusivamente local.
+- `frontend/src/books/BookSearch.test.tsx` uses a controlled clock to verify debounce, cancellation of pending timers, and local-before-provider ordering without real requests. Author/series navigation from local and remote pages and immediate creation on status selection are tested in `frontend/src/App.test.tsx`.
+- `internal/providers/health_test.go` covers failure pauses, a single concurrent recovery attempt, queued requests, invalidation on key changes, cancellation, latency excluding local waits, 404/429, bounded checks, incompatible responses, and shutdown cancellation. It uses a controlled clock and synthetic HTTP servers. `frontend/src/catalog/ProviderHealth.test.tsx` covers summaries, distinct states, manual checks, and local-only status refresh.
+- `internal/providers/network_test.go` covers profile persistence, blocking both catalogs and cover downloads, offline caching, and cancellation during an in-flight response. `internal/backup/manager_test.go` covers exact current/previous selection, tampering revalidation, and safety copies before replacement. UI tests cover timestamp selection, local-only personal management, and toast expiry/pausing.
+- `internal/novels/service_test.go` covers historical 7/? progress, unknown read quantities, start/finish state transitions, known-total completion without N+1, preservation of volume IDs/data/dates, rejected writes, and isolation from Books and earlier standalone volumes. `internal/storage/sqlite/novels_test.go` checks aggregate/volume round trips through JSON and native backups and a nonempty restore preview for a novel with no known volumes. `internal/desktop/novels_test.go` rejects writes during shutdown.
+- `frontend/src/novels/NovelWorkspace.test.tsx` checks one card per novel, the X-1 shortcut, unknown quantities, next-volume information without automatic starting, N/N completion, volume editing errors, and preservation of note drafts. App tests exercise the dedicated novel service rather than the older standalone-volume UI.
+- `internal/providers/novel_providers_test.go` covers normal-name RanobeDB search, main-book hierarchy, original ordering/partial dates, rejection of manga/partial/compilation releases, exact-ISBN Hardcover supplementation, structured categories versus misleading community tags, and local-only policy. No real credentials or external APIs are required by these tests.
+- `internal/novels/catalog_test.go` covers duplicate recognition, manual data preservation, multiple identifier schemes, safe refresh/unlink, and rejection of changed order/ISBN. `internal/desktop/novel_catalog_test.go` checks server-owned selection tokens and rejects background metadata writes across restoration. `internal/storage/sqlite/novels_test.go` also restores catalog snapshots from both JSON and native backups.
+- `frontend/src/novels/NovelCatalogFlow.test.tsx` covers local/remote search, direct enriched profiles, creation/linking, existing records, publication selection, author identity navigation, next-volume metadata without starting it, and offline snapshot presentation.
+- `internal/novels/dashboard_test.go` checks parent-level counts, recent/queue limits, decimal labels versus completed quantities, and progress correction without changing reading dates. `internal/novelcatalog/cache_test.go` checks selected-book coalescing/reuse and fresh lookup behavior.
+- UI contracts also cover the portal versus **Todas**, future-volume gallery continuity during staged loading, metadata controls inside sources before the gallery, native key-page navigation, real description overflow, safe web-link copying, and custom deletion dialogs. Visual density still requires checking the native window; DOM tests do not measure real layout.
 
-`internal/providers/network_test.go` verifica persistencia por perfil, bloqueo de ambos catálogos y portadas, caché offline y cancelación durante una respuesta en curso. `internal/backup/manager_test.go` verifica selección exacta Actual/Anterior, revalidación ante alteraciones y copia previa al reemplazo. Las pruebas de interfaz cubren selección por fecha, modo solo local sin impedir la gestión personal y expiración/pausa de los toasts.
-
-Antes de los tests, `tools/verify.ps1` comprueba la sintaxis de los scripts, los enlaces Markdown locales y el documento de novedades elegido por `docs/releases/current.txt`. Una publicación usa esas notas y el artefacto ya validado; el PR no publica ni crea tags. Ver [publicaciones y artefactos](releases/README.md).
+Before tests, `tools/verify.ps1` checks script syntax, local Markdown links, and the release notes selected by `docs/releases/current.txt`. Publication uses those notes and the already-verified artifact; a PR does not publish or create tags. See [releases and artifacts](releases/README.md).

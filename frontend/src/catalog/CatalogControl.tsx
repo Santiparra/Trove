@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Browser } from "@wailsio/runtime";
 import * as Catalog from "../../bindings/github.com/Santiparra/Trove/internal/desktop/catalog";
 import type { CatalogState } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import { errorMessage } from "../books/presentation";
@@ -31,7 +32,7 @@ export default function CatalogControl({
   return (
     <div className="catalog-control">
       <button
-        className="profile-tag"
+        className={`profile-tag ${state ? (state.configured ? "keys-configured" : "keys-pending") : "keys-unknown"}`}
         disabled={disabled || busy}
         aria-expanded={open}
         onClick={() => {
@@ -62,6 +63,25 @@ export default function CatalogControl({
           <strong>
             Hardcover · {state?.configured ? "Configurado" : "Sin clave"}
           </strong>
+          <p className="management-hint">
+            La clave permite consultar el catálogo de Hardcover desde Trove. Se
+            obtiene en tu cuenta de Hardcover; no necesitás una cuenta de Trove.
+          </p>
+          <button
+            className="text-action key-help-link"
+            disabled={busy}
+            onClick={() => {
+              setError("");
+              void Browser.OpenURL("https://hardcover.app/account/api").catch(
+                () =>
+                  setError(
+                    "No se pudo abrir Hardcover. Entrá a hardcover.app/account/api desde tu navegador.",
+                  ),
+              );
+            }}
+          >
+            Obtener clave en Hardcover ↗
+          </button>
           <label>
             Clave de catálogo
             <input
@@ -93,6 +113,7 @@ export default function CatalogControl({
             </button>
           </div>
           <p>Open Library · Sin clave</p>
+          <p>RanobeDB · Sin clave</p>
           {error && <p role="alert">{error}</p>}
         </section>
       )}

@@ -190,6 +190,7 @@ func (m *monitor) finish(epoch, sequence uint64, duration time.Duration, err err
 
 // Health owns only bounded, explicit checks; it never periodically polls providers.
 type Health struct {
+	ranobe      *RanobeDB
 	network     *NetworkPolicy
 	hardcover   *Hardcover
 	openlibrary *OpenLibrary
@@ -202,7 +203,7 @@ type Health struct {
 	wg          sync.WaitGroup
 }
 
-func NewHealth(hardcover *Hardcover, openlibrary *OpenLibrary, network *NetworkPolicy) *Health {
+func NewHealth(hardcover *Hardcover, openlibrary *OpenLibrary, network *NetworkPolicy, ranobe ...*RanobeDB) *Health {
 	ctx, cancel := context.WithCancel(context.Background())
 	h := &Health{hardcover: hardcover, openlibrary: openlibrary, network: network, ctx: ctx, cancel: cancel}
 	if network != nil {
@@ -212,12 +213,22 @@ func NewHealth(hardcover *Hardcover, openlibrary *OpenLibrary, network *NetworkP
 	token, err := hardcover.token()
 	hardcover.health = newMonitor("hardcover", "Hardcover", err == nil && token != "")
 	openlibrary.health = newMonitor("openlibrary", "Open Library", true)
+	if len(ranobe) > 0 && ranobe[0] != nil {
+		h.ranobe = ranobe[0]
+		h.ranobe.health = newMonitor("ranobedb", "RanobeDB", true)
+		if network != nil {
+			network.protect(h.ranobe.http)
+		}
+	}
 	return h
 }
 func (h *Health) State() HealthReport {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	report := HealthReport{Providers: []ProviderStatus{h.hardcover.health.snapshot(), h.openlibrary.health.snapshot()}, Checking: h.checking}
+	if h.ranobe != nil {
+		report.Providers = append(report.Providers, h.ranobe.health.snapshot())
+	}
 	if h.network != nil {
 		report.LocalOnly = h.network.LocalOnly()
 	}
@@ -243,7 +254,11 @@ func (h *Health) Check() HealthReport {
 		ctx, cancel := context.WithTimeout(h.ctx, 8*time.Second)
 		defer cancel()
 		var probes sync.WaitGroup
-		for _, check := range []func(context.Context) error{h.hardcover.check, h.openlibrary.check} {
+		checks := []func(context.Context) error{h.hardcover.check, h.openlibrary.check}
+		if h.ranobe != nil {
+			checks = append(checks, h.ranobe.check)
+		}
+		for _, check := range checks {
 			probes.Add(1)
 			go func(probe func(context.Context) error) { defer probes.Done(); _ = probe(ctx) }(check)
 		}

@@ -11,6 +11,12 @@ import * as books$0 from "../books/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as catalog$0 from "../catalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as novelcatalog$0 from "../novelcatalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as novels$0 from "../novels/models.js";
 
 export class CatalogPreview {
     "token": string;
@@ -152,9 +158,57 @@ export class Info {
     }
 }
 
+export class NovelPreview {
+    "token": string;
+    "series": novelcatalog$0.Series;
+    "publication": novelcatalog$0.Publication;
+    "match": novels$0.CatalogMatch;
+
+    /** Creates a new NovelPreview instance. */
+    constructor($$source: Partial<NovelPreview> = {}) {
+        if (!("token" in $$source)) {
+            this["token"] = "";
+        }
+        if (!("series" in $$source)) {
+            this["series"] = (new novelcatalog$0.Series());
+        }
+        if (!("publication" in $$source)) {
+            this["publication"] = (new novelcatalog$0.Publication());
+        }
+        if (!("match" in $$source)) {
+            this["match"] = (new novels$0.CatalogMatch());
+        }
+
+        Object.assign(this, $$source);
+    }
+
+    /**
+     * Creates a new NovelPreview instance from a string or object.
+     */
+    static createFrom($$source: any = {}): NovelPreview {
+        const $$createField1_0 = $$createType5;
+        const $$createField2_0 = $$createType6;
+        const $$createField3_0 = $$createType7;
+        let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("series" in $$parsedSource) {
+            $$parsedSource["series"] = $$createField1_0($$parsedSource["series"]);
+        }
+        if ("publication" in $$parsedSource) {
+            $$parsedSource["publication"] = $$createField2_0($$parsedSource["publication"]);
+        }
+        if ("match" in $$parsedSource) {
+            $$parsedSource["match"] = $$createField3_0($$parsedSource["match"]);
+        }
+        return new NovelPreview($$parsedSource as Partial<NovelPreview>);
+    }
+}
+
 // Private type creation functions
 const $$createType0 = catalog$0.Snapshot.createFrom;
 const $$createType1 = books$0.CatalogResult.createFrom;
 const $$createType2 = $Create.Nullable($$createType1);
 const $$createType3 = Choice.createFrom;
 const $$createType4 = $Create.Array($$createType3);
+const $$createType5 = novelcatalog$0.Series.createFrom;
+const $$createType6 = novelcatalog$0.Publication.createFrom;
+const $$createType7 = novels$0.CatalogMatch.createFrom;

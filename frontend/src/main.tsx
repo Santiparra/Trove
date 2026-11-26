@@ -5,6 +5,7 @@ import "./styles.css";
 import "./books/reading-layout.css";
 import "./backup/backups.css";
 import "./catalog/catalog.css";
+import "./novels/novels.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

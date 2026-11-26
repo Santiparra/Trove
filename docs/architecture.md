@@ -1,58 +1,73 @@
-# Arquitectura
+# Architecture
 
-Trove es una aplicación modular local: interfaz React/TypeScript en Wails v3, casos de uso Go y SQLite embebido. No requiere servidor de base de datos ni cuenta propia.
+Trove is a modular local application: a React/TypeScript interface hosted by Wails v3, Go use cases, and embedded SQLite. It does not require a database server or a Trove account.
 
-## Responsabilidades
+## Responsibilities
 
-| Componente | Responsabilidad |
+| Component | Responsibility |
 | --- | --- |
-| `frontend/src/books` | Presentación, formularios, navegación y estado de interacción |
-| `frontend/src/backup` | Configuración visible, estado y confirmación de recuperación |
-| `frontend/src/catalog` | Consulta, revisión de edición, vinculación y presentación de portadas locales |
-| `internal/desktop` | Adaptadores Wails, contratos de entrada/salida y diálogos nativos |
-| `internal/books` | Identidad, validaciones y casos de uso de biblioteca |
-| `internal/storage/sqlite` | SQL, transacciones, migraciones y adaptación de snapshots |
-| `internal/backup` | Formato lógico, validación, generaciones y restauración mediante un contrato de backend |
-| `internal/config` | Resolución de perfiles y ubicación de datos |
-| `internal/catalog` | Contratos bibliográficos, ISBN, cascada y procedencia independientes de proveedores |
-| `internal/providers` | Adaptadores Hardcover/Open Library y caché local de portadas |
-| `internal/credentials` | Protección DPAPI de la clave de catálogo por perfil |
-| `main.go` | Composición de dependencias y ciclo de vida nativo |
+| `frontend/src/books` | Presentation, forms, navigation, and interaction state |
+| `frontend/src/backup` | Visible backup settings, status, and recovery confirmation |
+| `frontend/src/catalog` | Catalog search, edition review, linking, and local cover presentation |
+| `frontend/src/novels` | Novel-level library, progress editing, and volume detail forms |
+| `internal/desktop` | Wails adapters, input/output contracts, and native dialogs |
+| `internal/books` | Library identities, validation, and use cases |
+| `internal/novels` | Novel aggregates, numbered volumes, progress, and reading actions |
+| `internal/storage/sqlite` | SQL, transactions, migrations, and snapshot adaptation |
+| `internal/backup` | Logical format, validation, generations, and restoration through a backend contract |
+| `internal/config` | Profile and data-location resolution |
+| `internal/catalog` | Provider-independent bibliographic contracts, ISBN handling, cascading, and provenance |
+| `internal/novelcatalog` | Series/main-book/release identity, publication snapshots, and safe Hardcover supplementation for novels |
+| `internal/providers` | Hardcover/Open Library adapters and local cover caching |
+| `internal/credentials` | Per-profile catalog key protection using Windows DPAPI |
+| `main.go` | Dependency composition and native lifecycle |
 
-El frontend no accede a SQL. Los tipos externos o específicos del driver no definen el dominio. Los bindings se generan desde Go, se versionan y se verifican en CI junto con sus consumidores TypeScript.
+The frontend does not access SQL. External provider types and driver-specific types do not define the domain. Bindings are generated from Go, committed, and checked in CI alongside their TypeScript consumers.
 
-## Modelo local
+Novel dashboard counts and recent-volume selection are computed in Go. Local reading positions and stable IDs are separate from visible labels and provider ordering. Historical progress changes use a dedicated operation that preserves cycle dates; live start/finish actions keep their own date behavior. A novel status-change timestamp orders recent queue changes without assigning artificial reading dates.
 
-Una obra tiene identidad propia y puede estar relacionada con una serie y posición. Una edición conserva formato, idioma, identificador opcional y propiedad. El consumo se registra en ciclos separados, con estado y fechas conocidas. Favorito y notas pertenecen al registro personal.
+## Local model
 
-Libros y Novelas ligeras comparten el modelo de lectura, con un discriminador explícito `books` / `light-novels`. Los servicios se acotan por petición, sin un «medio actual» mutable en el backend. El adaptador exige medio en consultas y mutaciones; un ID de otra sección no habilita leerlo, editarlo o borrarlo desde el contexto equivocado. La edición no cambia el medio de una entrada existente. Las series también tienen identidad por medio, aunque coincidan sus nombres.
+A work has its own identity and may belong to a series at a given position. An edition holds format, language, an optional identifier, and ownership. Reading activity is stored in separate cycles with status and known dates. Favorites and notes belong to the personal record.
 
-La interfaz inicial trabaja con una edición/ciclo por entrada de lectura. El resguardo preserva todas las entidades almacenadas, no solo la proyección elegida por un listado. Las fechas desconocidas no se reconstruyen a partir de la fecha de importación o respaldo.
+Books and Light Novels share the reading model, with an explicit `books` / `light-novels` discriminator. Services are scoped per request; the backend has no mutable global "current medium." The adapter requires a medium for queries and mutations. An ID from another section does not grant access to read, edit, or delete it in the wrong context. Editing an edition does not change the entry's medium. Series also have medium-specific identities, even when their names match.
 
-## Persistencia y recuperación
+Books works with one edition/cycle per displayed reading entry. Light Novels uses one entry per novel with independent numbered volume entities, editions/cycles, notes, and personal flags. Its completed count and optional total describe aggregate progress; live start/finish actions operate on the next numbered volume. Historical progress does not fabricate dates, and unknown quantities do not materialize volumes. Backups preserve all stored entities, not just a list projection.
 
-SQLite se encapsula detrás de operaciones concretas. Sus transacciones evitan actualizaciones parciales. El esquema se versiona y las migraciones existentes generan una copia previa cuando corresponda. Un esquema futuro no reconocido se rechaza.
+The novel model has its own repository and Wails service rather than reinterpreting a Books series as a novel. SQLite stores separate `novels` and `novel_volumes` rows, with a foreign key and unique per-novel volume numbers. Typed Go records are serialized in row payloads, and row IDs/numbers are checked against them on reads. Aggregate writes replace parent/volume data within one transaction and notify the existing backup mechanism. The shared library gate serializes novel mutations against restoration and shutdown.
 
-El resguardo produce SQLite y un modelo JSON independiente. Ambas representaciones provienen del mismo snapshot consistente. Las generaciones se preparan temporalmente y se publican completas; las fallidas no sustituyen la última válida.
+No conversion of the earlier standalone-volume model is performed. Existing Books and standalone volume rows remain intact; the novel-level interface reads the new aggregate storage.
 
-Restaurar valida el archivo, prepara una base nueva, conserva una copia de la biblioteca activa y serializa el reemplazo frente a operaciones de biblioteca. Los archivos de configuración de la máquina no forman parte de los datos recuperados. Cambiar de motor requeriría otro adaptador y migración, pero el JSON no obliga a leer primero SQLite.
+## Persistence and recovery
 
-## Extensión por medios y proveedores
+SQLite is encapsulated behind concrete operations. Transactions prevent partial updates. The schema is versioned, and existing migrations create a safety copy where applicable. An unrecognized future schema is rejected.
 
-Las secciones tienen identidad y reglas propias. Compartir mecanismos no implica imponer la misma estructura a todos los medios. Importar archivos externos, vincular metadata y restaurar respaldos son operaciones distintas.
+Backups produce SQLite and an engine-independent JSON model from the same consistent snapshot. Generations are staged and published only when complete; failed generations do not replace the last valid one.
 
-Libros usa Hardcover como catálogo principal. Open Library complementa campos faltantes de la edición seleccionada mediante ISBN seguro; no se promueve automáticamente a principal ni se consulta por cada candidato. El snapshot conserva referencias, fuentes y advertencias por separado del registro personal. Refrescar no pisa título, autoría, serie, notas, estado ni fechas; un fallo conserva el snapshot anterior.
+Restoration validates the source, prepares a new database, preserves a safety copy of the active library, and serializes replacement against library operations. Machine-specific configuration is not part of restored data. Changing database engines would require another adapter and a migration, but reading the JSON does not require SQLite.
 
-La selección se prepara en Go y se confirma mediante un token temporal, sin aceptar un snapshot inventado desde el frontend. Las coincidencias locales exigen revisión antes de vincular; una edición ya vinculada se abre sin duplicarla. El catálogo remoto no está habilitado para Novelas ligeras. Los importadores externos siguen pendientes.
+## Media and provider boundaries
 
-`BookSearch` presenta primero coincidencias locales y después candidatos remotos en el mismo flotante. `BookProfile` comparte la presentación de fichas locales y remotas; la gestión depende de si existe registro personal. Go reconoce coincidencias antes del alta y prioriza la edición local o la más informativa al abrir una obra. Cambiar de edición se gestiona desde la propia ficha. La configuración de claves queda en el encabezado, separada del contenido bibliográfico.
+Each medium has its own identity and rules. Sharing mechanisms does not require every medium to have the same structure. Importing external files, linking bibliographic metadata, and restoring backups are separate operations.
 
-`internal/providers/health.go` integra diagnóstico y circuit breaker en las llamadas reales de cada adaptador. Mantiene estado efímero por proveedor, distingue acceso, límites, ausencia de registros y fallos de red/respuesta, e impide consultas en cola cuando el circuito se abre. El arranque dispara dos comprobaciones acotadas en paralelo; el cierre cancela sus contextos y espera su terminación. El frontend consulta estado por IPC sin generar sondeos remotos periódicos. Los cambios de clave reinician el circuito de Hardcover e invalidan resultados anteriores todavía en vuelo.
+Books uses Hardcover as its primary catalog. Open Library supplements missing fields for the selected edition using a safe ISBN match. It is not automatically promoted to primary and is not queried for every search candidate. Snapshots keep remote references, sources, and warnings separate from personal data. Refreshing does not overwrite title, authors, series, notes, status, or dates; a failed refresh preserves the previous snapshot.
 
-`internal/providers/network.go` mantiene la política de red del perfil y protege los transportes HTTP de todos los adaptadores y descargas de portada. En solo local bloquea nuevas solicitudes y cancela el contexto de las existentes; las interrupciones intencionales no cuentan como fallos de proveedor. Cualquier adaptador futuro debe compartir esta política. El selector de respaldos usa IDs de generaciones validadas por Go, sin aceptar rutas construidas por el frontend.
+Go prepares a selection and confirms it through a temporary token, rather than accepting a frontend-supplied snapshot. Local matches require review before linking; an already-linked entity opens without creating a duplicate. External-service importers are not implemented yet.
 
-## Distribución
+Light Novels uses RanobeDB series identities, explicitly ordered main-book references, and single complete releases. Original titles and source ordering are preserved separately from local reading positions. Hardcover supplements only verified ISBN/language/format matches and checks its structured book category; community genre tags are not used as medium classification. The novel path does not invoke Open Library or approximate Hardcover title searches.
 
-El frontend está embebido en el ejecutable. La identidad de build incluye versión, revisión y perfil; puede consultarse sin abrir SQLite. Las publicaciones contienen el ejecutable validado, no una biblioteca ni configuración personal. Ver [desarrollo](development.md), [formato](backup-format.md) y [releases](releases/README.md).
+Novel and volume snapshots remain separate from personal fields. Refreshes preserve manually supplied text and dates, reject changed identities/order, and never infer totals or completed history from catalog counts. Metadata for the next volume is loaded without starting it. SQL indexes enforce unique linked RanobeDB series/book identities. Novel refreshes capture the library's restore epoch and cannot apply data after a successful restoration or an intervening switch to local-only mode.
 
-Las novedades se conservan por corte en `docs/releases/`. `current.txt` selecciona el documento público que el script de publicación usa como cuerpo de la release, independientemente del título del PR y del mensaje de merge. La versión sigue procediendo de la identidad calculada por Actions.
+Remote browsing separates a validated series/header from selected publication resolution. The header's selection token is not a valid publication to persist; a complete server-validated preview is required before linking or creation. The shared detail component keeps the volume gallery visible while metadata loads. Selected-book details use a bounded two-minute cache with coalesced in-flight lookups; search and personal library records are not cached there. Explicit refresh bypasses that cache, and cached metadata retains its source timing.
+
+`BookSearch` presents local matches first and then remote candidates in the same popover. `BookProfile` shares local and remote detail presentation; available management actions depend on whether a personal record exists. Go recognizes matches before creation and prefers a local or more informative edition when opening a work. Edition changes are handled within the detail page. Key configuration lives in the header, outside bibliographic content.
+
+`internal/providers/health.go` integrates diagnostics and circuit breakers with actual adapter calls. It holds temporary per-provider state, distinguishes access errors, rate limits, missing records, and network/response failures, and stops queued requests when a circuit opens. Startup launches two bounded checks in parallel; shutdown cancels their contexts and waits for completion. The frontend refreshes state through local IPC without periodically probing remote services. Key changes reset Hardcover's circuit and invalidate older in-flight results.
+
+`internal/providers/network.go` maintains the profile's network policy and protects catalog and cover-download HTTP transports. Local-only mode blocks new requests and cancels existing request contexts; intentional interruptions do not count as provider failures. Future adapters must share this policy. Restore selection uses generation IDs validated by Go, not frontend-constructed paths.
+
+## Distribution
+
+The frontend is embedded in the executable. Build identity includes version, revision, and profile and can be read without opening SQLite. Packages contain the verified executable, not a library or personal configuration. See [development](development.md), the [backup format](backup-format.md), and [releases](releases/README.md).
+
+Release notes are kept per release in `docs/releases/`. `current.txt` selects the public document used as the release body, independently of the PR title or merge message. The version comes from the identity calculated by Actions.

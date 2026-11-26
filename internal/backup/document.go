@@ -20,10 +20,11 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/novels"
 )
 
 const Format = "trove-library"
-const Version = 3
+const Version = 6
 
 func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 
@@ -63,10 +64,11 @@ type Cycle struct {
 	FinishedOn string `json:"finishedOn"`
 }
 type Catalog struct {
-	Series   []Series  `json:"series"`
-	Works    []Work    `json:"works"`
-	Editions []Edition `json:"editions"`
-	Cycles   []Cycle   `json:"cycles"`
+	Novels   []novels.Novel `json:"novels,omitempty"`
+	Series   []Series       `json:"series"`
+	Works    []Work         `json:"works"`
+	Editions []Edition      `json:"editions"`
+	Cycles   []Cycle        `json:"cycles"`
 }
 type Document struct {
 	Format     string  `json:"format"`
@@ -197,11 +199,43 @@ func (d *Document) Validate() error {
 			return errors.New("obra sin edición o registro de lectura")
 		}
 	}
+	if d.Version < 4 && len(d.Catalog.Novels) > 0 {
+		return errors.New("el formato de respaldo no admite novelas agrupadas")
+	}
+	novelIDs, volumeIDs, novelEditionIDs, novelCycleIDs := map[string]bool{}, map[string]bool{}, map[string]bool{}, map[string]bool{}
+	for _, n := range d.Catalog.Novels {
+		if d.Version < 5 && n.Catalog != nil {
+			return errors.New("el formato no admite catálogo de novelas")
+		}
+		if err := add(novelIDs, n.ID); err != nil {
+			return err
+		}
+		if err := n.Validate(); err != nil {
+			return err
+		}
+		for _, v := range n.Volumes {
+			if d.Version < 5 && v.Catalog != nil {
+				return errors.New("el formato no admite publicaciones de novelas")
+			}
+			for _, entry := range []struct {
+				ids map[string]bool
+				id  string
+			}{{volumeIDs, v.ID}, {novelEditionIDs, v.Edition.ID}, {novelCycleIDs, v.Cycle.ID}} {
+				if err := add(entry.ids, entry.id); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	d.Canonicalize()
 	return nil
 }
 
 func (d *Document) Canonicalize() {
+	for i := range d.Catalog.Novels {
+		d.Catalog.Novels[i].Canonicalize()
+	}
+	sort.Slice(d.Catalog.Novels, func(i, j int) bool { return d.Catalog.Novels[i].ID < d.Catalog.Novels[j].ID })
 	if d.Version >= 3 {
 		for i := range d.Catalog.Editions {
 			if len(d.Catalog.Editions[i].Identifiers) == 0 {

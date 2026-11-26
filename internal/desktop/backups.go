@@ -94,7 +94,11 @@ func (b *Backups) ConfirmRestore(token string) (backup.RestoreResult, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return b.manager.ConfirmRestore(ctx, token)
+	result, err := b.manager.ConfirmRestore(ctx, token)
+	if err == nil {
+		b.library.dataEpoch++
+	}
+	return result, err
 }
 
 // Wails calls this lifecycle hook before the store is closed by main.

@@ -262,6 +262,21 @@
 .catalog-control {
   position: relative;
 }
+.profile-tag.keys-pending {
+  background: #3b3221;
+  color: #f1cf87;
+  border-color: #806a3e;
+}
+.profile-tag.keys-unknown {
+  background: #273039;
+  color: #bdc8d1;
+  border-color: #46545f;
+}
+.key-help-link {
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
 .provider-health-healthy {
   color: #b9dbba;
   border-color: #426045;

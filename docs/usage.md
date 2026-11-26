@@ -1,120 +1,165 @@
-# Uso y datos locales
+# Usage and local data
 
-## Bibliotecas de Libros y Novelas ligeras
+The application currently uses Spanish UI labels, which are preserved below so you can find the actual controls. For a shorter introduction in Spanish, see [Cómo empezar y usar Trove](es/guia.md).
 
-Cada sección abre su portal con estados, lecturas actuales, últimas finalizaciones conocidas y distribución visual. Comparten recorridos, pero sus listados, búsquedas y series son independientes. Las vistas previas se limitan al espacio disponible; los listados completos siguen accesibles.
+## Books and Light Novels libraries
 
-Cada volumen de novela ligera se registra individualmente y puede vincularse a una serie y número de orden. Una serie con el mismo nombre en Libros y Novelas ligeras no se fusiona automáticamente. Cambiar de pestaña no reclasifica ni modifica registros existentes.
+Books opens a dashboard with reading states, current reads, recently finished entries with known dates, and a visual distribution. Light Novels opens a compact dashboard with library/status access, current reads, up to five up-next covers, and the latest five volume completions with known dates. Its state distribution is integrated into the library card; full lists are separate and **Todas** includes every state. Both sections keep their records and operations independent.
 
-- La búsqueda muestra primero resultados locales por título, autoría, serie o identificador. En Libros agrega candidatos de Hardcover en el mismo flotante cuando hay clave configurada, sin bloquear las coincidencias locales. Enter o «Ver todos los resultados» abre el listado completo.
-- Elegir un estado abre sus registros. Los botones superiores cambian el filtro.
-- La serie aparece sobre el título. Una serie local conserva sus libros ordenados por posición (los que no tienen posición quedan al final) y, en Libros, suma candidatos del catálogo por nombre. Una serie de catálogo abre la búsqueda compartida por su nombre.
-- Pulsar un autor en una ficha local o remota abre la búsqueda compartida de sus libros. Los resultados remotos requieren la clave configurada; las coincidencias locales siguen disponibles sin ella.
-- La ficha permite guardar notas y modificar favorito, propiedad y estado sin abrir el formulario completo.
-- Solo el título es obligatorio al crear un libro. ISBN, autoría y fechas pueden completarse después.
-- En Novelas ligeras se usa «Añadir volumen», con la misma edición mínima y datos personales. La ficha permite editar, marcar favorito/propiedad, guardar notas y cambiar estados, incluida A continuación.
-- Eliminar exige confirmación y elimina los datos asociados al libro, no otros libros de su serie.
+Light Novels displays one entry per novel, with its volumes inside the detail page. Its title and authors belong to the novel; individual volume titles are optional. Switching sections does not reclassify or change existing records. The following catalog and popover-search instructions apply to Books; see [novel-level tracking](#novel-level-tracking) for Light Novels.
 
-## Catálogo opcional de Libros
+- Search first shows local matches by title, author, series, or identifier. In Books, it adds Hardcover candidates in the same popover when a key is configured, without blocking local matches. Enter or **Ver todos los resultados** opens the full list.
+- Selecting a reading state opens its entries. The buttons above the list change the filter.
+- The series appears above the title. Local series keep their entries ordered by position, with unnumbered entries last; in Books, they also show catalog candidates searched by series name. A catalog series opens the shared search by name.
+- Clicking an author on a local or remote detail page opens the shared search for their books. Remote results require a configured key; local matches remain available without one.
+- The detail page allows saving notes and changing favorites, ownership, and status without opening the full editor.
+- Only the title is required when creating a book. ISBN, authors, and dates can be added later.
+- Light Novels uses **Añadir novela**, with unified local/catalog search, publication selection, and volume editing available from its detail page.
+- Deletion requires confirmation and removes the entry's associated data, not other entries in its series.
 
-1. Configurar una clave de lectura de Hardcover desde **Claves**, junto al indicador de respaldos. Guardarla no consulta ni sincroniza la biblioteca personal del proveedor.
-2. Usar la búsqueda principal por título, autor, serie o ISBN. Elegir un resultado abre directamente la ficha compartida, con portada, información y gestión. Una obra abre preferentemente la edición local vinculada; si no existe, se elige la edición con más campos informados entre las devueltas por el proveedor. Buscar un ISBN concreto respeta esa edición.
-3. Desde la ficha, usar **Elegir otra edición** o **Cambiar edición vinculada** para ver hasta 20 ediciones y buscar otra por ISBN. Consultar y revisar no agrega registros.
-4. El botón **Agregar · Por leer** agrega con un clic. Elegir otro estado en su desplegable ejecuta el alta inmediatamente, sin una confirmación adicional; los registros existentes también cambian de estado al elegirlo. Una única serie bibliográfica se preselecciona; se puede quitar, y varias asociaciones requieren elección. Agregar como Leído no fabrica fechas de consumo.
-5. Una edición ya vinculada abre su registro local con estado y acciones, sin ofrecer agregar. Coincidencias por ISBN o por otra edición de la obra se revisan antes de vincular. No se fusionan automáticamente ediciones distintas.
+## Optional Books catalog
 
-La ficha distribuye portada, información y gestión en tres columnas cuando hay espacio, sin deformar la imagen. La descripción extensa se expande con **Leer más**. Los identificadores y fuentes están en un bloque desplegable al pie.
+1. Configure a Hardcover catalog key from **Claves**, next to the backup indicator. Saving it does not query or synchronize your personal provider library.
+   **Obtener clave en Hardcover** opens the official key page in your browser. The indicator is yellow when setup is missing and neutral while its state is unknown. A saved key is not a guarantee that access has been validated.
+2. Use the main search by title, author, series, or ISBN. Selecting a result opens the shared detail page with cover, information, and management actions. Opening a work prefers a linked local edition; otherwise, the most informative edition among the provider's returned results is selected. A specific ISBN respects that edition.
+3. Use **Elegir otra edición** or **Cambiar edición vinculada** within the detail page to view up to 20 editions and search for another by ISBN. Searching and reviewing do not create library entries.
+4. **Agregar · Por leer** adds an entry with one click. Choosing a different status in its dropdown creates it immediately; existing entries also change state when selected. A single bibliographic series is preselected and can be removed; multiple associations require a choice. Adding an already-read book does not invent reading dates.
+5. An already-linked edition opens its local record and management actions instead of offering creation. ISBN matches or another edition of the same work require review before linking. Different editions are not merged automatically.
 
-La búsqueda flotante espera 140 ms de pausa antes de consultar localmente y otros 350 ms después de obtener esos resultados antes de consultar Hardcover. Seguir escribiendo cancela los temporizadores pendientes; las respuestas antiguas no reemplazan la consulta vigente. Las peticiones que ya salieron no se cancelan en la red.
+The detail page uses three columns for cover, information, and management when space allows, preserving the image's proportions. Long descriptions expand with **Leer más**. Identifiers and sources are in a collapsible section at the bottom.
 
-Desde la ficha se puede vincular o cambiar edición, refrescar metadata y desvincular. Estas operaciones conservan los datos personales; el refresco fallido conserva el snapshot anterior. La descripción y demás metadata guardada se pueden leer offline. Las portadas ya descargadas se reutilizan localmente; las no disponibles muestran un marcador. Open Library solo complementa campos faltantes con un ISBN seguro de la edición elegida.
+Popover search waits for a 140 ms pause before searching locally, then another 350 ms after local results arrive before querying Hardcover. Continued typing cancels pending timers; stale responses do not replace the current query. Typing alone does not cancel requests already sent over the network.
 
-El alta manual sigue disponible sin clave ni conexión. Novelas ligeras conserva su flujo manual. La clave y las imágenes cacheadas no se exportan: tras restaurar en otra ubicación puede ser necesario configurar la clave y descargar portadas nuevamente.
+From a detail page, you can link or change an edition, refresh metadata, and unlink it. These actions preserve personal data; a failed refresh keeps the previous snapshot. Saved descriptions and metadata can be read offline. Downloaded covers are reused locally, while unavailable ones display a placeholder. Open Library only supplements missing fields for the selected edition using a safe ISBN match.
 
-## Salud de proveedores
+Manual entry creation remains available without a key or connection. Keys and cached image bytes are not exported: restoring elsewhere may require configuring the key and downloading covers again.
 
-### Modo solo local
+## Optional Light Novels catalog
 
-Desde el panel **Proveedores**, el botón **Modo solo local** desactiva las consultas a Hardcover y Open Library, los chequeos de salud y las descargas de portadas. El bloqueo se aplica en Go, también cancela solicitudes en curso y se guarda por perfil para respetarlo al reiniciar. No borra claves ni lo interpreta como una caída del proveedor.
+Light Novels uses **RanobeDB** for novel identity, ordered main volumes, and publications. **Hardcover** only supplements a selected publication through a verified ISBN, language, and format. Open Library is not consulted for novels. RanobeDB does not require a key; Hardcover uses the same profile key as Books.
 
-La biblioteca, los snapshots persistidos, las portadas ya cacheadas y toda la gestión personal siguen disponibles. Las portadas no descargadas muestran su marcador; refrescar metadata y buscar ediciones remotas queda deshabilitado. Al reactivar la red se vuelven a permitir consultas, conservando las reglas del circuit breaker.
+1. Type a normal title, author name, or ISBN into **Buscar novelas**. Local results appear first, then RanobeDB candidates in the same popover. You do not need to add `(Light Novel)`. **Ver todos los resultados** opens the combined list; remote pages are navigable there.
+2. Selecting a result opens the shared enriched profile directly. An already-linked novel opens locally without offering another creation. A different publication or a manual ISBN match is reviewed before linking, rather than silently replacing or merging records.
+3. **Elegir volumen o publicación** shows main-volume reading order and publication cards with language, format, date, and ISBN. Original titles and ordering are preserved, including parts. The local consecutive number describes reading order, not an inferred printed volume number.
+4. Initial preference is English/print. If it cannot be verified, the page retains book-level metadata without assuming another edition. Select a publication explicitly to change the novel's language/format preference. Compilations, partial releases, hidden records, and mismatched relationships are not accepted as a single-volume publication.
+5. Add with **Agregar · Por leer**, or choose another state to create immediately. Set the completed count if known; leave it empty if unknown. Catalog counts never set your total or imply that untranslated or newly added publications were read.
+6. For an existing manual entry, use **Vincular catálogo**. Its personal title, authors, progress, notes, favorites, ownership, and reading dates are preserved. A safe publication ISBN can coexist with a non-ISBN personal identifier; a conflicting personal ISBN requires review.
 
-Para comprobar una restauración sin conexión: activar el modo, restaurar la generación elegida y recorrer las fichas locales. La configuración de red no forma parte del respaldo y no cambia al restaurarlo.
+Authors open local/remote results using RanobeDB staff identity when available. The volume gallery remains visible on local and catalog profiles, including future/unregistered volumes. Small covers show state dots and highlight the next pending entry. Browsing a future publication does not create a local volume or change progress; linking is explicit. **Editar datos del volumen** edits personal fields. After finishing a volume, the next confirmed main-volume snapshot is fetched in the background without starting it or changing progress. Missing catalog information leaves manual management available.
 
-### Indicador y diagnóstico
+The novel profile separates quick tracking, novel actions, and volume actions. **Identificadores y fuentes**, above the volume gallery, contains catalog refresh/unlink controls and per-field provenance. Descriptions expose **Leer más** only when the rendered text overflows. Web source addresses are clickable and have a copy action, without rendering arbitrary external HTML.
 
-El indicador **Proveedores**, junto a Claves y respaldos, muestra el último estado conocido de las APIs de Hardcover y Open Library. Al abrirlo se ven disponibilidad, duración de la última consulta, hora y posibles pausas. Una clave ausente o rechazada se distingue de un fallo de servicio. No comprueba las portadas ni garantiza que todas las operaciones del proveedor funcionen.
+Opening a remote novel first loads its series/header, then the selected volume/publication with skeletons. One series request supplies all main-volume references; details are requested only for selected volumes. RanobeDB calls are paced at 1.1 seconds. Validated book details are reused in memory for two minutes, with at most 32 cache keys and shared concurrent lookups; visited publication previews are reused within the profile for two minutes. Explicit refresh bypasses the book-detail cache. Covers load lazily where appropriate and still use the per-profile disk cache.
 
-- Al iniciar se ejecuta una comprobación breve por API en segundo plano, con presupuesto de 8 segundos y sin bloquear la biblioteca. Hardcover se omite si falta clave. Las consultas normales actualizan el mismo estado.
-- **Comprobar ahora** permite repetir el diagnóstico, como máximo una vez cada 15 segundos; respeta las pausas de cada proveedor. No hay sondeos remotos periódicos. El indicador refresca únicamente el estado local cada 3 segundos mientras la ventana es visible.
-- Tres fallos consecutivos observados pausan nuevas consultas durante un minuto. Después se admite una única consulta de recuperación; si funciona se reabre el acceso, y si falla se vuelve a pausar. Las solicitudes todavía en cola también respetan el circuito.
-- Un HTTP 429 pausa de inmediato, con al menos un minuto y respetando `Retry-After` hasta 24 horas. Un rechazo de acceso de Hardcover bloquea nuevas consultas hasta guardar nuevamente o reemplazar la clave. Quitarla muestra «Sin configurar».
-- Un registro ausente (404) no marca el proveedor como caído. Las cancelaciones locales no suman fallos. La duración excluye la espera local impuesta por el límite de ritmo.
+**Refrescar catálogo**, inside **Identificadores y fuentes**, refreshes the selected volume and series mapping. Failed requests preserve cached snapshots. A changed order/identity or changed ISBN is rejected for review instead of reassigning local history. **Desvincular catálogo** removes references/snapshots while retaining personal data and edition identifiers.
 
-El diagnóstico no modifica la biblioteca ni sus snapshots; el estado de salud es temporal y no se exporta. Un problema de Open Library no lo convierte en proveedor principal ni impide usar los datos ya guardados.
+A missing preferred publication means that no matching language/format could be verified, not necessarily that an ISBN is absent. A selected publication without a safe ISBN remains usable through RanobeDB; only Hardcover supplementation is skipped.
 
-## Estados y fechas
+Disambiguation checks RanobeDB series → main book → single complete release, then Hardcover ISBN/language/format and structured book category. Explicit manga annotations and incompatible categories are rejected. Community genre tags such as "Manga" or "Comics" are not authoritative: a real light novel may have them. Hardcover is never searched by approximate title to fill novel metadata.
 
-Estados: Por leer, A continuación, Leyendo, Leído, Pausado y Sin terminar. A continuación se asigna manualmente.
+## Provider health
 
-Al entrar en Leyendo se registra inicio si falta. Al entrar en Leído desde otro estado se registra finalización si hay inicio y falta finalización. Pausar y retomar conserva las fechas existentes. Marcar un libro antiguo como leído sin inicio no genera una finalización ficticia.
+### Local-only mode
 
-Las fechas son editables. La finalización no puede preceder al inicio; pueden coincidir el mismo día. Guardar explícitamente una fecha o borrarla prevalece sobre los automatismos de esa edición. Restaurar no aplica esos automatismos.
+In **Proveedores**, **Modo solo local** disables Hardcover, Open Library, and RanobeDB requests, health checks, and cover downloads. Go enforces the policy, cancels in-flight requests, and saves the preference per profile so it is respected on restart. It neither removes keys nor treats the intentional block as a provider outage.
 
-Los últimos leídos requieren fecha de finalización para establecer un orden cronológico. Los registros sin ella permanecen en el listado de leídos.
+The library, saved snapshots, cached covers, and personal management remain available. Undownloaded covers display a placeholder; remote metadata refresh and edition search are disabled. Re-enabling the network allows requests again, subject to the circuit-breaker rules.
 
-## Perfiles
+To test restoration offline, enable the mode, restore the selected generation, and browse local detail pages. Network settings are excluded from backups and remain unchanged by restoration.
 
-| Perfil | Ubicación predeterminada |
+### Indicator and diagnostics
+
+The **Proveedores** indicator, beside keys and backups, shows the last known state of the Hardcover, Open Library, and RanobeDB APIs. Open it for availability, last request duration/time, and temporary pauses. Missing or rejected credentials are distinguished from service failures. It does not check cover hosts or guarantee that every provider operation works.
+
+- Startup runs a brief background check per API with an 8-second budget, without blocking the library. Hardcover is skipped without a key. Normal requests update the same state.
+- **Comprobar ahora** repeats diagnostics at most once every 15 seconds and respects each provider's pause. There is no periodic remote polling. While the window is visible, the indicator refreshes local state every 3 seconds.
+- Three consecutive observed failures pause new requests for one minute. Afterwards, one recovery request is admitted: success reopens access; failure starts another pause. Queued requests also respect the circuit.
+- HTTP 429 pauses immediately, for at least one minute and respecting `Retry-After` up to 24 hours. Hardcover access rejection blocks further requests until the key is saved again or replaced. Removing it shows **Sin configurar**.
+- A missing record (404) does not mark a provider as down. Local cancellations do not count as failures. Measured duration excludes locally imposed pacing waits.
+
+Diagnostics do not change the library or its snapshots. Health state is temporary and excluded from exports. An Open Library problem does not promote it to primary or prevent using saved data.
+
+## Reading states and dates
+
+The available states are **Por leer** (to read), **A continuación** (up next), **Leyendo** (reading), **Leído** (read), **Pausado** (paused), and **Sin terminar** (did not finish). Up next is assigned manually.
+
+Entering Reading records a start date if missing. Entering Read from another state records completion only when a start exists and completion is missing. Pausing and resuming preserve existing dates. Marking an older book as read without a start does not create an artificial completion date.
+
+Dates are editable. Completion cannot precede the start, but both may be the same day. Explicitly setting or clearing a date takes precedence over automatic behavior for that edit. Restoration does not apply live reading-date rules.
+
+Recently finished entries need a completion date for chronological ordering. Entries without one remain in the Read list.
+
+## Novel-level tracking
+
+Use **Añadir novela** to create the main entry. **Editar novela y progreso** edits its title, authors, state, total, completed count, notes, favorite flag, and added date. The library displays one card per novel with progress and its current/next volume; volumes are not separate library cards.
+
+- Progress counts completed publications, including decimal-labeled volumes. After finishing volumes 1–6 and 6.5, the count is **7/?**, and the next printed label can be **7**. Stable IDs and local reading order are separate from printed labels and parts. With a catalog, **Voy por el volumen** selects a book identity rather than subtracting one from its printed label. Manual entries can supply a visible label separately from their integer reading position; ordinary unlabelled entries retain the simple numeric shortcut.
+- Totals may be unknown. Clearing the completed count also allows **?/?** when the quantity is unknown. A novel can be marked **Leída** with unknown quantity or a known count and unknown total (**n/?**), without inventing volumes or dates.
+- A known historical count creates the corresponding completed volume records without fabricated titles or dates. Existing edition/cycle IDs, notes, ownership, favorites, and known dates are preserved. Reducing progress changes completion states but retains registered volume data and dates.
+- **Empezar volumen** starts the pending volume, changes the novel to **Leyendo**, and fills its missing start date. **Volumen terminado** finishes the active/pending volume and leaves the novel in **A continuación**. It only fills completion when a start date exists and completion is missing; it does not start the next volume.
+- At a known final volume, the action explicitly reads **Terminar último volumen y marcar leída**. It reaches N/N without creating N+1. Manual N/N progress also offers **Marcar novela como leída**. Completion is a personal reading state, not a claim that publication has ended.
+- Marking a novel read with a known total completes its volume records to N/N while preserving existing dates and leaving unknown historical dates empty. Unknown quantity does not generate a fictional set of volumes. Starting a specific volume requires a known completed count and a pending number.
+
+**Registrar volumen** adds volume data at an integer reading position; existing records open through their covers. **Guardar volumen** preserves identity and reading cycle. Its title is optional, and **Etiqueta del volumen** can describe a decimal or part independently of that position. Language, format, identifier, ownership, favorite, synopsis, notes, and reading dates are independent. Existing positions cannot be reassigned through this editor. Positions and counts are whole numbers, bounded at 10,000; a known total must be positive and cannot exclude registered volumes.
+
+The arrows beside completed progress make historical corrections without applying live start/completion dates. Reaching a known N/N offers a custom confirmation to mark the novel read. Reducing a read novel below its known total returns it to **A continuación**, preserving existing volume data and dates. Unknown quantities remain explicit rather than being incremented from a guessed baseline. Reading positions/counts are whole numbers; visible labels may be decimals or include parts.
+
+Novel notes and volume notes are separate. Unsaved novel notes remain while starting or finishing a volume. Leaving an edited form requires the usual discard confirmation. Deleting a novel requires confirmation and removes its volumes, without affecting Books.
+
+This development change does **not** convert or delete records from the previous standalone-volume model. Those records remain in stored data and backups but are not presented as grouped novels. Create new novel entries for the new model. Books is unchanged.
+
+## Profiles
+
+| Profile | Default location |
 | --- | --- |
-| `habitual` | `data/habitual/` junto al ejecutable de usuario |
-| `test` | `data/test/` junto al ejecutable de prueba |
-| `development` | `.local/development/` bajo el directorio de ejecución |
+| `habitual` | `data/habitual/` next to the release executable |
+| `test` | `data/test/` next to the test executable |
+| `development` | `.local/development/` under the execution directory |
 
-El indicador superior muestra perfil, ruta, versión y revisión. También se puede consultar la identidad sin abrir datos:
+The header indicator shows profile, path, version, and revision. Build identity can also be queried without opening data:
 
 ```powershell
 .\Trove.exe --version
 ```
 
-Una raíz alternativa siempre recibe la subcarpeta del perfil:
+An alternate root always receives a profile subdirectory:
 
 ```powershell
-.\Trove.exe --profile test --data-dir "C:\TrovePruebas"
+.\Trove.exe --profile test --data-dir "C:\TroveTests"
 ```
 
-El ejemplo usa `C:\TrovePruebas\test\`. No compartir el mismo directorio activo entre instancias durante una restauración.
+This example uses `C:\TroveTests\test\`. Do not share an active directory between instances during restoration.
 
-## Avisos de operaciones
+## Operation notifications
 
-Los éxitos cotidianos se muestran como avisos flotantes sin desplazar el contenido. Se cierran a los 5 segundos, con pausa mientras tienen el foco o el puntero, y pueden descartarse manualmente. Los errores permanecen en el contexto de la operación.
+Success messages float above the page without shifting its content. They close after 5 seconds, pause while focused or hovered, and can be dismissed manually. Errors remain in the context of the operation.
 
-## Respaldo automático
+## Automatic backups
 
-1. Abrir **Respaldo y restauración**.
-2. Elegir una carpeta distinta de los datos activos. Se agrega el nombre del perfil.
-3. Se genera una primera copia. Las modificaciones posteriores se agrupan durante dos segundos y se respaldan automáticamente.
+1. Open **Respaldo y restauración**.
+2. Choose a folder separate from active data. The profile name is appended.
+3. An initial backup is created. Later changes are grouped for two seconds and backed up automatically.
 
-Se conservan dos generaciones completas, cada una con `trove.sqlite`, `trove.json` y `complete.json`. Si no cambió el contenido no se publica una generación duplicada. El cierre normal espera los guardados aceptados y completa pendientes. Un cierre forzado puede dejar cambios solo en la base activa; al reiniciar se comprueba su contenido.
+Two complete generations are retained, each containing `trove.sqlite`, `trove.json`, and `complete.json`. Unchanged content does not create a duplicate generation. Normal shutdown waits for accepted writes and completes pending backups. Forced termination may leave changes only in the active database; content is checked again on startup.
 
-Un fallo de salida conserva el cambio local y la última copia válida. Se informa el error y se reintenta. «Al día» confirma los archivos locales, no el estado de un sincronizador externo. Los respaldos no incluyen portadas, cachés, logs, credenciales ni rutas de configuración.
+Output failures preserve local changes and the last valid copy. Errors are reported and retried. **Al día** confirms local files, not an external synchronization client's state. Backups exclude cover bytes, caches, logs, credentials, and configuration paths.
 
-## Restaurar
+## Restoration
 
-1. Abrir **Respaldo y restauración**. El selector muestra las generaciones completas válidas de la carpeta configurada como **Actual** y **Anterior**, con fecha y hora locales.
-2. Elegir la generación y pulsar **Revisar respaldo seleccionado**. La preparación vuelve a validar esa generación exacta; si cambió o ya no está disponible, se informa el problema sin elegir otra automáticamente.
-3. Revisar fecha, contenido y perfil de destino, marcar la confirmación y pulsar **Restaurar y reemplazar biblioteca**. **Cambiar selección** descarta la preparación sin reemplazar datos.
+1. Open **Respaldo y restauración**. The selector lists complete valid generations from the configured folder as **Actual** (current) and **Anterior** (previous), with local dates and times.
+2. Choose a generation and click **Revisar respaldo seleccionado**. Preparation revalidates that exact generation. If it changed or is unavailable, the app reports the issue instead of selecting another automatically.
+3. Review date, contents, and destination profile, approve the confirmation, and click **Restaurar y reemplazar biblioteca**. **Cambiar selección** discards preparation without replacing data.
 
-También se puede usar **Seleccionar respaldo para restaurar** para elegir un SQLite o JSON generado por Trove desde el diálogo nativo. Cualquiera de las representaciones válidas funciona sin la otra ni el manifiesto al elegirla manualmente. No es una importación desde servicios externos.
+You can also use **Seleccionar respaldo para restaurar** to choose a Trove-generated SQLite or JSON file through the native dialog. Either valid representation works independently of the other file and manifest when selected manually. This is not an import from an external service.
 
-La preparación se valida antes del reemplazo y vence a los diez minutos. Se conserva una copia `before-restore-*.sqlite` en el perfil. Si falla el reemplazo se intenta reabrir la biblioteca anterior. La configuración de salida permanece ligada al perfil de destino.
+Preparation is validated before replacement and expires after ten minutes. A `before-restore-*.sqlite` safety copy is kept in the profile. If replacement fails, reopening the previous library is attempted. Backup output configuration remains tied to the destination profile.
 
-Si una base dañada impide iniciar, abrir una raíz nueva y restaurar allí sin modificar la anterior:
+If a damaged database prevents startup, open a new data root and restore there without changing the original:
 
 ```powershell
-.\Trove.exe --profile test --data-dir "C:\TroveRecuperacion"
+.\Trove.exe --profile test --data-dir "C:\TroveRecovery"
 ```
 
-Los formatos compatibles, límites y relaciones están en [formato de respaldo](backup-format.md).
+Supported formats, limits, and relationships are documented in the [backup format](backup-format.md).
 
-El esquema local actual es 4. La migración deja una copia `before-schema-4-*.sqlite` antes de incorporar identificadores normalizados y snapshots bibliográficos; conserva el identificador original, identidades y fechas desconocidas. Los respaldos nuevos usan formato 3 y contienen ambos medios y la metadata vinculada. Se pueden recuperar formatos 1 y 2; el formato 1 se interpreta como Libros. Restaurar siempre reemplaza el perfil completo, sin mezclar entradas posteriores.
+The current local schema is 6, including separate novel/volume storage and unique linked provider identities. Existing standalone-volume records are not converted; the schema initializer retains its usual pre-change safety copy. New backups use format 6 and preserve Books, grouped novels, visible labels, volumes, and bibliographic snapshots for both. Supported earlier backups retain their original contents without conversion. Restoration replaces the entire profile library; a novel metadata request started before restoration cannot write over the recovered snapshot afterwards.

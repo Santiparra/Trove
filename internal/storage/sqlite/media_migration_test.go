@@ -66,7 +66,7 @@ INSERT INTO reading_cycles(id,edition_id,status) VALUES('cycle','edition','read'
 	if err != nil || volume.Series.ID == "series" {
 		t.Fatal("se mezclaron series de distintos medios")
 	}
-	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-4-*.sqlite"))
+	paths, err := filepath.Glob(filepath.Join(dir, "before-schema-6-*.sqlite"))
 	if err != nil || len(paths) != 1 {
 		t.Fatal("falta copia previa a migración")
 	}

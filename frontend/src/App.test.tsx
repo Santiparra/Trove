@@ -9,6 +9,32 @@ import {
   within,
 } from "@testing-library/react";
 import App from "./App";
+const novelAPI = vi.hoisted(() => ({
+  Dashboard: vi.fn(),
+  SetCompleted: vi.fn(),
+  List: vi.fn(),
+  Get: vi.fn(),
+  Save: vi.fn(),
+  ChangeStatus: vi.fn(),
+  StartVolume: vi.fn(),
+  FinishVolume: vi.fn(),
+  SaveVolume: vi.fn(),
+  Delete: vi.fn(),
+  SearchCatalog: vi.fn(),
+  OpenCatalog: vi.fn(),
+  BrowseCatalog:vi.fn(),
+  PrepareCatalog: vi.fn(),
+  CatalogReleases: vi.fn(),
+  PreviewPublication: vi.fn(),
+  AddCatalog: vi.fn(),
+  LinkCatalog: vi.fn(),
+  UnlinkCatalog: vi.fn(),
+  RefreshCatalog: vi.fn(),
+}));
+vi.mock(
+  "../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
+  () => novelAPI,
+);
 import * as BackupService from "../bindings/github.com/Santiparra/Trove/internal/desktop/backups";
 const catalog = vi.hoisted(() => ({
   State: vi.fn(),
@@ -116,6 +142,40 @@ function overview(withBook = false) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  novelAPI.List.mockResolvedValue([]);
+  novelAPI.Dashboard.mockImplementation(async () => {
+    const items = await novelAPI.List("", "");
+    return {
+      total: items.length,
+      counts: [],
+      reading: items
+        .filter((n: { status: string }) => n.status === "reading")
+        .map(
+          (n: {
+            id: string;
+            title: string;
+            authors: string[];
+            status: string;
+            completed: number | null;
+            total: number | null;
+          }) => ({
+            ...n,
+            number: (n.completed || 0) + 1,
+            label: String((n.completed || 0) + 1),
+            coverURL: "",
+          }),
+        ),
+      recent: [],
+      upNext: [],
+    };
+  });
+  novelAPI.SearchCatalog.mockResolvedValue({
+    items: [],
+    total: 0,
+    page: 1,
+    pages: 1,
+    warnings: [],
+  });
   vi.mocked(BackupService.RestoreChoices).mockResolvedValue([]);
   catalog.State.mockResolvedValue({ configured: true });
   catalog.ProviderHealth.mockResolvedValue({
@@ -513,7 +573,7 @@ describe("Catálogo de Libros", () => {
     fireEvent.click(screen.getByRole("button", { name: "Añadir libro" }));
     await screen.findByRole("button", { name: "Guardar libro" });
     fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
-    await screen.findByRole("button", { name: "Añadir volumen" });
+    await screen.findByRole("button", { name: "Añadir novela" });
     expect(
       screen.queryByRole("button", { name: "Buscar en catálogo" }),
     ).toBeNull();
@@ -523,90 +583,78 @@ describe("Catálogo de Libros", () => {
 
 describe("Novelas ligeras locales", () => {
   const novel = {
-    ...sample,
-    id: "synthetic-volume",
-    medium: "light-novels",
-    title: "Volumen sintético",
+    id: "synthetic-novel",
+    title: "Novela sintética",
+    authors: ["Autora"],
+    status: "reading",
+    completed: 0,
+    total: null,
+    notes: "",
+    favorite: false,
+    addedOn: "2026-01-01",
+    volumes: [],
   };
-  const novelSummary = () => ({
-    ...overview(true),
-    medium: "light-novels",
-    currentlyReading: [novel],
-  });
   async function openNovels() {
-    api.Dashboard.mockImplementation((medium: string) =>
-      Promise.resolve(
-        medium === "light-novels" ? novelSummary() : overview(true),
-      ),
-    );
+    novelAPI.List.mockResolvedValue([novel]);
+    novelAPI.Get.mockResolvedValue(novel);
     render(<App />);
     await screen.findByRole("heading", { name: "Tu biblioteca" });
     fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
-    await screen.findByRole("button", { name: "Ver todos los volúmenes" });
+    await screen.findByRole("button", { name: "Ver todas las novelas" });
   }
-  it("crea un volumen en su medio usando el formulario común y abre su ficha", async () => {
+  it("crea una novela principal sin usar el alta de libros o volúmenes anteriores", async () => {
     const saved = {
       ...novel,
-      id: "saved-volume",
-      title: "Volumen nuevo",
-      cycle: { ...novel.cycle, status: "to-read" },
+      id: "saved-novel",
+      title: "Novela nueva",
+      status: "to-read",
     };
-    api.SaveBook.mockResolvedValue(saved);
+    novelAPI.Save.mockResolvedValue(saved);
     await openNovels();
     expect(
       screen.queryByRole("button", { name: "Abrir Obra sintética" }),
     ).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Añadir volumen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Añadir novela" }));
     fireEvent.change(screen.getByLabelText(/Título/), {
-      target: { value: "Volumen nuevo" },
+      target: { value: "Novela nueva" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Guardar volumen" }));
-    await waitFor(() => expect(api.SaveBook).toHaveBeenCalledOnce());
-    expect(api.SaveBook.mock.calls[0][0]).toMatchObject({
-      medium: "light-novels",
-      title: "Volumen nuevo",
+    fireEvent.click(screen.getByRole("button", { name: "Guardar novela" }));
+    await waitFor(() => expect(novelAPI.Save).toHaveBeenCalledOnce());
+    expect(novelAPI.Save.mock.calls[0][0]).toMatchObject({
+      title: "Novela nueva",
+      completed: 0,
     });
     expect(
-      await screen.findByRole("region", { name: "Detalle del volumen" }),
+      await screen.findByRole("region", { name: "Detalle de novela" }),
     ).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Editar volumen" })).toBeTruthy();
+    expect(
+      screen.getByRole("button", { name: "Editar novela y progreso" }),
+    ).toBeTruthy();
+    expect(api.SaveBook).not.toHaveBeenCalled();
   });
   it("busca, lista y cambia estados con el contexto explícito de novelas ligeras", async () => {
-    api.SearchBooks.mockResolvedValue({ matches: [novel], total: 1 });
-    api.ListBooks.mockResolvedValue([novel]);
-    const updated = { ...novel, cycle: { ...novel.cycle, status: "up-next" } };
-    api.ChangeBookStatus.mockResolvedValue(updated);
+    const updated = { ...novel, status: "up-next" };
+    novelAPI.ChangeStatus.mockResolvedValue(updated);
     await openNovels();
     fireEvent.change(screen.getByRole("searchbox"), {
-      target: { value: "Volumen" },
+      target: { value: "Novela" },
     });
+    await waitFor(() =>
+      expect(novelAPI.List).toHaveBeenCalledWith("Novela", ""),
+    );
     fireEvent.click(
       await screen.findByRole("button", {
-        name: "Ver todos los resultados (1)",
+        name: "Abrir novela Novela sintética",
       }),
     );
-    await waitFor(() =>
-      expect(api.SearchBooks).toHaveBeenCalledWith("Volumen", "light-novels"),
-    );
-    await waitFor(() =>
-      expect(api.ListBooks).toHaveBeenCalledWith("Volumen", "", "light-novels"),
-    );
-    const list = screen.getByRole("region", {
-      name: "Biblioteca de novelas ligeras",
-    });
-    const select = await within(list).findByLabelText(
-      "Estado de Volumen sintético",
-    );
-    api.ListBooks.mockResolvedValue([updated]);
+    const select = await screen.findByLabelText("Estado de Novela sintética");
+    novelAPI.List.mockResolvedValue([updated]);
     fireEvent.change(select, { target: { value: "up-next" } });
     await waitFor(() =>
-      expect(api.ChangeBookStatus).toHaveBeenCalledWith(
-        novel.id,
-        "up-next",
-        "light-novels",
-      ),
+      expect(novelAPI.ChangeStatus).toHaveBeenCalledWith(novel.id, "up-next"),
     );
     await waitFor(() => expect(select).toHaveProperty("value", "up-next"));
+    expect(api.ChangeBookStatus).not.toHaveBeenCalled();
   });
   it("ignora una respuesta tardía de Libros después de cambiar de sección", async () => {
     let finishBooks!: (value: ReturnType<typeof overview>) => void;
@@ -614,11 +662,14 @@ describe("Novelas ligeras locales", () => {
       finishBooks = resolve;
     });
     api.Dashboard.mockImplementation((medium: string) =>
-      medium === "books" ? delayed : Promise.resolve(novelSummary()),
+      medium === "books" ? delayed : Promise.resolve(overview(false)),
     );
+    novelAPI.List.mockResolvedValue([novel]);
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Novelas ligeras" }));
-    await screen.findByRole("button", { name: "Abrir Volumen sintético" });
+    await screen.findByRole("button", {
+      name: "Abrir novela Novela sintética",
+    });
     await act(async () => {
       finishBooks(overview(true));
     });
@@ -626,7 +677,7 @@ describe("Novelas ligeras locales", () => {
       screen.queryByRole("button", { name: "Abrir Obra sintética" }),
     ).toBeNull();
     expect(
-      screen.getByRole("button", { name: "Abrir Volumen sintético" }),
+      screen.getByRole("button", { name: "Abrir novela Novela sintética" }),
     ).toBeTruthy();
   });
 });

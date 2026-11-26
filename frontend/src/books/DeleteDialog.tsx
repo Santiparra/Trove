@@ -1,4 +1,4 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import Icon from "../components/Icon";
 import { readingLabels } from "./readingMedia";
@@ -9,12 +9,20 @@ export default function DeleteDialog({
   error,
   onCancel,
   onConfirm,
+  heading,
+  description,
+  confirmLabel,
+  danger = true,
 }: {
   book: Book;
   busy: boolean;
   error: string;
   onCancel: () => void;
   onConfirm: () => void;
+  heading?: string;
+  description?: ReactNode;
+  confirmLabel?: string;
+  danger?: boolean;
 }) {
   const labels = readingLabels(book.medium);
   const panel = useRef<HTMLDivElement>(null);
@@ -59,14 +67,18 @@ export default function DeleteDialog({
         aria-describedby="delete-description"
         onKeyDown={handleKeys}
       >
-        <span className="delete-symbol">
-          <Icon name="trash" size={25} />
+        <span className={danger ? "delete-symbol" : "complete-symbol"}>
+          <Icon name={danger ? "trash" : "check"} size={25} />
         </span>
-        <h2 id="delete-title">¿Eliminar este {labels.item}?</h2>
+        <h2 id="delete-title">{heading || `¿Eliminar este ${labels.item}?`}</h2>
         <p id="delete-description">
-          <strong>{book.title}</strong> se quitará de esta biblioteca junto con
-          sus notas y registro de lectura. No se eliminarán otros{" "}
-          {labels.plural} de su serie. Esta acción no se puede deshacer.
+          {description || (
+            <>
+              <strong>{book.title}</strong> se quitará de esta biblioteca junto
+              con sus notas y registro de lectura. No se eliminarán otros{" "}
+              {labels.plural} de su serie. Esta acción no se puede deshacer.
+            </>
+          )}
         </p>
         {error && (
           <div className="error-banner" role="alert">
@@ -82,8 +94,12 @@ export default function DeleteDialog({
           >
             Cancelar
           </button>
-          <button className="danger-button" disabled={busy} onClick={onConfirm}>
-            {busy ? "Eliminando…" : "Eliminar definitivamente"}
+          <button
+            className={danger ? "danger-button" : "primary"}
+            disabled={busy}
+            onClick={onConfirm}
+          >
+            {busy ? "Procesando…" : confirmLabel || "Eliminar definitivamente"}
           </button>
         </div>
       </div>
