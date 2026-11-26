@@ -26,6 +26,8 @@ The key is entered in a password field and stored per profile in `catalog-creden
 
 Go restricts endpoints, HTTPS, redirects, response sizes, and timeouts; it does not return raw error bodies containing credentials. Covers are accepted only from `assets.hardcover.app`, `images.hardcover.app`, `covers.openlibrary.org`, and `images.ranobedb.org`. They are validated as raster images and delivered to React as data URLs through a per-profile local cache. The key is not sent to image hosts, RanobeDB, or Open Library. Metadata is rendered as text, without executing external HTML or SQL.
 
+Description links recognize HTTP/HTTPS addresses, reject embedded credentials and executable schemes, and open the system browser only after an explicit click. Copy actions write the selected address to the system clipboard. The key-help action opens Hardcover's fixed official account/API page and does not send a key in the URL. External browser navigation is a user action, distinct from automatic provider requests governed by local-only mode.
+
 ## Automation
 
 PR validation uses read permissions. Only the publication job for a push to `main` requests content-write permissions. Third-party Actions are pinned to specific revisions. PRs and pushes to `dev` do not publish releases.

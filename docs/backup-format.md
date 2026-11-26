@@ -1,6 +1,6 @@
 # Trove backup format
 
-Backup format **version 5** is independent of the SQLite schema (currently 6) and the public application version. Existing support for formats 1 through 4 remains; earlier standalone volume entries are not converted into grouped novels.
+Backup format **version 6** is independent of the SQLite schema (currently 6) and the public application version. Earlier supported formats retain their own data; standalone volume entries are not converted into grouped novels.
 
 ## File layout
 
@@ -21,14 +21,14 @@ The two most recent complete, valid generations are retained. `complete.json` co
 
 A generation is published after its files are finished. External synchronization may download them separately: **a valid Trove JSON or SQLite file works independently**, without the other representation or manifest. An incomplete synchronization copy is not a completed generation.
 
-## Logical JSON, version 5
+## Logical JSON, version 6
 
 Encoding is UTF-8. Root fields:
 
 | Field | Type / meaning |
 | --- | --- |
 | `format` | Constant string `trove-library` |
-| `version` | Integer `5` in new generations |
+| `version` | Integer `6` in new generations |
 | `generation` | Text generation identifier, not a work ID |
 | `createdAt` | Generation timestamp in UTC, RFC 3339 |
 | `catalog` | Logical content described below |
@@ -42,6 +42,8 @@ Encoding is UTF-8. Root fields:
 | `editions` | `id`, `workId`, `language`, `format`, `identifier`, `owned`; optional `identifiers` and `catalog` |
 | `cycles` | `id`, `editionId`, `status`, `startedOn`, `finishedOn` |
 | `novels` | `id`, `title`, `authors`, `status`, nullable `total`/`completed`, `notes`, `favorite`, `addedOn`, `volumes`, and optional `catalog` |
+
+Format 6 also preserves optional novel `statusChangedAt` (a UTC RFC 3339 activity timestamp) and volume `label` (display text). Catalog main-book references and publications can carry their own original display labels. The integer `number` is a local reading position, not a printed label: `6.5` counts as one publication without becoming a fractional completed count. Status activity supports dashboard ordering and does not replace or fabricate reading dates.
 
 A grouped novel has its own identity and personal state. Each `volumes` entry contains `id`, positive integer `number`, optional-title text `title`, `description`, `edition`, `cycle`, `notes`, `favorite`, and optional `catalog`. Editions preserve ID, language, format, raw/normalized identifiers, and ownership; cycles preserve ID, status, and known start/completion dates. These nested entities are independent of the base Books collections.
 
@@ -64,7 +66,7 @@ Abbreviated **synthetic** example of an older work with unknown reading dates:
 ```json
 {
   "format": "trove-library",
-  "version": 5,
+  "version": 6,
   "generation": "synthetic-generation",
   "createdAt": "2026-01-01T00:00:00Z",
   "catalog": {
@@ -78,9 +80,9 @@ Abbreviated **synthetic** example of an older work with unknown reading dates:
 
 ## Earlier format support
 
-Format 1 contains only `works.medium = books`; series lack `medium` and are interpreted as Books. Format 2 adds both reading media without bibliographic snapshots; format 3 adds book catalog metadata. Grouped novels are introduced in format 4 and their catalog snapshots in format 5. IDs, relationships, unknown dates, and the original logical hash of existing supported formats are preserved. Restoring earlier standalone volumes does not group or convert them.
+Format 1 contains only `works.medium = books`; series lack `medium` and are interpreted as Books. Format 2 adds both reading media without bibliographic snapshots; format 3 adds book catalog metadata. Grouped novels are introduced in format 4, their catalog snapshots in format 5, and display labels/status-activity data in format 6. IDs, relationships, unknown dates, and the original logical hash of existing supported formats are preserved. Restoring earlier standalone volumes does not group or convert them.
 
-New backups use format 5. Existing supported older restorations are prepared on the current schema without applying live reading-date behavior. Native snapshots identified as SQLite schemas 1 through 6 with a supported format are accepted. Older application versions may not accept schema 6 or format 5.
+New backups use format 6. Existing supported older restorations are prepared on the current schema without applying live reading-date behavior. Native snapshots identified as SQLite schemas 1 through 6 with a supported format are accepted. Older application versions may not accept schema 6 or format 6.
 
 Restoring an earlier backup recovers exactly that state: format 1 contains no light novels, and format 2 contains no bibliographic snapshots. Later entries are not retained by merging. The pre-replacement safety copy preserves the complete current state.
 

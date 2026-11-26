@@ -24,6 +24,8 @@ Trove is a modular local application: a React/TypeScript interface hosted by Wai
 
 The frontend does not access SQL. External provider types and driver-specific types do not define the domain. Bindings are generated from Go, committed, and checked in CI alongside their TypeScript consumers.
 
+Novel dashboard counts and recent-volume selection are computed in Go. Local reading positions and stable IDs are separate from visible labels and provider ordering. Historical progress changes use a dedicated operation that preserves cycle dates; live start/finish actions keep their own date behavior. A novel status-change timestamp orders recent queue changes without assigning artificial reading dates.
+
 ## Local model
 
 A work has its own identity and may belong to a series at a given position. An edition holds format, language, an optional identifier, and ownership. Reading activity is stored in separate cycles with status and known dates. Favorites and notes belong to the personal record.
@@ -55,6 +57,8 @@ Go prepares a selection and confirms it through a temporary token, rather than a
 Light Novels uses RanobeDB series identities, explicitly ordered main-book references, and single complete releases. Original titles and source ordering are preserved separately from local reading positions. Hardcover supplements only verified ISBN/language/format matches and checks its structured book category; community genre tags are not used as medium classification. The novel path does not invoke Open Library or approximate Hardcover title searches.
 
 Novel and volume snapshots remain separate from personal fields. Refreshes preserve manually supplied text and dates, reject changed identities/order, and never infer totals or completed history from catalog counts. Metadata for the next volume is loaded without starting it. SQL indexes enforce unique linked RanobeDB series/book identities. Novel refreshes capture the library's restore epoch and cannot apply data after a successful restoration or an intervening switch to local-only mode.
+
+Remote browsing separates a validated series/header from selected publication resolution. The header's selection token is not a valid publication to persist; a complete server-validated preview is required before linking or creation. The shared detail component keeps the volume gallery visible while metadata loads. Selected-book details use a bounded two-minute cache with coalesced in-flight lookups; search and personal library records are not cached there. Explicit refresh bypasses that cache, and cached metadata retains its source timing.
 
 `BookSearch` presents local matches first and then remote candidates in the same popover. `BookProfile` shares local and remote detail presentation; available management actions depend on whether a personal record exists. Go recognizes matches before creation and prefers a local or more informative edition when opening a work. Edition changes are handled within the detail page. Key configuration lives in the header, outside bibliographic content.
 

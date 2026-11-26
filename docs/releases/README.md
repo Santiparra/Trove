@@ -4,11 +4,13 @@
 
 | Release | User-facing changes |
 | --- | --- |
-| Next release; version assigned by Actions | [English documentation and a Spanish quick guide](english-documentation.md) |
+| Next release; version assigned by Actions | [Light novels, enriched and organized](novel-tracking-and-ranobedb.md) |
 | [v0.1.7](https://github.com/Santiparra/Trove/releases/tag/v0.1.7) | [Books catalog and Light Novels library](catalogo-libros-y-novelas.md) — original published notes in Spanish |
 | [v0.1.4](https://github.com/Santiparra/Trove/releases/tag/v0.1.4) | Earlier release; original notes remain on GitHub |
 
 Each release document describes user-visible changes rather than listing commits. Documents remain in this folder as history. See [GitHub Releases](https://github.com/Santiparra/Trove/releases) for exact versions and publication dates. Published notes retain their original content and language; new release notes are written in English.
+
+The [English-documentation update](english-documentation.md) is included in the upcoming novel release, not a separately published version.
 
 ## Preparing release notes
 

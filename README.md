@@ -4,6 +4,8 @@ A local multimedia library and personal activity journal for **Windows x64**. Yo
 
 **Español:** [Cómo empezar y usar Trove](docs/es/guia.md).
 
+**This release:** novel-level tracking, RanobeDB catalog integration with safe Hardcover supplementation, compact reading dashboards, and English public documentation. See the [release notes](docs/releases/novel-tracking-and-ranobedb.md) for changes since v0.1.7.
+
 Trove is a personal project, publicly available for anyone who finds it useful or wants to contribute. The application currently uses a Spanish interface. Public documentation is maintained in English, with a short Spanish guide reviewed when preparing PRs to `main`.
 
 ## Available features
@@ -11,9 +13,12 @@ Trove is a personal project, publicly available for anyone who finds it useful o
 - **Books:** unified search across the local library and Hardcover, with Open Library providing complementary metadata for a safely identified edition.
 - A shared local/catalog detail page with covers, descriptions, edition selection, and author/series navigation.
 - Manual or catalog-based entry creation, linking to existing records, and saved bibliographic metadata that does not replace personal notes or reading history.
-- **Light novels:** one library entry per novel, independent volumes, editable progress, and unified local/RanobeDB search. A shared detail page supports catalog linking, volume/publication selection, author navigation, and saved metadata. Hardcover supplements verified publications by ISBN; Open Library is not used for novels.
+- **Light novels:** one library entry per novel, independent volumes, editable progress, and unified local/RanobeDB search. A shared detail page supports catalog linking, persistent volume galleries, publication selection, author navigation, and saved metadata. Hardcover supplements verified publications by ISBN; Open Library is not used for novels.
+- Completed-volume counts are separate from printed labels such as `6.5` or parts. Quick progress controls preserve reading dates, and starting/finishing volumes remains explicit.
+- A compact novel dashboard provides library/status access, current reads, up-next covers, and the latest five volume completions with known dates. List rows include cover thumbnails.
 - Reading dashboards, notes, favorites, ownership, and quick status changes. Selecting a status when adding a book creates the entry directly.
 - Provider health information, manual diagnostics, and automatic pauses after failures or rate limits.
+- Catalog pages load progressively, with skeletons and short-lived request reuse instead of downloading every volume's details. The key panel highlights missing setup and links to Hardcover's official key page.
 - A per-profile **local-only mode** that blocks catalog requests and cover downloads while retaining local records, metadata, and cached covers.
 - Success notifications that float above the page without shifting its content.
 - Automatic SQLite + JSON backups and **Actual / Anterior** (current/previous) restoration with timestamps, validation, and a pre-restore safety copy.

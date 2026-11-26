@@ -2,7 +2,7 @@
 
 Trove es una biblioteca y bitácora multimedia local para Windows x64. Es un proyecto personal abierto a quien quiera usarlo o contribuir. La interfaz sigue en español; la [documentación pública principal](../../README.md) se mantiene en inglés.
 
-Esta guía resume el uso disponible desde el corte **v0.1.7** de Libros y Novelas ligeras. Se revisa al preparar PRs a `main`: durante el desarrollo puede quedar por detrás de funciones todavía no publicadas. Las novedades de cada publicación están en el [historial de releases](../releases/README.md).
+Guía revisada para el corte de Novelas enriquecidas posterior a v0.1.7. Se actualiza al preparar PRs a `main`, no con cada iteración de desarrollo. El número de publicación lo asigna Actions; las novedades están en el [historial de releases](../releases/README.md).
 
 ## 1. Descargar, ejecutar o desarrollar
 
@@ -14,7 +14,7 @@ Esta guía resume el uso disponible desde el corte **v0.1.7** de Libros y Novela
 
 Necesitás [Microsoft WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/), normalmente disponible en Windows moderno. Para usar el portable no necesitás instalar Go, Node ni un servidor SQLite. No hay cuenta de Trove.
 
-La biblioteca de uso habitual se guarda en `data/habitual/`, junto al ejecutable. Para actualizar, cerrá Trove, conservá esa carpeta y reemplazá los archivos de la aplicación por los de la nueva release. Copiar solo el EXE no transfiere la biblioteca; también podés empezar en otra carpeta y restaurar un respaldo.
+La biblioteca habitual se guarda en `data/habitual/`, junto al ejecutable. Para actualizar, cerrá Trove, conservá esa carpeta y reemplazá los archivos de la aplicación. Copiar solo el EXE no transfiere una biblioteca; también podés empezar en otra carpeta y restaurar un respaldo.
 
 ### Desarrollo y contribuciones
 
@@ -30,43 +30,57 @@ wails3 task dev
 
 El frontend se actualiza al editarlo y los cambios de Go reinician el backend. Detené el entorno con Ctrl+C. Desarrollo usa datos separados de los perfiles de prueba y uso habitual.
 
-El trabajo cotidiano se integra en `dev`. Los PR a `main` ejecutan verificaciones Windows; integrar en `main` publica automáticamente si pasan. La documentación técnica, los contratos y los detalles de contribución están en inglés. La planificación y notas internas siguen en español.
+El trabajo cotidiano se integra en `dev`. Los PR a `main` ejecutan verificaciones Windows; integrar en `main` publica automáticamente si pasan. La documentación técnica publicada está en inglés. Conversaciones, planificación y notas internas siguen en español. Al preparar cada PR se consolida la documentación y se revisa esta guía breve.
 
 ## 2. Uso cotidiano
 
-### Bibliotecas y registros
+### Libros
 
-- **Libros** y **Novelas ligeras** tienen portales, búsquedas, series y operaciones independientes. En Novelas cada volumen se registra por separado; todavía no hay catálogo remoto para esa sección.
-- Podés agregar manualmente un libro o volumen. Solo el título es obligatorio; autoría, serie, edición y fechas se pueden completar después.
-- Desde una ficha podés cambiar estado, favorito y propiedad, guardar notas, editar o eliminar. Eliminar requiere confirmación.
-- Los estados son **Por leer**, **A continuación**, **Leyendo**, **Leído**, **Pausado** y **Sin terminar**. Las fechas desconocidas pueden quedar vacías; marcar una lectura antigua como leída no inventa una finalización sin inicio.
+- Podés agregar manualmente o buscar por título, autor, serie o ISBN. La búsqueda reúne coincidencias locales y de Hardcover en el mismo flotante; **Ver todos los resultados** abre el listado.
+- En **Claves**, **Obtener clave en Hardcover** abre la página oficial para conseguirla. El indicador amarillo avisa cuando falta configurar el acceso.
+- La ficha reúne portada, descripción, edición y gestión. Autor y serie son clicables. **Agregar · Por leer** agrega con un clic; elegir otro estado ejecuta el alta directamente.
+- La vinculación y el refresco conservan tus datos personales. Hardcover es el principal; Open Library complementa la edición por ISBN seguro.
 
-### Buscar y agregar desde catálogo
+### Novelas ligeras
 
-1. En **Claves**, configurá una clave de lectura de Hardcover para el perfil. El catálogo es opcional; Open Library no necesita clave.
-2. Usá la búsqueda principal por título, autor, serie o ISBN. Primero aparecen coincidencias locales y después resultados de Hardcover en el mismo flotante. **Ver todos los resultados** abre el listado.
-3. Elegí un resultado para abrir su ficha. Ahí podés revisar información y descripción o **Elegir otra edición**. Pulsar el autor o la serie abre otra búsqueda.
-4. **Agregar · Por leer** agrega con un clic. Elegir otro estado en su desplegable ejecuta el alta directamente. Una única serie se preselecciona y puede quitarse.
+- **Añadir novela** crea la entrada principal; cada volumen queda dentro de su ficha. Libros y Novelas mantienen datos y operaciones separados.
+- La búsqueda local y de **RanobeDB** está unificada. No hace falta escribir `(Light Novel)`: la desambiguación se realiza detrás. **Hardcover** solo complementa publicaciones verificadas por ISBN; Open Library no interviene en Novelas.
+- **Elegir volumen o publicación** permite revisar idioma y formato. Los registros ya vinculados abren su copia local; las coincidencias ambiguas se revisan antes de vincular.
+- La galería muestra portadas de volúmenes registrados y futuros disponibles. El círculo indica el estado y se resalta el siguiente pendiente. Navegar no registra ni empieza una lectura.
+- El portal reúne **Tu biblioteca**, **Leyendo ahora**, **A continuación** y **Últimos volúmenes leídos**. Estos últimos requieren fecha conocida. Los listados muestran miniaturas y **Todas** incluye todos los estados.
 
-Las ediciones vinculadas que ya tenés abren su registro local. Las coincidencias que requieren revisión se presentan antes de vincular; no se fusionan registros automáticamente. **Refrescar metadata** conserva tus datos personales y, si falla, mantiene la información anterior.
+### Progreso y gestión
+
+- El progreso cuenta volúmenes terminados, no la numeración impresa. Si leíste 1–6 y 6.5, son **7 completados** y el siguiente puede llamarse **7**. Las partes y etiquetas se muestran por separado.
+- En **Editar novela y progreso**, **Voy por el volumen** identifica un libro del catálogo; no calcula X−1 desde una etiqueta decimal. Podés informar un total o dejarlo desconocido.
+- **Empezar volumen** pasa a Leyendo y completa el inicio si falta. **Volumen terminado** avanza a A continuación sin iniciar el siguiente. Al llegar a un total conocido se ofrece completar la novela sin crear N+1.
+- Las flechas del contador ajustan progreso sin inventar ni cambiar fechas de lectura. Se admiten cantidades desconocidas y novelas Leídas como `?/?` o `n/?`.
+- Cada volumen conserva título opcional, datos de edición, sinopsis, notas, propiedad, favorito y fechas. Las notas de novela y volumen son independientes.
+- **Identificadores y fuentes**, antes de la galería, contiene origen de los datos y acciones de catálogo. **Refrescar catálogo** conserva el último snapshot válido si falla. Las URLs de las descripciones se pueden abrir o copiar.
+- Una advertencia de publicación preferida indica que falta una coincidencia verificable de idioma/formato. No equivale a falta de ISBN: sin ISBN puede funcionar RanobeDB, pero no el complemento Hardcover.
+- Los perfiles cargan por etapas con skeletons y consultas espaciadas; no se descargan los detalles de todos los volúmenes al abrir una novela.
+
+Los estados son **Por leer**, **A continuación**, **Leyendo**, **Leído/Leída**, **Pausado** y **Sin terminar**. Las fechas desconocidas pueden quedar vacías. Eliminar requiere confirmación; borrar una novela incluye sus volúmenes, sin afectar otros registros.
 
 ### Proveedores y modo solo local
 
-El indicador **Proveedores** muestra la salud de las APIs y permite **Comprobar ahora**. Los fallos y límites pueden pausar consultas temporalmente; una clave ausente o rechazada se distingue de una caída.
+**Proveedores** muestra salud, tiempos y pausas de las APIs y permite **Comprobar ahora**. Las claves ausentes o rechazadas se distinguen de una caída. No hay sondeos remotos continuos.
 
-**Modo solo local** bloquea consultas y descargas remotas, cancela solicitudes en curso y se conserva al reiniciar el perfil. Podés seguir usando tu biblioteca, las descripciones guardadas, las portadas ya cacheadas y la gestión personal. Las portadas no descargadas muestran un marcador. Es útil para comprobar respaldos sin desconectar Internet.
+**Modo solo local** bloquea consultas y descargas remotas, cancela las que estén en curso y se conserva al reiniciar el perfil. Siguen disponibles la biblioteca, los snapshots y las portadas ya cacheadas. Es útil para comprobar respaldos sin desconectar Internet.
 
 ### Respaldar y restaurar
 
 1. Abrí **Respaldo y restauración** y elegí una carpeta distinta de los datos activos.
-2. Trove crea una copia y después respalda los cambios automáticamente, conservando dos generaciones de SQLite y JSON. **Al día** confirma el resguardo local, no la subida a Drive/Dropbox.
-3. Para recuperar, elegí **Actual** o **Anterior** por fecha y hora y pulsá **Revisar respaldo seleccionado**.
-4. Revisá contenido y perfil, confirmá el reemplazo y pulsá **Restaurar y reemplazar biblioteca**. También podés elegir un archivo SQLite o JSON manualmente.
+2. Trove respalda automáticamente y conserva dos generaciones de SQLite y JSON. **Al día** confirma archivos locales, no su subida a Drive/Dropbox.
+3. Elegí **Actual** o **Anterior** por fecha y hora y pulsá **Revisar respaldo seleccionado**. También podés elegir un archivo manualmente.
+4. Revisá contenido y perfil, confirmá y pulsá **Restaurar y reemplazar biblioteca**.
 
-Restaurar reemplaza la biblioteca completa del perfil y conserva una copia previa; no mezcla registros ni importa datos de otros servicios. Cerrá otras instancias antes de hacerlo. Los respaldos no incluyen claves, portadas cacheadas ni preferencias del perfil. El modo solo local no cambia al restaurar.
+Restaurar reemplaza toda la biblioteca del perfil y conserva una copia previa; no mezcla registros ni importa otros servicios. Cerrá otras instancias antes. Los respaldos no incluyen claves, portadas cacheadas ni preferencias. El modo solo local no cambia al restaurar.
 
-Los éxitos se muestran como avisos flotantes sin mover la página. Los errores quedan junto a la operación. Para detalles, consultá la [guía completa](../usage.md), el [formato de respaldo](../backup-format.md) y las [novedades](../releases/README.md).
+**Datos del modelo anterior:** los volúmenes independientes de v0.1.7 no se convierten ni borran; permanecen almacenados y respaldados, pero no aparecen como novelas agrupadas en la nueva vista. Libros se conserva. Las versiones anteriores pueden no entender los nuevos datos o respaldos.
+
+Los éxitos aparecen como avisos flotantes; los errores quedan junto a la operación. Para detalles, consultá la [guía completa](../usage.md), el [formato de respaldo](../backup-format.md) y las [novedades](../releases/README.md).
 
 ### Alcance actual
 
-Las importaciones de servicios externos, los puntajes y las demás secciones multimedia todavía no están disponibles. Esta guía se amplía con recorridos nuevos al preparar cada PR de publicación, sin duplicar toda la documentación técnica ni mantener un segundo changelog.
+Las importaciones, los puntajes, los filtros por clasificación y la gestión avanzada de copias/relecturas todavía no están disponibles. Esta guía se amplía al preparar cada PR de publicación, sin duplicar la documentación técnica ni mantener un segundo changelog.
