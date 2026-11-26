@@ -96,6 +96,18 @@
   padding-left: 0.4rem;
   padding-right: 0.4rem;
 }
+.rating-auto-value {
+  display: inline-grid;
+  place-items: center;
+  min-width: 60px;
+  height: 30px;
+  box-sizing: border-box;
+  padding: 0 0.25rem;
+  border: 1px solid var(--border, #34343d);
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
 .reading-panels {
   display: grid;
   gap: 1rem;

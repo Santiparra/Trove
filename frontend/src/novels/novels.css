@@ -57,6 +57,31 @@
   font-size: 10px;
   line-height: 1.4;
 }
+.compact-management .novel-personal-rating-row {
+  width: 100%;
+  min-width: 0;
+  padding-top: 3px;
+}
+.compact-management .novel-personal-rating-row .rating-select {
+  display: grid;
+  grid-template-columns: 12px 116px 44px;
+  justify-content: end;
+  align-items: center;
+  column-gap: 3px;
+  width: 100%;
+}
+.compact-management .novel-personal-rating-row .rating-star {
+  font-size: 13px;
+}
+.compact-management .novel-personal-rating-row .rating-select select,
+.compact-management .novel-personal-rating-row .rating-auto-value {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: 30px;
+  padding: 4px;
+  font-size: 10px;
+}
 .novel-record-buttons,
 .novel-volume-buttons {
   display: grid;

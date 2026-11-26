@@ -771,49 +771,6 @@ export default function NovelWorkspace({
                 aria-label="Seguimiento de novela"
               >
                 <h3>Seguimiento</h3>
-                <div className="personal-rating-controls">
-                  <RatingEditor
-                    key={`${selected.id}-rating`}
-                    title="Puntaje de la novela"
-                    label="Novela"
-                    value={selected.rating}
-                    mode={selected.ratingMode}
-                    allowAuto
-                    busy={busy}
-                    onSave={(mode, value) =>
-                      action(async () =>
-                        commit(
-                          await Novels.SetRating(selected.id, mode, value),
-                          "Puntaje de novela guardado.",
-                        ),
-                      )
-                    }
-                  />
-                  {current && (
-                    <RatingEditor
-                      key={`${current.id}-${current.cycle.id}-rating`}
-                      title={`Puntaje del volumen ${shownLabel}`}
-                      label={`Vol. ${shownLabel}`}
-                      value={current.cycle.rating}
-                      busy={busy}
-                      onSave={(_, rating) =>
-                        action(async () =>
-                          commit(
-                            await Novels.SaveReading(selected.id, current.id, {
-                              id: current.cycle.id,
-                              status: current.cycle.status,
-                              startedOn: current.cycle.startedOn,
-                              finishedOn: current.cycle.finishedOn,
-                              rating,
-                              edition: current.cycle.edition || null,
-                            }),
-                            "Puntaje del volumen guardado.",
-                          ),
-                        )
-                      }
-                    />
-                  )}
-                </div>
                 {run && (
                   <span className="management-hint">
                     Recorrido de relectura · {run.volumeIDs.length} volúmenes
@@ -1007,6 +964,24 @@ export default function NovelWorkspace({
                   </button>
                   <small>Alta: {dateLabel(selected.addedOn)}</small>
                 </div>
+                <div className="novel-personal-rating-row">
+                  <RatingEditor
+                    key={`${selected.id}-rating`}
+                    title="Puntaje de la novela"
+                    value={selected.rating}
+                    mode={selected.ratingMode}
+                    allowAuto
+                    busy={busy}
+                    onSave={(mode, value) =>
+                      action(async () =>
+                        commit(
+                          await Novels.SetRating(selected.id, mode, value),
+                          "Puntaje de novela guardado.",
+                        ),
+                      )
+                    }
+                  />
+                </div>
               </section>
               <section
                 className="management-group"
@@ -1041,6 +1016,31 @@ export default function NovelWorkspace({
                     </button>
                   )}
                 </div>
+                {current && (
+                  <div className="novel-personal-rating-row">
+                    <RatingEditor
+                      key={`${current.id}-${current.cycle.id}-rating`}
+                      title={`Puntaje del volumen ${shownLabel}`}
+                      value={current.cycle.rating}
+                      busy={busy}
+                      onSave={(_, rating) =>
+                        action(async () =>
+                          commit(
+                            await Novels.SaveReading(selected.id, current.id, {
+                              id: current.cycle.id,
+                              status: current.cycle.status,
+                              startedOn: current.cycle.startedOn,
+                              finishedOn: current.cycle.finishedOn,
+                              rating,
+                              edition: current.cycle.edition || null,
+                            }),
+                            "Puntaje del volumen guardado.",
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                )}
                 {metadataLoading && (
                   <small role="status">Consultando metadata del volumen…</small>
                 )}

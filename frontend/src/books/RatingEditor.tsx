@@ -107,35 +107,41 @@ export default function RatingEditor({
         }}
       >
         <option value="">Sin puntuar</option>
-        {allowAuto && (
-          <option value="auto">
-            Auto
-            {mode === "auto" && value != null ? ` · ${numberLabel(value)}` : ""}
-          </option>
-        )}
+        {allowAuto && <option value="auto">Auto</option>}
         {Array.from({ length: 10 }, (_, i) => 10 - i).map((score) => (
           <option key={score} value={String(score)}>
             ({score}) {descriptions[score - 1]}
           </option>
         ))}
       </select>
-      <select
-        className="rating-decimal"
-        aria-label={`Decimales de ${title.toLowerCase()}`}
-        disabled={
-          busy || selected === "" || selected === "auto" || selected === "10"
-        }
-        value={String(fraction)}
-        onChange={(event) =>
-          void onSave("manual", Number(selected) + Number(event.target.value))
-        }
-      >
-        {[0, 0.25, 0.5, 0.75].map((part) => (
-          <option key={part} value={String(part)}>
-            ,{String(Math.round(part * 100)).padStart(2, "0")}
-          </option>
-        ))}
-      </select>
+      {selected === "auto" ? (
+        <output
+          className="rating-auto-value"
+          aria-label={`Resultado automático: ${title}`}
+          aria-live="polite"
+          title={ratingLabel(value)}
+        >
+          {value == null ? "—" : numberLabel(value)}
+        </output>
+      ) : (
+        <select
+          className="rating-decimal"
+          aria-label={`Decimales de ${title.toLowerCase()}`}
+          disabled={
+            busy || selected === "" || selected === "auto" || selected === "10"
+          }
+          value={String(fraction)}
+          onChange={(event) =>
+            void onSave("manual", Number(selected) + Number(event.target.value))
+          }
+        >
+          {[0, 0.25, 0.5, 0.75].map((part) => (
+            <option key={part} value={String(part)}>
+              ,{String(Math.round(part * 100)).padStart(2, "0")}
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

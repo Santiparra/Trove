@@ -162,7 +162,21 @@ it("guarda el modo automático de novela y muestra la media recibida sin cuantiz
   const management = screen.getByRole("region", {
     name: "Seguimiento de novela",
   });
-  expect(management.contains(dropdown)).toBe(true);
+  expect(management.contains(dropdown)).toBe(false);
+  expect(
+    screen
+      .getByRole("region", { name: "Gestión de novela" })
+      .contains(dropdown),
+  ).toBe(true);
+  const volumeDropdown = screen.getByRole("combobox", {
+    name: "Puntaje del volumen 1",
+  });
+  expect(management.contains(volumeDropdown)).toBe(false);
+  expect(
+    screen
+      .getByRole("region", { name: "Gestión de volumen" })
+      .contains(volumeDropdown),
+  ).toBe(true);
   fireEvent.change(dropdown, {
     target: { value: "auto" },
   });
@@ -171,8 +185,18 @@ it("guarda el modo automático de novela y muestra la media recibida sin cuantiz
     expect(api.SetRating).toHaveBeenCalledExactlyOnceWith(n.id, "auto", null),
   );
   expect(
-    await within(dropdown).findByRole("option", { name: "Auto · 8,42" }),
-  ).toBeTruthy();
+    await screen.findByLabelText("Resultado automático: Puntaje de la novela"),
+  ).toHaveProperty("textContent", "8,42");
+  expect(
+    screen.queryByRole("combobox", {
+      name: "Decimales de puntaje de la novela",
+    }),
+  ).toBeNull();
+  expect(
+    screen
+      .getByRole("region", { name: "Gestión de novela" })
+      .querySelector(".rating-select-label"),
+  ).toBeNull();
 });
 
 it("prepara un recorrido con los volúmenes elegidos sin iniciarlos automáticamente", async () => {
