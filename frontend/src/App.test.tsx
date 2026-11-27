@@ -637,6 +637,7 @@ describe("Novelas ligeras locales", () => {
     expect(
       await screen.findByRole("region", { name: "Detalle de novela" }),
     ).toBeTruthy();
+    fireEvent.click(screen.getByRole("tab", { name: "Gestionar" }));
     expect(
       screen.getByRole("button", { name: "Editar novela y progreso" }),
     ).toBeTruthy();
@@ -1035,7 +1036,9 @@ it("guarda clasificación manual del libro desde su ficha con el medio explícit
   const editor = await screen.findByRole("region", {
     name: "Géneros y etiquetas",
   });
-  fireEvent.click(within(editor).getByText("Editar clasificación"));
+  fireEvent.click(
+    within(editor).getByRole("button", { name: /Editar clasificación/ }),
+  );
   fireEvent.change(
     within(editor).getByLabelText("Nuevo término para Géneros y etiquetas"),
     { target: { value: "Fantasía" } },
@@ -1048,7 +1051,11 @@ it("guarda clasificación manual del libro desde su ficha con el medio explícit
       { genres: ["Fantasía"], tags: [], hidden: [] },
     ),
   );
-  expect(await within(editor).findByText("Fantasía")).toBeTruthy();
+  expect(
+    await within(editor).findByText("Fantasía", {
+      selector: ".classification-display .classification-chip",
+    }),
+  ).toBeTruthy();
 });
 
 describe("eliminar libros", () => {

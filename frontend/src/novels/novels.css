@@ -434,6 +434,113 @@
   gap: 18px 14px;
   margin: 20px 0;
 }
+.novel-profile-heading {
+  margin: 0.55rem 0 0;
+}
+.novel-profile-heading h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+}
+.novel-profile-heading p {
+  margin: 0.25rem 0 0;
+}
+.tabbed-novel-profile .book-profile-grid {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr) 220px;
+  gap: 16px;
+  padding: 12px 0;
+}
+.tabbed-novel-profile .profile-cover .cover-photo,
+.tabbed-novel-profile .profile-cover .cover-placeholder {
+  max-height: 285px;
+  min-height: 0;
+}
+.novel-profile-tabs {
+  min-width: 0;
+  border: 1px solid #303d38;
+  border-radius: 8px;
+  background: #171e23;
+}
+.novel-profile-tabs [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px;
+  border-bottom: 1px solid #303d38;
+}
+.novel-profile-tabs [role="tab"] {
+  padding: 6px 8px;
+  border-radius: 4px;
+  background: transparent;
+  color: #b6c9bf;
+  font-size: 0.76rem;
+}
+.novel-profile-tabs [role="tab"][aria-selected="true"] {
+  background: #2e493e;
+  color: #ebfff2;
+}
+.novel-profile-tabs [role="tab"]:focus-visible {
+  outline: 2px solid #a7d9bf;
+  outline-offset: -2px;
+}
+.novel-profile-tabs [role="tabpanel"] {
+  max-height: clamp(275px, 39vh, 430px);
+  overflow: auto;
+  padding: 10px 12px;
+}
+.novel-profile-tabs [role="tabpanel"][hidden] {
+  display: none;
+}
+.novel-profile-tabs .profile-facts {
+  margin: 0.5rem 0;
+}
+.novel-profile-tabs .portal-card {
+  margin: 0;
+  padding: 10px;
+}
+.novel-profile-tabs .metadata-actions {
+  margin: 0 0 0.65rem;
+  padding-bottom: 0.65rem;
+}
+.novel-profile-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+.tabbed-novel-profile .volume-cover-gallery {
+  grid-auto-flow: column;
+  grid-auto-columns: clamp(60px, 5.6vw, 84px);
+  grid-template-columns: none;
+  overflow-x: auto;
+  padding: 4px;
+  gap: 8px;
+  margin: 8px 0;
+}
+.tabbed-novel-profile .volume-cover-label {
+  overflow-wrap: anywhere;
+}
+@media (min-width: 1200px) {
+  .novel-portal {
+    grid-template-columns: minmax(180px, 0.55fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: "library reading next" "library recent recent";
+  }
+}
+@media (max-width: 1050px) {
+  .tabbed-novel-profile .book-profile-grid {
+    grid-template-columns: minmax(95px, 145px) minmax(0, 1fr);
+  }
+}
+@media (max-width: 750px) {
+  .tabbed-novel-profile .book-profile-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tabbed-novel-profile .profile-cover {
+    width: min(145px, 100%);
+  }
+  .novel-profile-tabs [role="tabpanel"] {
+    max-height: none;
+  }
+}
 .volume-cover-item {
   display: grid;
   gap: 8px;

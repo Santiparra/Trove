@@ -187,7 +187,9 @@ it("edita etiquetas de volumen sin enviarlas a la clasificación de novela", asy
   const editor = screen.getByRole("region", {
     name: "Clasificación del volumen 1",
   });
-  fireEvent.click(within(editor).getByText("Editar clasificación"));
+  fireEvent.click(
+    within(editor).getByRole("button", { name: /Editar clasificación/ }),
+  );
   fireEvent.change(
     within(editor).getByLabelText("Categoría para Clasificación del volumen 1"),
     { target: { value: "tag" } },
@@ -206,7 +208,11 @@ it("edita etiquetas de volumen sin enviarlas a la clasificación de novela", asy
       { genres: [], tags: ["Cozy"], hidden: [] },
     ),
   );
-  expect(await within(editor).findByText("Cozy")).toBeTruthy();
+  expect(
+    await within(editor).findByText("Cozy", {
+      selector: ".classification-display .classification-chip",
+    }),
+  ).toBeTruthy();
   expect(
     within(
       screen.getByRole("region", { name: "Clasificación de novela" }),
@@ -303,6 +309,7 @@ it("prepara un recorrido con los volúmenes elegidos sin iniciarlos automáticam
     await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
   );
   await screen.findByRole("region", { name: "Detalle de novela" });
+  fireEvent.click(screen.getByRole("tab", { name: "Recorridos" }));
   fireEvent.click(screen.getByRole("button", { name: "Releer novela" }));
   fireEvent.click(screen.getByLabelText("Volumen 1"));
   fireEvent.click(screen.getByLabelText("Volumen 3"));
@@ -354,6 +361,7 @@ it("ofrece ambas relecturas desde sus historiales mientras la novela sigue en cu
   fireEvent.click(
     await screen.findByRole("button", { name: `Abrir novela ${n.title}` }),
   );
+  fireEvent.click(await screen.findByRole("tab", { name: "Recorridos" }));
   const history = await screen.findByRole("region", {
     name: "Recorridos de novela",
   });
@@ -361,6 +369,7 @@ it("ofrece ambas relecturas desde sus historiales mientras la novela sigue en cu
     within(history).getByRole("button", { name: "Releer novela" }),
   ).toHaveProperty("disabled", false);
   fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 1" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Lecturas del volumen" }));
   const volumeHistory = screen.getByRole("region", {
     name: "Lecturas del volumen 1",
   });
@@ -422,6 +431,7 @@ it("ajusta progreso con una flecha y usa confirmación propia al borrar", async 
   );
   await screen.findByRole("group", { name: "Progreso: 1/?" });
   expect(api.SetCompleted).toHaveBeenCalledExactlyOnceWith(n.id, 1, false);
+  fireEvent.click(screen.getByRole("tab", { name: "Gestionar" }));
   fireEvent.click(screen.getByRole("button", { name: "Eliminar novela" }));
   expect(
     screen.getByRole("dialog", { name: "¿Eliminar esta novela?" }),
@@ -507,6 +517,7 @@ it("terminar deja el siguiente pendiente sin iniciarlo y conserva el borrador de
   });
   api.FinishVolume.mockResolvedValue(updated);
   await open(n);
+  fireEvent.click(screen.getByRole("tab", { name: "Notas" }));
   const notes = screen.getByLabelText("Notas de la novela");
   fireEvent.change(notes, {
     target: { value: "Borrador todavía sin guardar" },
@@ -558,6 +569,7 @@ it("edita datos de un volumen con título opcional, conserva errores y no pierde
   );
   await open(novel());
   fireEvent.click(screen.getByRole("button", { name: "Abrir volumen 1" }));
+  fireEvent.click(screen.getByRole("tab", { name: "Gestionar" }));
   fireEvent.click(
     screen.getByRole("button", { name: "Editar datos del volumen 1" }),
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   Input,
   Set as ClassificationSet,
@@ -24,6 +24,16 @@ export default function ClassificationEditor({
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState("genre");
   const [draft, setDraft] = useState("");
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (editing && dialog && !dialog.open) {
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.setAttribute("open", "");
+      dialog.querySelector("input")?.focus();
+    }
+  }, [editing]);
   useEffect(() => {
     onDirty?.(!!draft.trim());
   }, [draft, onDirty]);
@@ -49,52 +59,97 @@ export default function ClassificationEditor({
     }
     await onSave?.(next);
   }
+  function rows(editable: boolean) {
+    return [
+      { key: "genre", label: "Géneros", terms: effective?.genres || [] },
+      { key: "tag", label: "Etiquetas", terms: effective?.tags || [] },
+    ].map((group) => (
+      <div className={`classification-row is-${group.key}`} key={group.key}>
+        <span className="classification-label">{group.label}</span>
+        <div className="classification-terms">
+          {group.terms.length ? (
+            group.terms.map((term, index) => (
+              <span
+                className="classification-chip"
+                key={`${index}-${term.name}`}
+                title={term.origins
+                  .map((o) =>
+                    o.provider === "manual"
+                      ? "Manual"
+                      : `${o.provider} · ${o.category} · ${o.id}`,
+                  )
+                  .join("\n")}
+              >
+                {term.name}
+                {editable && (
+                  <button
+                    type="button"
+                    className="quiet"
+                    disabled={busy}
+                    aria-label={`Quitar ${group.key === "genre" ? "género" : "etiqueta"} ${term.name} de ${title}`}
+                    onClick={() => void remove(term, group.key)}
+                  >
+                    ×
+                  </button>
+                )}
+              </span>
+            ))
+          ) : (
+            <span className="classification-empty">Sin especificar</span>
+          )}
+        </div>
+      </div>
+    ));
+  }
+  function close() {
+    if (busy) return;
+    const dialog = dialogRef.current;
+    if (typeof dialog?.close === "function") dialog.close();
+    setDraft("");
+    setEditing(false);
+    trigger.current?.focus();
+  }
   return (
     <section className="classification-editor" aria-label={title}>
-      <h3>{title}</h3>
-      {[
-        { key: "genre", label: "Géneros", terms: effective?.genres || [] },
-        { key: "tag", label: "Etiquetas", terms: effective?.tags || [] },
-      ].map((group) => (
-        <div className="classification-row" key={group.key}>
-          <span className="classification-label">{group.label}</span>
-          <div className="classification-terms">
-            {group.terms.length ? (
-              group.terms.map((term, index) => (
-                <span
-                  className="classification-chip"
-                  key={`${index}-${term.name}`}
-                  title={term.origins
-                    .map((o) =>
-                      o.provider === "manual"
-                        ? "Manual"
-                        : `${o.provider} · ${o.category} · ${o.id}`,
-                    )
-                    .join("\n")}
-                >
-                  {term.name}
-                  {onSave && editing && (
-                    <button
-                      type="button"
-                      className="quiet"
-                      disabled={busy}
-                      aria-label={`Quitar ${group.key === "genre" ? "género" : "etiqueta"} ${term.name} de ${title}`}
-                      onClick={() => void remove(term, group.key)}
-                    >
-                      ×
-                    </button>
-                  )}
-                </span>
-              ))
-            ) : (
-              <span className="classification-empty">Sin especificar</span>
-            )}
+      <div className="classification-heading">
+        <h3>{title}</h3>
+        {onSave && (
+          <button
+            ref={trigger}
+            className="classification-add"
+            type="button"
+            aria-label={`Editar clasificación: ${title}`}
+            title="Agregar o editar géneros y etiquetas"
+            disabled={busy}
+            onClick={() => setEditing(true)}
+          >
+            +
+          </button>
+        )}
+      </div>
+      <div className="classification-display">{rows(false)}</div>
+      {onSave && editing && (
+        <dialog
+          ref={dialogRef}
+          className="classification-dialog"
+          aria-label={`Editar clasificación: ${title}`}
+          onCancel={(event) => {
+            event.preventDefault();
+            close();
+          }}
+        >
+          <div className="classification-heading">
+            <h3>{title}</h3>
+            <button
+              type="button"
+              className="quiet"
+              aria-label="Cerrar clasificación"
+              disabled={busy}
+              onClick={close}
+            >
+              ×
+            </button>
           </div>
-        </div>
-      ))}
-      {onSave && (
-        <details onToggle={(event) => setEditing(event.currentTarget.open)}>
-          <summary>Editar clasificación</summary>
           <form
             onSubmit={async (event) => {
               event.preventDefault();
@@ -130,6 +185,7 @@ export default function ClassificationEditor({
               Agregar
             </button>
           </form>
+          {rows(true)}
           {!!manual?.hidden.length && (
             <button
               type="button"
@@ -144,7 +200,7 @@ export default function ClassificationEditor({
             Los cambios manuales se conservan al refrescar el catálogo. Quitar
             un término del proveedor lo oculta hasta restaurarlo.
           </small>
-        </details>
+        </dialog>
       )}
     </section>
   );

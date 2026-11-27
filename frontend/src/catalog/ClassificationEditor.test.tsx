@@ -30,7 +30,7 @@ it("agrega términos manuales sin reemplazar preferencias y conserva el borrador
       onDirty={onDirty}
     />,
   );
-  fireEvent.click(screen.getByText("Editar clasificación"));
+  fireEvent.click(screen.getByRole("button", { name: /Editar clasificación/ }));
   fireEvent.change(screen.getByLabelText("Categoría para Libro"), {
     target: { value: "tag" },
   });
@@ -82,7 +82,7 @@ it("oculta por identidad externa al quitar un término combinado y permite resta
       onSave={onSave}
     />,
   );
-  fireEvent.click(screen.getByText("Editar clasificación"));
+  fireEvent.click(screen.getByRole("button", { name: /Editar clasificación/ }));
   fireEvent.click(
     await screen.findByRole("button", {
       name: "Quitar género Fantasy de Libro",

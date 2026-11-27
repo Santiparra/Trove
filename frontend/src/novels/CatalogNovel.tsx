@@ -243,6 +243,7 @@ export default function CatalogNovel({
     p.label || printedLabel(p.title, p.originalTitle) || `Lectura #${number}`;
   return (
     <BookProfile
+      profileTabs={{ key: series.id, panels: [] }}
       classification={
         <div className="profile-classification-grid">
           <ClassificationEditor

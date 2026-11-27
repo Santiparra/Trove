@@ -320,7 +320,8 @@ it("cambia idioma/formato/publicación desde la ficha manteniendo el registro lo
   api.LinkCatalog.mockResolvedValue(n);
   await openLocal(n);
   fireEvent.click(
-    screen.getByRole("button", { name: "Elegir volumen o publicación" }),
+    (fireEvent.click(screen.getByRole("tab", { name: "Catálogo y fuentes" })),
+    screen.getByRole("button", { name: "Elegir volumen o publicación" })),
   );
   await screen.findByRole("region", { name: "Detalle de novela de catálogo" });
   fireEvent.click(
@@ -399,7 +400,7 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   const n = local();
   await openLocal(n, true);
   expect(screen.getByText("Enriched synopsis 1")).toBeTruthy();
-  fireEvent.click(screen.getByText("Identificadores y fuentes"));
+  fireEvent.click(screen.getByRole("tab", { name: "Catálogo y fuentes" }));
   expect(
     screen.getByRole("button", { name: "Refrescar metadata" }),
   ).toHaveProperty("disabled", true);
@@ -409,23 +410,15 @@ it("en modo local conserva metadata guardada y no consulta fuentes externas", as
   expect(api.SearchCatalog).not.toHaveBeenCalled();
   expect(api.RefreshCatalog).not.toHaveBeenCalled();
 });
-it("agrupa notas e historiales tras los volúmenes y deja metadata y fuentes al final", async () => {
+it("cambia el panel central sin ocultar la galería ni el seguimiento", async () => {
   const n = local();
   const warning = "Sin publicación coincidente para en / print.";
   n.volumes[0].catalog!.warnings = [warning];
   api.RefreshCatalog.mockResolvedValue(n);
   await openLocal(n);
-  const sources = document.querySelector<HTMLDetailsElement>(
-    ".profile-identifiers",
-  )!;
   const gallery = screen.getByRole("region", {
     name: "Volúmenes de la novela",
   });
-  expect(
-    gallery.compareDocumentPosition(sources) & Node.DOCUMENT_POSITION_FOLLOWING,
-  ).toBeTruthy();
-  expect(sources.open).toBe(false);
-  const metadata = screen.getByText("Catálogo y metadata");
   const novelRating = screen.getByLabelText(
     /^Puntaje externo de RanobeDB · novela:/,
   );
@@ -434,39 +427,40 @@ it("agrupa notas e historiales tras los volúmenes y deja metadata y fuentes al 
   );
   expect(novelRating.parentElement).toBe(volumeRating.parentElement);
   expect(within(volumeRating).getByText("Vol. 1")).toBeTruthy();
-  const panels = document.querySelector(".reading-panels-three")!;
   expect(
-    screen
-      .getByLabelText("Notas de la novela")
-      .closest(".reading-panels-three"),
-  ).toBe(panels);
+    screen.getByText(warning).closest("ul")!.compareDocumentPosition(gallery) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+  fireEvent.keyDown(screen.getByRole("tab", { name: "Resumen" }), {
+    key: "ArrowRight",
+  });
+  const notes = screen.getByRole("tabpanel", { name: "Notas" });
+  expect(document.activeElement).toBe(
+    screen.getByRole("tab", { name: "Notas" }),
+  );
+  fireEvent.change(within(notes).getByRole("textbox"), {
+    target: { value: "Borrador" },
+  });
+  fireEvent.click(screen.getByRole("tab", { name: "Recorridos" }));
   expect(
-    screen
-      .getByRole("region", { name: "Recorridos de novela" })
-      .closest(".reading-panels-three"),
-  ).toBe(panels);
+    screen.getByRole("region", { name: "Recorridos de novela" }),
+  ).toBeTruthy();
+  expect(screen.queryByRole("tabpanel", { name: "Notas" })).toBeNull();
+  expect(screen.getByRole("region", { name: "Volúmenes de la novela" })).toBe(
+    gallery,
+  );
   expect(
-    screen
-      .getByRole("region", { name: "Lecturas del volumen 1" })
-      .closest(".reading-panels-three"),
-  ).toBe(panels);
-  const warningList = screen.getByText(warning).closest("ul")!;
-  for (const [before, after] of [
-    [warningList, gallery],
-    [gallery, panels],
-    [panels, metadata],
-    [metadata, sources],
-  ]) {
-    expect(
-      before.compareDocumentPosition(after) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  }
-  expect(sources.contains(metadata)).toBe(false);
-  expect(
-    screen
-      .getByRole("complementary", { name: "Gestión del libro" })
-      .contains(metadata),
-  ).toBe(false);
+    screen.getByRole("region", { name: "Seguimiento de novela" }),
+  ).toBeTruthy();
+  fireEvent.click(screen.getByRole("tab", { name: "Notas" }));
+  expect(within(notes).getByRole("textbox")).toHaveProperty(
+    "value",
+    "Borrador",
+  );
+  fireEvent.click(screen.getByRole("tab", { name: "Catálogo y fuentes" }));
+  const sources = screen
+    .getByText("Identificadores y fuentes")
+    .closest("details")!;
   const refresh = screen.getByRole("button", { name: "Refrescar metadata" });
   expect(sources.open).toBe(false);
   fireEvent.click(refresh);

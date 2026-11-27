@@ -71,3 +71,56 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.classification-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.classification-heading h3 {
+  margin: 0;
+}
+.classification-add {
+  border: 1px solid #506b5e;
+  border-radius: 5px;
+  color: #c2e8d1;
+  background: #233630;
+  padding: 0 0.42rem;
+  line-height: 1.3;
+  font-size: 1rem;
+}
+.classification-row.is-genre .classification-chip {
+  background: #233934;
+  border-color: #527469;
+  color: #cee9da;
+}
+.classification-row.is-tag .classification-chip {
+  background: #322b42;
+  border-color: #66557d;
+  color: #ebddfb;
+}
+.classification-dialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow: auto;
+  background: #191f26;
+  color: #e4eee8;
+  border: 1px solid #50645c;
+  border-radius: 9px;
+  padding: 1rem;
+}
+.classification-dialog::backdrop {
+  background: #080d12b8;
+}
+.profile-rating-column .classification-editor {
+  width: min(21rem, 30vw);
+  min-width: 0;
+}
+.profile-rating-column > .external-rating {
+  margin-left: auto;
+}
+@media (max-width: 750px) {
+  .profile-rating-column .classification-editor {
+    width: min(21rem, 100%);
+  }
+}
