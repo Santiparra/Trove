@@ -8,6 +8,9 @@ import { Create as $Create } from "@wailsio/runtime";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as catalog$0 from "../catalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
 
 export class Author {
     "id": string;
@@ -118,6 +121,7 @@ export class Candidate {
 }
 
 export class Publication {
+    "classification"?: classification$0.Set | null;
     "rating"?: catalog$0.Rating | null;
     "label"?: string;
     "hardcoverCategory"?: string;
@@ -217,17 +221,21 @@ export class Publication {
      */
     static createFrom($$source: any = {}): Publication {
         const $$createField0_0 = $$createType1;
-        const $$createField22_0 = $$createType3;
-        const $$createField23_0 = $$createType4;
+        const $$createField1_0 = $$createType3;
+        const $$createField23_0 = $$createType5;
+        const $$createField24_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
         if ("rating" in $$parsedSource) {
-            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+            $$parsedSource["rating"] = $$createField1_0($$parsedSource["rating"]);
         }
         if ("sources" in $$parsedSource) {
-            $$parsedSource["sources"] = $$createField22_0($$parsedSource["sources"]);
+            $$parsedSource["sources"] = $$createField23_0($$parsedSource["sources"]);
         }
         if ("warnings" in $$parsedSource) {
-            $$parsedSource["warnings"] = $$createField23_0($$parsedSource["warnings"]);
+            $$parsedSource["warnings"] = $$createField24_0($$parsedSource["warnings"]);
         }
         return new Publication($$parsedSource as Partial<Publication>);
     }
@@ -306,8 +314,8 @@ export class SearchResult {
      * Creates a new SearchResult instance from a string or object.
      */
     static createFrom($$source: any = {}): SearchResult {
-        const $$createField0_0 = $$createType6;
-        const $$createField4_0 = $$createType4;
+        const $$createField0_0 = $$createType8;
+        const $$createField4_0 = $$createType6;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("items" in $$parsedSource) {
             $$parsedSource["items"] = $$createField0_0($$parsedSource["items"]);
@@ -320,6 +328,7 @@ export class SearchResult {
 }
 
 export class Series {
+    "classification"?: classification$0.Set | null;
     "rating"?: catalog$0.Rating | null;
     "id": string;
     "title": string;
@@ -373,17 +382,21 @@ export class Series {
      */
     static createFrom($$source: any = {}): Series {
         const $$createField0_0 = $$createType1;
-        const $$createField6_0 = $$createType8;
+        const $$createField1_0 = $$createType3;
         const $$createField7_0 = $$createType10;
+        const $$createField8_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
         if ("rating" in $$parsedSource) {
-            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+            $$parsedSource["rating"] = $$createField1_0($$parsedSource["rating"]);
         }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField6_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField7_0($$parsedSource["authors"]);
         }
         if ("books" in $$parsedSource) {
-            $$parsedSource["books"] = $$createField7_0($$parsedSource["books"]);
+            $$parsedSource["books"] = $$createField8_0($$parsedSource["books"]);
         }
         return new Series($$parsedSource as Partial<Series>);
     }
@@ -423,14 +436,16 @@ export class Source {
 }
 
 // Private type creation functions
-const $$createType0 = catalog$0.Rating.createFrom;
+const $$createType0 = classification$0.Set.createFrom;
 const $$createType1 = $Create.Nullable($$createType0);
-const $$createType2 = Source.createFrom;
-const $$createType3 = $Create.Map($Create.Any, $$createType2);
-const $$createType4 = $Create.Array($Create.Any);
-const $$createType5 = Candidate.createFrom;
-const $$createType6 = $Create.Array($$createType5);
-const $$createType7 = Author.createFrom;
+const $$createType2 = catalog$0.Rating.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = Source.createFrom;
+const $$createType5 = $Create.Map($Create.Any, $$createType4);
+const $$createType6 = $Create.Array($Create.Any);
+const $$createType7 = Candidate.createFrom;
 const $$createType8 = $Create.Array($$createType7);
-const $$createType9 = BookRef.createFrom;
+const $$createType9 = Author.createFrom;
 const $$createType10 = $Create.Array($$createType9);
+const $$createType11 = BookRef.createFrom;
+const $$createType12 = $Create.Array($$createType11);

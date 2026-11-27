@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Santiparra/Trove/internal/books"
+	"github.com/Santiparra/Trove/internal/classification"
 	"github.com/Santiparra/Trove/internal/novelcatalog"
 	"github.com/Santiparra/Trove/internal/novels"
 	"github.com/Santiparra/Trove/internal/providers"
@@ -81,6 +82,11 @@ func (n *Novels) RereadNovel(id string, volumeIDs []string) (novels.Novel, error
 }
 func (n *Novels) SetRating(id, mode string, value *float64) (novels.Novel, error) {
 	return n.mutate(func() (novels.Novel, error) { return n.service.SetRating(context.Background(), id, mode, value) })
+}
+func (n *Novels) SetClassification(id, volumeID string, input classification.Input) (novels.Novel, error) {
+	return n.mutate(func() (novels.Novel, error) {
+		return n.service.SetClassification(context.Background(), id, volumeID, input)
+	})
 }
 func (n *Novels) RereadVolume(id, volumeID string) (novels.Novel, error) {
 	return n.mutate(func() (novels.Novel, error) { return n.service.RereadVolume(context.Background(), id, volumeID) })

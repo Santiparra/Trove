@@ -863,6 +863,17 @@ export default function App() {
                     "Lectura guardada sin modificar el resto del historial.",
                   )
                 }
+                onClassification={(input) =>
+                  updatePersonal(
+                    () =>
+                      Library.SetBookClassification(
+                        selected.id,
+                        currentMedium,
+                        input,
+                      ),
+                    "Clasificación guardada.",
+                  )
+                }
                 onReread={() =>
                   void updatePersonal(
                     () => Library.RereadBook(selected.id, currentMedium),

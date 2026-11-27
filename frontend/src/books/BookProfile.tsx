@@ -9,6 +9,7 @@ import Icon from "../components/Icon";
 import { seriesLabel } from "./presentation";
 import DescriptionText from "../components/DescriptionText";
 import { ExternalRating } from "./RatingEditor";
+import ClassificationEditor from "../catalog/ClassificationEditor";
 
 export default function BookProfile({
   book = null,
@@ -34,6 +35,7 @@ export default function BookProfile({
   subtitleDetails,
   beforeBody,
   metadataLast = false,
+  classification,
 }: {
   book?: Book | null;
   snapshot?: Snapshot | null;
@@ -62,6 +64,7 @@ export default function BookProfile({
   subtitleDetails?: ReactNode;
   beforeBody?: ReactNode;
   metadataLast?: boolean;
+  classification?: ReactNode;
 }) {
   const title = book?.title || snapshot?.edition.title || "Libro";
   const authors = book?.authors || snapshot?.work.authors || [];
@@ -220,6 +223,14 @@ export default function BookProfile({
           {management}
         </aside>
       </div>
+      {classification === undefined && snapshot?.work.classification ? (
+        <ClassificationEditor
+          title="Géneros y etiquetas"
+          effective={snapshot.work.classification}
+        />
+      ) : (
+        classification
+      )}
       {beforeBody}
       {!metadataLast && metadataActions}
       {(metadataLast || !sourcesBeforeChildren) && children}

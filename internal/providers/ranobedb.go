@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 	"github.com/Santiparra/Trove/internal/novelcatalog"
 )
 
@@ -77,6 +78,7 @@ type rnBookRef struct {
 	Image         *rnImage `json:"image"`
 }
 type rnSeries struct {
+	Tags          []rnTag     `json:"tags"`
 	Rating        *rnRating   `json:"rating"`
 	ID            int64       `json:"id"`
 	Title         string      `json:"title"`
@@ -93,6 +95,19 @@ type rnSeries struct {
 	Book struct {
 		Image *rnImage `json:"image"`
 	} `json:"book"`
+}
+type rnTag struct {
+	Name string `json:"name"`
+	ID   int64  `json:"id"`
+	Type string `json:"ttype"`
+}
+
+func ranobeClassification(tags []rnTag) *classification.Set {
+	terms := []classification.ProviderTerm{}
+	for _, t := range tags {
+		terms = append(terms, classification.ProviderTerm{Name: t.Name, ID: strconv.FormatInt(t.ID, 10), Category: t.Type})
+	}
+	return classification.ProviderSet(catalog.RanobeDB, terms)
 }
 
 type rnRating struct {
@@ -293,6 +308,7 @@ func (p *RanobeDB) Series(ctx context.Context, id string) (novelcatalog.Series, 
 	sort.Slice(refs, func(i, j int) bool { return refs[i].Order < refs[j].Order })
 	s := novelcatalog.Series{ID: id, Title: raw.Title, OriginalTitle: raw.OriginalTitle, Description: plain(raw.Description), Authors: []novelcatalog.Author{}, Books: []novelcatalog.BookRef{}, FetchedAt: time.Now().UTC().Format(time.RFC3339Nano), Language: "en", Format: "print"}
 	s.Rating = ranobeRating(raw.Rating, "series", id, s.FetchedAt)
+	s.Classification = ranobeClassification(raw.Tags)
 	for i, b := range refs {
 		s.Books = append(s.Books, novelcatalog.BookRef{Label: novelcatalog.PrintedLabel(b.Title, b.OriginalTitle), ID: strconv.FormatInt(b.ID, 10), Number: i + 1, Order: b.Order, Title: b.Title, OriginalTitle: b.OriginalTitle, CoverURL: rnCover(b.Image)})
 	}
@@ -322,6 +338,7 @@ func (p *RanobeDB) Book(ctx context.Context, seriesID, bookID string) (novelcata
 	}
 	var data struct {
 		Book struct {
+			Tags          []rnTag     `json:"tags"`
 			Rating        *rnRating   `json:"rating"`
 			ID            int64       `json:"id"`
 			Title         string      `json:"title"`
@@ -349,6 +366,7 @@ func (p *RanobeDB) Book(ctx context.Context, seriesID, bookID string) (novelcata
 	result := novelcatalog.Book{ID: bookID, SeriesID: seriesID, Title: b.Title, OriginalTitle: b.OriginalTitle, Description: plain(b.Description), CoverURL: rnCover(b.Image), Releases: []novelcatalog.Release{}}
 	result.FetchedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	result.Rating = ranobeRating(b.Rating, "book", bookID, result.FetchedAt)
+	result.Classification = ranobeClassification(b.Tags)
 	for _, r := range b.Releases {
 		if r.ID > 0 && !r.Hidden && !novelcatalog.ExplicitManga(r.Title) {
 			result.Releases = append(result.Releases, rnOption(r))

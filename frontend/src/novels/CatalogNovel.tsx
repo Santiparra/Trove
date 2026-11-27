@@ -11,6 +11,7 @@ import {
 } from "../../bindings/github.com/Santiparra/Trove/internal/novelcatalog/models";
 import type { Book } from "../../bindings/github.com/Santiparra/Trove/internal/books/models";
 import BookProfile from "../books/BookProfile";
+import ClassificationEditor from "../catalog/ClassificationEditor";
 import { ExternalRating } from "../books/RatingEditor";
 import { errorMessage } from "../books/presentation";
 import { printedLabel } from "./presentation";
@@ -242,6 +243,20 @@ export default function CatalogNovel({
     p.label || printedLabel(p.title, p.originalTitle) || `Lectura #${number}`;
   return (
     <BookProfile
+      classification={
+        <div className="profile-classification-grid">
+          <ClassificationEditor
+            title="Clasificación de novela"
+            effective={series.classification}
+          />
+          {ready && (
+            <ClassificationEditor
+              title={`Clasificación del volumen ${label}`}
+              effective={p.classification}
+            />
+          )}
+        </div>
+      }
       metadataLast
       beforeBody={
         ready &&

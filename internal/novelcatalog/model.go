@@ -10,6 +10,7 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 )
 
 const RanobeDB = "ranobedb"
@@ -60,17 +61,18 @@ type BookRef struct {
 	CoverURL      string  `json:"coverURL"`
 }
 type Series struct {
-	Rating        *catalog.Rating `json:"rating,omitempty"`
-	ID            string          `json:"id"`
-	Title         string          `json:"title"`
-	OriginalTitle string          `json:"originalTitle"`
-	Description   string          `json:"description"`
-	CoverURL      string          `json:"coverURL"`
-	Authors       []Author        `json:"authors"`
-	Books         []BookRef       `json:"books"`
-	FetchedAt     string          `json:"fetchedAt"`
-	Language      string          `json:"language"`
-	Format        string          `json:"format"`
+	Classification *classification.Set `json:"classification,omitempty"`
+	Rating         *catalog.Rating     `json:"rating,omitempty"`
+	ID             string              `json:"id"`
+	Title          string              `json:"title"`
+	OriginalTitle  string              `json:"originalTitle"`
+	Description    string              `json:"description"`
+	CoverURL       string              `json:"coverURL"`
+	Authors        []Author            `json:"authors"`
+	Books          []BookRef           `json:"books"`
+	FetchedAt      string              `json:"fetchedAt"`
+	Language       string              `json:"language"`
+	Format         string              `json:"format"`
 }
 type Release struct {
 	ID          string `json:"id"`
@@ -81,15 +83,16 @@ type Release struct {
 	PublishedOn string `json:"publishedOn"`
 }
 type Book struct {
-	Rating        *catalog.Rating
-	FetchedAt     string
-	ID            string
-	SeriesID      string
-	Title         string
-	OriginalTitle string
-	Description   string
-	CoverURL      string
-	Releases      []Release
+	Classification *classification.Set
+	Rating         *catalog.Rating
+	FetchedAt      string
+	ID             string
+	SeriesID       string
+	Title          string
+	OriginalTitle  string
+	Description    string
+	CoverURL       string
+	Releases       []Release
 }
 type Source struct {
 	Provider  string `json:"provider"`
@@ -98,30 +101,31 @@ type Source struct {
 	FetchedAt string `json:"fetchedAt"`
 }
 type Publication struct {
-	Rating            *catalog.Rating   `json:"rating,omitempty"`
-	Label             string            `json:"label,omitempty"`
-	HardcoverCategory string            `json:"hardcoverCategory,omitempty"`
-	ReleaseTitle      string            `json:"releaseTitle"`
-	SeriesID          string            `json:"seriesID"`
-	BookID            string            `json:"bookID"`
-	ReleaseID         string            `json:"releaseID"`
-	Number            int               `json:"number"`
-	Order             float64           `json:"order"`
-	Title             string            `json:"title"`
-	OriginalTitle     string            `json:"originalTitle"`
-	Language          string            `json:"language"`
-	ReleaseFormat     string            `json:"releaseFormat"`
-	Format            string            `json:"format"`
-	ISBN              string            `json:"isbn"`
-	Description       string            `json:"description"`
-	CoverURL          string            `json:"coverURL"`
-	Publisher         string            `json:"publisher"`
-	PublishedOn       string            `json:"publishedOn"`
-	Pages             *int              `json:"pages"`
-	FetchedAt         string            `json:"fetchedAt"`
-	Evidence          string            `json:"evidence"`
-	Sources           map[string]Source `json:"sources"`
-	Warnings          []string          `json:"warnings"`
+	Classification    *classification.Set `json:"classification,omitempty"`
+	Rating            *catalog.Rating     `json:"rating,omitempty"`
+	Label             string              `json:"label,omitempty"`
+	HardcoverCategory string              `json:"hardcoverCategory,omitempty"`
+	ReleaseTitle      string              `json:"releaseTitle"`
+	SeriesID          string              `json:"seriesID"`
+	BookID            string              `json:"bookID"`
+	ReleaseID         string              `json:"releaseID"`
+	Number            int                 `json:"number"`
+	Order             float64             `json:"order"`
+	Title             string              `json:"title"`
+	OriginalTitle     string              `json:"originalTitle"`
+	Language          string              `json:"language"`
+	ReleaseFormat     string              `json:"releaseFormat"`
+	Format            string              `json:"format"`
+	ISBN              string              `json:"isbn"`
+	Description       string              `json:"description"`
+	CoverURL          string              `json:"coverURL"`
+	Publisher         string              `json:"publisher"`
+	PublishedOn       string              `json:"publishedOn"`
+	Pages             *int                `json:"pages"`
+	FetchedAt         string              `json:"fetchedAt"`
+	Evidence          string              `json:"evidence"`
+	Sources           map[string]Source   `json:"sources"`
+	Warnings          []string            `json:"warnings"`
 }
 type Supplement struct {
 	Category    string
@@ -159,6 +163,11 @@ func ValidPublicationDate(value string) bool {
 	return err == nil
 }
 func (s Series) Validate() error {
+	if s.Classification != nil {
+		if err := s.Classification.ValidateFor(RanobeDB); err != nil {
+			return err
+		}
+	}
 	if r := s.Rating; r != nil {
 		if err := r.Validate(); err != nil {
 			return err
@@ -191,6 +200,11 @@ func (s Series) Validate() error {
 	return nil
 }
 func (p Publication) Validate() error {
+	if p.Classification != nil {
+		if err := p.Classification.ValidateFor(RanobeDB); err != nil {
+			return err
+		}
+	}
 	if r := p.Rating; r != nil {
 		if err := r.Validate(); err != nil {
 			return err

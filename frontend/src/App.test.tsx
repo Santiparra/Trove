@@ -87,6 +87,7 @@ const api = vi.hoisted(() => ({
   ListSeries: vi.fn(),
   SaveBook: vi.fn(),
   GetBook: vi.fn(),
+  SetBookClassification: vi.fn(),
   ChangeBookStatus: vi.fn(),
   DeleteBook: vi.fn(),
   SaveBookNotes: vi.fn(),
@@ -1010,6 +1011,44 @@ describe("guardar un libro manual", () => {
     ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Guardar libro" })).toBeNull();
   });
+});
+
+it("guarda clasificación manual del libro desde su ficha con el medio explícito", async () => {
+  api.Dashboard.mockResolvedValue(overview(true));
+  api.SetBookClassification.mockResolvedValue({
+    ...sample,
+    classification: { genres: ["Fantasía"], tags: [], hidden: [] },
+    effectiveClassification: {
+      genres: [
+        {
+          name: "Fantasía",
+          origins: [{ provider: "manual", id: "fantasía", category: "genre" }],
+        },
+      ],
+      tags: [],
+    },
+  });
+  render(<App />);
+  fireEvent.click(
+    await screen.findByRole("button", { name: "Abrir Obra sintética" }),
+  );
+  const editor = await screen.findByRole("region", {
+    name: "Géneros y etiquetas",
+  });
+  fireEvent.click(within(editor).getByText("Editar clasificación"));
+  fireEvent.change(
+    within(editor).getByLabelText("Nuevo término para Géneros y etiquetas"),
+    { target: { value: "Fantasía" } },
+  );
+  fireEvent.click(within(editor).getByRole("button", { name: "Agregar" }));
+  await waitFor(() =>
+    expect(api.SetBookClassification).toHaveBeenCalledExactlyOnceWith(
+      sample.id,
+      "books",
+      { genres: ["Fantasía"], tags: [], hidden: [] },
+    ),
+  );
+  expect(await within(editor).findByText("Fantasía")).toBeTruthy();
 });
 
 describe("eliminar libros", () => {

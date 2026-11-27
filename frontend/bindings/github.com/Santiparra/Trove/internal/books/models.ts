@@ -8,8 +8,13 @@ import { Create as $Create } from "@wailsio/runtime";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as catalog$0 from "../catalog/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
 
 export class Book {
+    "classification"?: classification$0.Input | null;
+    "effectiveClassification"?: classification$0.Set | null;
     "medium": string;
     "id": string;
     "title": string;
@@ -62,26 +67,34 @@ export class Book {
      * Creates a new Book instance from a string or object.
      */
     static createFrom($$source: any = {}): Book {
-        const $$createField3_0 = $$createType0;
-        const $$createField4_0 = $$createType2;
-        const $$createField5_0 = $$createType3;
-        const $$createField6_0 = $$createType4;
-        const $$createField7_0 = $$createType5;
+        const $$createField0_0 = $$createType1;
+        const $$createField1_0 = $$createType3;
+        const $$createField5_0 = $$createType4;
+        const $$createField6_0 = $$createType6;
+        const $$createField7_0 = $$createType7;
+        const $$createField8_0 = $$createType8;
+        const $$createField9_0 = $$createType9;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
+        if ("effectiveClassification" in $$parsedSource) {
+            $$parsedSource["effectiveClassification"] = $$createField1_0($$parsedSource["effectiveClassification"]);
+        }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField5_0($$parsedSource["authors"]);
         }
         if ("series" in $$parsedSource) {
-            $$parsedSource["series"] = $$createField4_0($$parsedSource["series"]);
+            $$parsedSource["series"] = $$createField6_0($$parsedSource["series"]);
         }
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField7_0($$parsedSource["edition"]);
         }
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField6_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField8_0($$parsedSource["cycle"]);
         }
         if ("history" in $$parsedSource) {
-            $$parsedSource["history"] = $$createField7_0($$parsedSource["history"]);
+            $$parsedSource["history"] = $$createField9_0($$parsedSource["history"]);
         }
         return new Book($$parsedSource as Partial<Book>);
     }
@@ -111,7 +124,7 @@ export class CatalogResult {
      * Creates a new CatalogResult instance from a string or object.
      */
     static createFrom($$source: any = {}): CatalogResult {
-        const $$createField0_0 = $$createType6;
+        const $$createField0_0 = $$createType10;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("book" in $$parsedSource) {
             $$parsedSource["book"] = $$createField0_0($$parsedSource["book"]);
@@ -155,7 +168,7 @@ export class Cycle {
      * Creates a new Cycle instance from a string or object.
      */
     static createFrom($$source: any = {}): Cycle {
-        const $$createField6_0 = $$createType8;
+        const $$createField6_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("edition" in $$parsedSource) {
             $$parsedSource["edition"] = $$createField6_0($$parsedSource["edition"]);
@@ -200,9 +213,9 @@ export class Dashboard {
      * Creates a new Dashboard instance from a string or object.
      */
     static createFrom($$source: any = {}): Dashboard {
-        const $$createField2_0 = $$createType10;
-        const $$createField3_0 = $$createType11;
-        const $$createField4_0 = $$createType11;
+        const $$createField2_0 = $$createType14;
+        const $$createField3_0 = $$createType15;
+        const $$createField4_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("counts" in $$parsedSource) {
             $$parsedSource["counts"] = $$createField2_0($$parsedSource["counts"]);
@@ -257,8 +270,8 @@ export class Edition {
      * Creates a new Edition instance from a string or object.
      */
     static createFrom($$source: any = {}): Edition {
-        const $$createField0_0 = $$createType13;
-        const $$createField1_0 = $$createType15;
+        const $$createField0_0 = $$createType17;
+        const $$createField1_0 = $$createType19;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("identifiers" in $$parsedSource) {
             $$parsedSource["identifiers"] = $$createField0_0($$parsedSource["identifiers"]);
@@ -357,7 +370,7 @@ export class Input {
      * Creates a new Input instance from a string or object.
      */
     static createFrom($$source: any = {}): Input {
-        const $$createField3_0 = $$createType0;
+        const $$createField3_0 = $$createType4;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("authors" in $$parsedSource) {
             $$parsedSource["authors"] = $$createField3_0($$parsedSource["authors"]);
@@ -437,7 +450,7 @@ export class ReadingInput {
      * Creates a new ReadingInput instance from a string or object.
      */
     static createFrom($$source: any = {}): ReadingInput {
-        const $$createField5_0 = $$createType8;
+        const $$createField5_0 = $$createType12;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("edition" in $$parsedSource) {
             $$parsedSource["edition"] = $$createField5_0($$parsedSource["edition"]);
@@ -466,7 +479,7 @@ export class SearchResults {
      * Creates a new SearchResults instance from a string or object.
      */
     static createFrom($$source: any = {}): SearchResults {
-        const $$createField0_0 = $$createType11;
+        const $$createField0_0 = $$createType15;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("matches" in $$parsedSource) {
             $$parsedSource["matches"] = $$createField0_0($$parsedSource["matches"]);
@@ -534,19 +547,23 @@ export class StatusCount {
 }
 
 // Private type creation functions
-const $$createType0 = $Create.Array($Create.Any);
-const $$createType1 = Series.createFrom;
-const $$createType2 = $Create.Nullable($$createType1);
-const $$createType3 = Edition.createFrom;
-const $$createType4 = Cycle.createFrom;
-const $$createType5 = $Create.Array($$createType4);
-const $$createType6 = Book.createFrom;
-const $$createType7 = ReadingEdition.createFrom;
-const $$createType8 = $Create.Nullable($$createType7);
-const $$createType9 = StatusCount.createFrom;
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = $Create.Array($$createType6);
-const $$createType12 = catalog$0.Identifier.createFrom;
-const $$createType13 = $Create.Array($$createType12);
-const $$createType14 = catalog$0.Snapshot.createFrom;
-const $$createType15 = $Create.Nullable($$createType14);
+const $$createType0 = classification$0.Input.createFrom;
+const $$createType1 = $Create.Nullable($$createType0);
+const $$createType2 = classification$0.Set.createFrom;
+const $$createType3 = $Create.Nullable($$createType2);
+const $$createType4 = $Create.Array($Create.Any);
+const $$createType5 = Series.createFrom;
+const $$createType6 = $Create.Nullable($$createType5);
+const $$createType7 = Edition.createFrom;
+const $$createType8 = Cycle.createFrom;
+const $$createType9 = $Create.Array($$createType8);
+const $$createType10 = Book.createFrom;
+const $$createType11 = ReadingEdition.createFrom;
+const $$createType12 = $Create.Nullable($$createType11);
+const $$createType13 = StatusCount.createFrom;
+const $$createType14 = $Create.Array($$createType13);
+const $$createType15 = $Create.Array($$createType10);
+const $$createType16 = catalog$0.Identifier.createFrom;
+const $$createType17 = $Create.Array($$createType16);
+const $$createType18 = catalog$0.Snapshot.createFrom;
+const $$createType19 = $Create.Nullable($$createType18);

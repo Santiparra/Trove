@@ -37,7 +37,7 @@ func (s *Service) List(ctx context.Context, query, status string) ([]Novel, erro
 	result := make([]Novel, 0, len(items))
 	for _, n := range items {
 		if status == "" || n.Status == status {
-			result = append(result, n)
+			result = append(result, withClassification(n))
 		}
 	}
 	sort.Slice(result, func(i, j int) bool {
@@ -50,7 +50,8 @@ func (s *Service) List(ctx context.Context, query, status string) ([]Novel, erro
 	return result, nil
 }
 func (s *Service) Get(ctx context.Context, id string) (Novel, error) {
-	return s.repository.GetNovel(ctx, id)
+	n, err := s.repository.GetNovel(ctx, id)
+	return withClassification(n), err
 }
 func (s *Service) Delete(ctx context.Context, id string) error {
 	return s.repository.DeleteNovel(ctx, id)
@@ -124,7 +125,8 @@ func (s *Service) persist(ctx context.Context, n Novel) (Novel, error) {
 	if err := n.Validate(); err != nil {
 		return Novel{}, err
 	}
-	return s.repository.SaveNovel(ctx, n)
+	n, err = s.repository.SaveNovel(ctx, n)
+	return withClassification(n), err
 }
 func reconcile(n *Novel) error {
 	if n.ActiveVolumeID != "" {

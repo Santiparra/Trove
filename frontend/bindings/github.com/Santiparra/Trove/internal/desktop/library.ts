@@ -8,6 +8,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as books$0 from "../books/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -86,6 +89,12 @@ export function SaveBookReading(id: string, medium: string, input: books$0.Readi
 export function SearchBooks(query: string, medium: string): $CancellablePromise<books$0.SearchResults> {
     return $Call.ByID(4091989264, query, medium).then(($result: any) => {
         return $$createType6($result);
+    });
+}
+
+export function SetBookClassification(id: string, medium: string, input: classification$0.Input): $CancellablePromise<books$0.Book> {
+    return $Call.ByID(3148428259, id, medium, input).then(($result: any) => {
+        return $$createType0($result);
     });
 }
 

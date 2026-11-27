@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/Santiparra/Trove/internal/books"
+	"github.com/Santiparra/Trove/internal/classification"
 )
 
 type Choice struct {
@@ -120,6 +121,15 @@ func (l *Library) RereadBook(id, medium string) (books.Book, error) {
 		return books.Book{}, err
 	}
 	return s.Reread(context.Background(), id)
+}
+func (l *Library) SetBookClassification(id, medium string, input classification.Input) (books.Book, error) {
+	l.gate.Lock()
+	defer l.gate.Unlock()
+	s, err := l.scoped(medium, true)
+	if err != nil {
+		return books.Book{}, err
+	}
+	return s.SetClassification(context.Background(), id, input)
 }
 func (l *Library) SaveBookReading(id, medium string, input books.ReadingInput) (books.Book, error) {
 	l.gate.Lock()

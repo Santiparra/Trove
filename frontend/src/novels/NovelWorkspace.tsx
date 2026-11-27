@@ -13,6 +13,7 @@ import type {
 } from "../../bindings/github.com/Santiparra/Trove/internal/desktop/models";
 import BookProfile from "../books/BookProfile";
 import ReadingHistory from "../books/ReadingHistory";
+import ClassificationEditor from "../catalog/ClassificationEditor";
 import RatingEditor, { ExternalRating } from "../books/RatingEditor";
 import { dateLabel, errorMessage } from "../books/presentation";
 import NovelEditor from "./NovelEditor";
@@ -117,6 +118,9 @@ export default function NovelWorkspace({
   const [notes, setNotes] = useState("");
   const [readingDirty, setReadingDirty] = useState(false);
   const [runDirty, setRunDirty] = useState(false);
+  const [classificationDirty, setClassificationDirty] = useState(false);
+  const [volumeClassificationDirty, setVolumeClassificationDirty] =
+    useState(false);
   const [historyRevision, setHistoryRevision] = useState(0);
   const [rereadSelection, setRereadSelection] = useState<string[] | null>(null);
   const [all, setAll] = useState(false);
@@ -280,7 +284,11 @@ export default function NovelWorkspace({
   useEffect(() => {
     if (!editing && !volumeEdit)
       onDirty(
-        (!!selected && notes !== selected.notes) || readingDirty || runDirty,
+        (!!selected && notes !== selected.notes) ||
+          readingDirty ||
+          runDirty ||
+          classificationDirty ||
+          volumeClassificationDirty,
       );
   }, [
     notes,
@@ -290,14 +298,24 @@ export default function NovelWorkspace({
     volumeEdit,
     readingDirty,
     runDirty,
+    selected,
+    classificationDirty,
+    volumeClassificationDirty,
     onDirty,
   ]);
   function leave(action: () => void) {
     if (busy || !canLeave()) return;
-    if (readingDirty || runDirty) {
+    if (
+      readingDirty ||
+      runDirty ||
+      classificationDirty ||
+      volumeClassificationDirty
+    ) {
       setHistoryRevision((v) => v + 1);
       setReadingDirty(false);
       setRunDirty(false);
+      setClassificationDirty(false);
+      setVolumeClassificationDirty(false);
     }
     onDirty(false);
     setNotes(selected?.notes || "");
@@ -616,6 +634,48 @@ export default function NovelWorkspace({
     return (
       <>
         <BookProfile
+          classification={
+            <div className="profile-classification-grid">
+              <ClassificationEditor
+                key={`${selected.id}-classification-${historyRevision}`}
+                title="Clasificación de novela"
+                manual={selected.classification}
+                effective={selected.effectiveClassification}
+                busy={busy}
+                onDirty={setClassificationDirty}
+                onSave={(input) =>
+                  action(async () =>
+                    commit(
+                      await Novels.SetClassification(selected.id, "", input),
+                      "Clasificación de novela guardada.",
+                    ),
+                  )
+                }
+              />
+              {current && (
+                <ClassificationEditor
+                  key={`${current.id}-classification-${historyRevision}`}
+                  title={`Clasificación del volumen ${shownLabel}`}
+                  manual={current.classification}
+                  effective={current.effectiveClassification}
+                  busy={busy}
+                  onDirty={setVolumeClassificationDirty}
+                  onSave={(input) =>
+                    action(async () =>
+                      commit(
+                        await Novels.SetClassification(
+                          selected.id,
+                          current.id,
+                          input,
+                        ),
+                        "Clasificación del volumen guardada.",
+                      ),
+                    )
+                  }
+                />
+              )}
+            </div>
+          }
           metadataLast
           beforeBody={
             !!current?.catalog?.warnings.length && (

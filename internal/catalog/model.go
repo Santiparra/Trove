@@ -3,6 +3,7 @@ package catalog
 
 import (
 	"errors"
+	"github.com/Santiparra/Trove/internal/classification"
 	"net/url"
 	"regexp"
 	"strings"
@@ -31,14 +32,15 @@ type Series struct {
 	Position *float64 `json:"position"`
 }
 type Work struct {
-	Rating           *Rating  `json:"rating,omitempty"`
-	MatchedEditionID string   `json:"matchedEditionId,omitempty"`
-	ID               string   `json:"id"`
-	Title            string   `json:"title"`
-	Authors          []string `json:"authors"`
-	Description      string   `json:"description"`
-	CoverURL         string   `json:"coverURL"`
-	Series           []Series `json:"series"`
+	Classification   *classification.Set `json:"classification,omitempty"`
+	Rating           *Rating             `json:"rating,omitempty"`
+	MatchedEditionID string              `json:"matchedEditionId,omitempty"`
+	ID               string              `json:"id"`
+	Title            string              `json:"title"`
+	Authors          []string            `json:"authors"`
+	Description      string              `json:"description"`
+	CoverURL         string              `json:"coverURL"`
+	Series           []Series            `json:"series"`
 }
 type Edition struct {
 	ID          string       `json:"id"`
@@ -92,6 +94,11 @@ func ValidCoverURL(value string) bool {
 	return false
 }
 func (s Snapshot) Validate() error {
+	if s.Work.Classification != nil {
+		if err := s.Work.Classification.ValidateFor(Hardcover); err != nil {
+			return err
+		}
+	}
 	if r := s.Work.Rating; r != nil {
 		if err := r.Validate(); err != nil {
 			return err

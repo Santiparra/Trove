@@ -4,6 +4,7 @@ package books
 import (
 	"errors"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 	"math"
 	"strings"
 	"time"
@@ -118,17 +119,19 @@ func (in ReadingInput) Cycle(id string) (Cycle, error) {
 }
 
 type Book struct {
-	Medium   string   `json:"medium"`
-	ID       string   `json:"id"`
-	Title    string   `json:"title"`
-	Authors  []string `json:"authors"`
-	Series   *Series  `json:"series"`
-	Edition  Edition  `json:"edition"`
-	Cycle    Cycle    `json:"cycle"`
-	History  []Cycle  `json:"history,omitempty"`
-	Notes    string   `json:"notes"`
-	AddedOn  string   `json:"addedOn"`
-	Favorite bool     `json:"favorite"`
+	Classification          *classification.Input `json:"classification,omitempty"`
+	EffectiveClassification *classification.Set   `json:"effectiveClassification,omitempty"`
+	Medium                  string                `json:"medium"`
+	ID                      string                `json:"id"`
+	Title                   string                `json:"title"`
+	Authors                 []string              `json:"authors"`
+	Series                  *Series               `json:"series"`
+	Edition                 Edition               `json:"edition"`
+	Cycle                   Cycle                 `json:"cycle"`
+	History                 []Cycle               `json:"history,omitempty"`
+	Notes                   string                `json:"notes"`
+	AddedOn                 string                `json:"addedOn"`
+	Favorite                bool                  `json:"favorite"`
 }
 
 // Input intentionally excludes database, edition and cycle identifiers.

@@ -10,6 +10,9 @@ import { Create as $Create } from "@wailsio/runtime";
 import * as books$0 from "../books/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as novelcatalog$0 from "../novelcatalog/models.js";
 
 export class CatalogMatch {
@@ -203,6 +206,8 @@ export class Input {
 }
 
 export class Novel {
+    "classification"?: classification$0.Input | null;
+    "effectiveClassification"?: classification$0.Set | null;
     "ratingMode"?: string;
     "rating"?: number | null;
     "readings"?: ReadingRun[];
@@ -262,22 +267,30 @@ export class Novel {
      * Creates a new Novel instance from a string or object.
      */
     static createFrom($$source: any = {}): Novel {
-        const $$createField2_0 = $$createType10;
-        const $$createField7_0 = $$createType12;
-        const $$createField10_0 = $$createType8;
-        const $$createField17_0 = $$createType14;
+        const $$createField0_0 = $$createType10;
+        const $$createField1_0 = $$createType12;
+        const $$createField4_0 = $$createType14;
+        const $$createField9_0 = $$createType16;
+        const $$createField12_0 = $$createType8;
+        const $$createField19_0 = $$createType18;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
+        if ("effectiveClassification" in $$parsedSource) {
+            $$parsedSource["effectiveClassification"] = $$createField1_0($$parsedSource["effectiveClassification"]);
+        }
         if ("readings" in $$parsedSource) {
-            $$parsedSource["readings"] = $$createField2_0($$parsedSource["readings"]);
+            $$parsedSource["readings"] = $$createField4_0($$parsedSource["readings"]);
         }
         if ("catalog" in $$parsedSource) {
-            $$parsedSource["catalog"] = $$createField7_0($$parsedSource["catalog"]);
+            $$parsedSource["catalog"] = $$createField9_0($$parsedSource["catalog"]);
         }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField10_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField12_0($$parsedSource["authors"]);
         }
         if ("volumes" in $$parsedSource) {
-            $$parsedSource["volumes"] = $$createField17_0($$parsedSource["volumes"]);
+            $$parsedSource["volumes"] = $$createField19_0($$parsedSource["volumes"]);
         }
         return new Novel($$parsedSource as Partial<Novel>);
     }
@@ -413,9 +426,9 @@ export class ReadingRun {
      * Creates a new ReadingRun instance from a string or object.
      */
     static createFrom($$source: any = {}): ReadingRun {
-        const $$createField3_0 = $$createType15;
+        const $$createField3_0 = $$createType19;
         const $$createField4_0 = $$createType8;
-        const $$createField6_0 = $$createType17;
+        const $$createField6_0 = $$createType21;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
         if ("cycle" in $$parsedSource) {
             $$parsedSource["cycle"] = $$createField3_0($$parsedSource["cycle"]);
@@ -456,6 +469,8 @@ export class StatusCount {
 }
 
 export class Volume {
+    "classification"?: classification$0.Input | null;
+    "effectiveClassification"?: classification$0.Set | null;
     "label"?: string;
     "catalog"?: novelcatalog$0.Publication | null;
     "id": string;
@@ -502,22 +517,30 @@ export class Volume {
      * Creates a new Volume instance from a string or object.
      */
     static createFrom($$source: any = {}): Volume {
-        const $$createField1_0 = $$createType19;
-        const $$createField6_0 = $$createType20;
-        const $$createField7_0 = $$createType15;
-        const $$createField8_0 = $$createType21;
+        const $$createField0_0 = $$createType10;
+        const $$createField1_0 = $$createType12;
+        const $$createField3_0 = $$createType23;
+        const $$createField8_0 = $$createType24;
+        const $$createField9_0 = $$createType19;
+        const $$createField10_0 = $$createType25;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
+        if ("effectiveClassification" in $$parsedSource) {
+            $$parsedSource["effectiveClassification"] = $$createField1_0($$parsedSource["effectiveClassification"]);
+        }
         if ("catalog" in $$parsedSource) {
-            $$parsedSource["catalog"] = $$createField1_0($$parsedSource["catalog"]);
+            $$parsedSource["catalog"] = $$createField3_0($$parsedSource["catalog"]);
         }
         if ("edition" in $$parsedSource) {
-            $$parsedSource["edition"] = $$createField6_0($$parsedSource["edition"]);
+            $$parsedSource["edition"] = $$createField8_0($$parsedSource["edition"]);
         }
         if ("cycle" in $$parsedSource) {
-            $$parsedSource["cycle"] = $$createField7_0($$parsedSource["cycle"]);
+            $$parsedSource["cycle"] = $$createField9_0($$parsedSource["cycle"]);
         }
         if ("history" in $$parsedSource) {
-            $$parsedSource["history"] = $$createField8_0($$parsedSource["history"]);
+            $$parsedSource["history"] = $$createField10_0($$parsedSource["history"]);
         }
         return new Volume($$parsedSource as Partial<Volume>);
     }
@@ -599,16 +622,20 @@ const $$createType5 = $Create.Array($$createType4);
 const $$createType6 = FinishedVolume.createFrom;
 const $$createType7 = $Create.Array($$createType6);
 const $$createType8 = $Create.Array($Create.Any);
-const $$createType9 = ReadingRun.createFrom;
-const $$createType10 = $Create.Array($$createType9);
-const $$createType11 = novelcatalog$0.Series.createFrom;
+const $$createType9 = classification$0.Input.createFrom;
+const $$createType10 = $Create.Nullable($$createType9);
+const $$createType11 = classification$0.Set.createFrom;
 const $$createType12 = $Create.Nullable($$createType11);
-const $$createType13 = Volume.createFrom;
+const $$createType13 = ReadingRun.createFrom;
 const $$createType14 = $Create.Array($$createType13);
-const $$createType15 = books$0.Cycle.createFrom;
-const $$createType16 = ReadingProgress.createFrom;
-const $$createType17 = $Create.Nullable($$createType16);
-const $$createType18 = novelcatalog$0.Publication.createFrom;
-const $$createType19 = $Create.Nullable($$createType18);
-const $$createType20 = books$0.Edition.createFrom;
-const $$createType21 = $Create.Array($$createType15);
+const $$createType15 = novelcatalog$0.Series.createFrom;
+const $$createType16 = $Create.Nullable($$createType15);
+const $$createType17 = Volume.createFrom;
+const $$createType18 = $Create.Array($$createType17);
+const $$createType19 = books$0.Cycle.createFrom;
+const $$createType20 = ReadingProgress.createFrom;
+const $$createType21 = $Create.Nullable($$createType20);
+const $$createType22 = novelcatalog$0.Publication.createFrom;
+const $$createType23 = $Create.Nullable($$createType22);
+const $$createType24 = books$0.Edition.createFrom;
+const $$createType25 = $Create.Array($$createType19);

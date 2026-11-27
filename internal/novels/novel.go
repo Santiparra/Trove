@@ -9,6 +9,7 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 	"github.com/Santiparra/Trove/internal/novelcatalog"
 )
 
@@ -17,37 +18,41 @@ const MaxVolumes = 10000
 var ErrNotFound = errors.New("la novela no existe; actualizá la biblioteca")
 
 type Volume struct {
-	Label       string                    `json:"label,omitempty"`
-	Catalog     *novelcatalog.Publication `json:"catalog,omitempty"`
-	ID          string                    `json:"id"`
-	Number      int                       `json:"number"`
-	Title       string                    `json:"title"`
-	Description string                    `json:"description"`
-	Edition     books.Edition             `json:"edition"`
-	Cycle       books.Cycle               `json:"cycle"`
-	History     []books.Cycle             `json:"history,omitempty"`
-	Notes       string                    `json:"notes"`
-	Favorite    bool                      `json:"favorite"`
+	Classification          *classification.Input     `json:"classification,omitempty"`
+	EffectiveClassification *classification.Set       `json:"effectiveClassification,omitempty"`
+	Label                   string                    `json:"label,omitempty"`
+	Catalog                 *novelcatalog.Publication `json:"catalog,omitempty"`
+	ID                      string                    `json:"id"`
+	Number                  int                       `json:"number"`
+	Title                   string                    `json:"title"`
+	Description             string                    `json:"description"`
+	Edition                 books.Edition             `json:"edition"`
+	Cycle                   books.Cycle               `json:"cycle"`
+	History                 []books.Cycle             `json:"history,omitempty"`
+	Notes                   string                    `json:"notes"`
+	Favorite                bool                      `json:"favorite"`
 }
 type Novel struct {
-	RatingMode      string               `json:"ratingMode,omitempty"`
-	Rating          *float64             `json:"rating,omitempty"`
-	Readings        []ReadingRun         `json:"readings,omitempty"`
-	ActiveRunID     string               `json:"activeRunID,omitempty"`
-	ActiveVolumeID  string               `json:"activeVolumeID,omitempty"`
-	PreviousStatus  string               `json:"previousStatus,omitempty"`
-	StatusChangedAt string               `json:"statusChangedAt,omitempty"`
-	Catalog         *novelcatalog.Series `json:"catalog,omitempty"`
-	ID              string               `json:"id"`
-	Title           string               `json:"title"`
-	Authors         []string             `json:"authors"`
-	Status          string               `json:"status"`
-	Total           *int                 `json:"total"`
-	Completed       *int                 `json:"completed"`
-	Notes           string               `json:"notes"`
-	Favorite        bool                 `json:"favorite"`
-	AddedOn         string               `json:"addedOn"`
-	Volumes         []Volume             `json:"volumes"`
+	Classification          *classification.Input `json:"classification,omitempty"`
+	EffectiveClassification *classification.Set   `json:"effectiveClassification,omitempty"`
+	RatingMode              string                `json:"ratingMode,omitempty"`
+	Rating                  *float64              `json:"rating,omitempty"`
+	Readings                []ReadingRun          `json:"readings,omitempty"`
+	ActiveRunID             string                `json:"activeRunID,omitempty"`
+	ActiveVolumeID          string                `json:"activeVolumeID,omitempty"`
+	PreviousStatus          string                `json:"previousStatus,omitempty"`
+	StatusChangedAt         string                `json:"statusChangedAt,omitempty"`
+	Catalog                 *novelcatalog.Series  `json:"catalog,omitempty"`
+	ID                      string                `json:"id"`
+	Title                   string                `json:"title"`
+	Authors                 []string              `json:"authors"`
+	Status                  string                `json:"status"`
+	Total                   *int                  `json:"total"`
+	Completed               *int                  `json:"completed"`
+	Notes                   string                `json:"notes"`
+	Favorite                bool                  `json:"favorite"`
+	AddedOn                 string                `json:"addedOn"`
+	Volumes                 []Volume              `json:"volumes"`
 }
 type Input struct {
 	ProgressVolumeID string   `json:"progressVolumeID,omitempty"`
@@ -111,6 +116,18 @@ func (n *Novel) Canonicalize() {
 	sort.Slice(n.Volumes, func(i, j int) bool { return n.Volumes[i].Number < n.Volumes[j].Number })
 }
 func (n Novel) Validate() error {
+	if n.Classification != nil {
+		if _, err := classification.Normalize(*n.Classification); err != nil {
+			return err
+		}
+	}
+	for _, v := range n.Volumes {
+		if v.Classification != nil {
+			if _, err := classification.Normalize(*v.Classification); err != nil {
+				return err
+			}
+		}
+	}
 	if err := validateRating(n.RatingMode, n.Rating); err != nil {
 		return err
 	}

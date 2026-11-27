@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 )
 
 type Hardcover struct {
@@ -258,6 +259,15 @@ func (p *Hardcover) Editions(ctx context.Context, id string) ([]catalog.Edition,
 func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 	var data struct {
 		Books []struct {
+			TagCounts []struct {
+				Tag *struct {
+					ID       int64  `json:"id"`
+					Name     string `json:"tag"`
+					Category struct {
+						Slug string `json:"slug"`
+					} `json:"tag_category"`
+				} `json:"tag"`
+			} `json:"taggable_counts"`
 			Rating        *float64     `json:"rating"`
 			RatingsCount  *int         `json:"ratings_count"`
 			ID            int64        `json:"id"`
@@ -286,7 +296,7 @@ func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 			return catalog.Work{}, errors.New("Hardcover devolvió una redirección circular")
 		}
 		seen[id] = true
-		query := `query TroveWork($id:Int!){books(where:{id:{_eq:$id}},limit:1){id title canonical_id description rating ratings_count image{url} contributions(where:{contributor_role:{slug:{_eq:"author"}},contributable_type:{_eq:"Book"}}){author{name}} book_series(limit:12){position compilation series{id name}}}}`
+		query := `query TroveWork($id:Int!){books(where:{id:{_eq:$id}},limit:1){id title canonical_id description rating ratings_count taggable_counts(where:{taggable_type:{_eq:"Book"},count:{_gt:0},tag:{tag_category:{slug:{_in:["genre","genres","mood","moods","tag","tags","theme","themes"]}}}},order_by:{count:desc},limit:200){tag{id tag tag_category{slug}}} image{url} contributions(where:{contributor_role:{slug:{_eq:"author"}},contributable_type:{_eq:"Book"}}){author{name}} book_series(limit:12){position compilation series{id name}}}}`
 		if err := p.query(ctx, query, map[string]int64{"id": id}, &data); err != nil {
 			return catalog.Work{}, err
 		}
@@ -299,6 +309,13 @@ func (p *Hardcover) work(ctx context.Context, id int64) (catalog.Work, error) {
 			continue
 		}
 		out := catalog.Work{ID: strconv.FormatInt(v.ID, 10), Title: v.Title, Description: plain(v.Description), CoverURL: cover(v.Image), Authors: []string{}, Series: []catalog.Series{}}
+		terms := []classification.ProviderTerm{}
+		for _, entry := range v.TagCounts {
+			if t := entry.Tag; t != nil {
+				terms = append(terms, classification.ProviderTerm{Name: t.Name, ID: strconv.FormatInt(t.ID, 10), Category: t.Category.Slug})
+			}
+		}
+		out.Classification = classification.ProviderSet(catalog.Hardcover, terms)
 		if v.Rating != nil && (v.RatingsCount == nil || *v.RatingsCount > 0) {
 			r := &catalog.Rating{Provider: catalog.Hardcover, Entity: "work", ID: out.ID, Value: *v.Rating, Scale: 5, Votes: v.RatingsCount, FetchedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 			if r.Validate() == nil {

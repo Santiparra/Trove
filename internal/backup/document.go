@@ -20,11 +20,12 @@ import (
 
 	"github.com/Santiparra/Trove/internal/books"
 	"github.com/Santiparra/Trove/internal/catalog"
+	"github.com/Santiparra/Trove/internal/classification"
 	"github.com/Santiparra/Trove/internal/novels"
 )
 
 const Format = "trove-library"
-const Version = 7
+const Version = 8
 
 func SupportedVersion(version int) bool { return version >= 1 && version <= Version }
 
@@ -36,15 +37,16 @@ type Series struct {
 	Medium string `json:"medium,omitempty"`
 }
 type Work struct {
-	ID       string   `json:"id"`
-	Medium   string   `json:"medium"`
-	Title    string   `json:"title"`
-	Authors  []string `json:"authors"`
-	SeriesID string   `json:"seriesId,omitempty"`
-	Position *float64 `json:"position,omitempty"`
-	Notes    string   `json:"notes"`
-	AddedOn  string   `json:"addedOn"`
-	Favorite bool     `json:"favorite"`
+	Classification *classification.Input `json:"classification,omitempty"`
+	ID             string                `json:"id"`
+	Medium         string                `json:"medium"`
+	Title          string                `json:"title"`
+	Authors        []string              `json:"authors"`
+	SeriesID       string                `json:"seriesId,omitempty"`
+	Position       *float64              `json:"position,omitempty"`
+	Notes          string                `json:"notes"`
+	AddedOn        string                `json:"addedOn"`
+	Favorite       bool                  `json:"favorite"`
 }
 type Edition struct {
 	ID          string               `json:"id"`
@@ -138,6 +140,14 @@ func (d *Document) Validate() error {
 		names[key] = true
 	}
 	for _, v := range d.Catalog.Works {
+		if v.Classification != nil {
+			if d.Version < 8 {
+				return errors.New("este formato no admite clasificación manual de libros")
+			}
+			if _, err := classification.Normalize(*v.Classification); err != nil {
+				return err
+			}
+		}
 		if err := add(works, v.ID); err != nil {
 			return err
 		}

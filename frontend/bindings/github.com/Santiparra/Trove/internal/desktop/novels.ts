@@ -15,6 +15,9 @@ import { Call as $Call, CancellablePromise as $CancellablePromise, Create as $Cr
 import * as books$0 from "../books/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as novelcatalog$0 from "../novelcatalog/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -148,6 +151,12 @@ export function SaveVolume(id: string, input: novels$0.VolumeInput): $Cancellabl
 export function SearchCatalog(query: string, authorID: string, page: number, scope: string): $CancellablePromise<novelcatalog$0.SearchResult> {
     return $Call.ByID(853198699, query, authorID, page, scope).then(($result: any) => {
         return $$createType7($result);
+    });
+}
+
+export function SetClassification(id: string, volumeID: string, input: classification$0.Input): $CancellablePromise<novels$0.Novel> {
+    return $Call.ByID(2421525712, id, volumeID, input).then(($result: any) => {
+        return $$createType4($result);
     });
 }
 

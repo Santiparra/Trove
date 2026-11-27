@@ -45,7 +45,14 @@ func (s *Service) ForMedium(medium string) (*Service, error) {
 }
 
 func (s *Service) List(ctx context.Context, query string) ([]Book, error) {
-	return s.repository.List(ctx, query, s.medium)
+	items, err := s.repository.List(ctx, query, s.medium)
+	if err != nil {
+		return nil, err
+	}
+	for i := range items {
+		items[i] = withClassification(items[i])
+	}
+	return items, nil
 }
 func (s *Service) Get(ctx context.Context, id string) (Book, error) {
 	b, err := s.repository.Get(ctx, id)
@@ -55,7 +62,7 @@ func (s *Service) Get(ctx context.Context, id string) (Book, error) {
 	if b.Medium != s.medium {
 		return Book{}, ErrNotFound
 	}
-	return b, nil
+	return withClassification(b), nil
 }
 func (s *Service) ListSeries(ctx context.Context) ([]Series, error) {
 	return s.repository.ListSeries(ctx, s.medium)
@@ -238,5 +245,6 @@ func (s *Service) save(ctx context.Context, input Input, snapshot *catalog.Snaps
 	if in.SeriesName != "" {
 		book.Series = &Series{Name: in.SeriesName, Position: in.SeriesPosition, Medium: s.medium}
 	}
-	return s.repository.Save(ctx, book)
+	book, err = s.repository.Save(ctx, book)
+	return withClassification(book), err
 }

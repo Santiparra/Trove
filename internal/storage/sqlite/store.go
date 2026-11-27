@@ -64,7 +64,7 @@ func (s *Store) initialize(path string) error {
 	if err := s.db.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
 		return err
 	}
-	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql", "migrations/005_novels.sql", "migrations/006_novel_catalog.sql", "migrations/007_reading_history.sql"}
+	files := []string{"migrations/001_books.sql", "migrations/002_personal_flags.sql", "migrations/003_reading_media.sql", "migrations/004_catalog.sql", "migrations/005_novels.sql", "migrations/006_novel_catalog.sql", "migrations/007_reading_history.sql", "migrations/008_classification.sql"}
 	if version > len(files) {
 		return errors.New("la base pertenece a una versión más nueva de Trove")
 	}
@@ -104,7 +104,7 @@ func (s *Store) initialize(path string) error {
 
 const selectBooks = `SELECT b.id, b.title, b.authors_json, b.notes, b.added_on,
  s.id, s.name, b.series_position, b.favorite,
- e.id, e.language, e.format, e.identifier, e.owned, c.id, c.status, c.started_on, c.finished_on, b.medium, s.medium, e.identifiers_json, e.catalog_json, c.details_json
+ e.id, e.language, e.format, e.identifier, e.owned, c.id, c.status, c.started_on, c.finished_on, b.medium, s.medium, e.identifiers_json, e.catalog_json, c.details_json, b.classification_json
  FROM books b
  LEFT JOIN series s ON s.id=b.series_id
  JOIN editions e ON e.book_id=b.id
@@ -120,9 +120,10 @@ func scanBook(row scanner) (books.Book, error) {
 	var ids string
 	var metadata sql.NullString
 	var details string
+	var rawClassification sql.NullString
 	err := row.Scan(&b.ID, &b.Title, &authors, &b.Notes, &b.AddedOn, &sid, &name, &pos, &b.Favorite,
 		&b.Edition.ID, &b.Edition.Language, &b.Edition.Format, &b.Edition.Identifier, &b.Edition.Owned,
-		&b.Cycle.ID, &b.Cycle.Status, &b.Cycle.StartedOn, &b.Cycle.FinishedOn, &b.Medium, &seriesMedium, &ids, &metadata, &details)
+		&b.Cycle.ID, &b.Cycle.Status, &b.Cycle.StartedOn, &b.Cycle.FinishedOn, &b.Medium, &seriesMedium, &ids, &metadata, &details, &rawClassification)
 	if errors.Is(err, sql.ErrNoRows) {
 		return b, books.ErrNotFound
 	}
@@ -143,6 +144,11 @@ func scanBook(row scanner) (books.Book, error) {
 	}
 	if metadata.Valid {
 		if err = json.Unmarshal([]byte(metadata.String), &b.Edition.Catalog); err != nil {
+			return b, err
+		}
+	}
+	if rawClassification.Valid {
+		if err = json.Unmarshal([]byte(rawClassification.String), &b.Classification); err != nil {
 			return b, err
 		}
 	}
@@ -266,9 +272,17 @@ func (s *Store) Save(ctx context.Context, b books.Book) (books.Book, error) {
 	if b.Series != nil && b.Series.Position != nil {
 		position = *b.Series.Position
 	}
-	result, err := tx.ExecContext(ctx, `INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite,medium) VALUES(?,?,?,?,?,?,?,?,?)
- ON CONFLICT(id) DO UPDATE SET title=excluded.title,authors_json=excluded.authors_json,notes=excluded.notes,added_on=excluded.added_on,series_id=excluded.series_id,series_position=excluded.series_position,favorite=excluded.favorite WHERE books.medium=excluded.medium`,
-		b.ID, b.Title, string(authors), b.Notes, b.AddedOn, seriesID, position, b.Favorite, b.Medium)
+	var personalClassification any
+	if b.Classification != nil {
+		raw, e := json.Marshal(b.Classification)
+		if e != nil {
+			return b, e
+		}
+		personalClassification = string(raw)
+	}
+	result, err := tx.ExecContext(ctx, `INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite,medium,classification_json) VALUES(?,?,?,?,?,?,?,?,?,?)
+ ON CONFLICT(id) DO UPDATE SET title=excluded.title,authors_json=excluded.authors_json,notes=excluded.notes,added_on=excluded.added_on,series_id=excluded.series_id,series_position=excluded.series_position,favorite=excluded.favorite,classification_json=excluded.classification_json WHERE books.medium=excluded.medium`,
+		b.ID, b.Title, string(authors), b.Notes, b.AddedOn, seriesID, position, b.Favorite, b.Medium, personalClassification)
 	if err != nil {
 		return b, fmt.Errorf("guardar libro: %w", err)
 	}

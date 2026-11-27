@@ -5,6 +5,10 @@
 // @ts-ignore: Unused imports
 import { Create as $Create } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as classification$0 from "../classification/models.js";
+
 export class Edition {
     "id": string;
     "workId": string;
@@ -316,6 +320,7 @@ export class Source {
 }
 
 export class Work {
+    "classification"?: classification$0.Set | null;
     "rating"?: Rating | null;
     "matchedEditionId"?: string;
     "id": string;
@@ -354,17 +359,21 @@ export class Work {
      */
     static createFrom($$source: any = {}): Work {
         const $$createField0_0 = $$createType9;
-        const $$createField4_0 = $$createType4;
-        const $$createField7_0 = $$createType11;
+        const $$createField1_0 = $$createType11;
+        const $$createField5_0 = $$createType4;
+        const $$createField8_0 = $$createType13;
         let $$parsedSource = typeof $$source === 'string' ? JSON.parse($$source) : $$source;
+        if ("classification" in $$parsedSource) {
+            $$parsedSource["classification"] = $$createField0_0($$parsedSource["classification"]);
+        }
         if ("rating" in $$parsedSource) {
-            $$parsedSource["rating"] = $$createField0_0($$parsedSource["rating"]);
+            $$parsedSource["rating"] = $$createField1_0($$parsedSource["rating"]);
         }
         if ("authors" in $$parsedSource) {
-            $$parsedSource["authors"] = $$createField4_0($$parsedSource["authors"]);
+            $$parsedSource["authors"] = $$createField5_0($$parsedSource["authors"]);
         }
         if ("series" in $$parsedSource) {
-            $$parsedSource["series"] = $$createField7_0($$parsedSource["series"]);
+            $$parsedSource["series"] = $$createField8_0($$parsedSource["series"]);
         }
         return new Work($$parsedSource as Partial<Work>);
     }
@@ -379,7 +388,9 @@ const $$createType4 = $Create.Array($Create.Any);
 const $$createType5 = Edition.createFrom;
 const $$createType6 = Source.createFrom;
 const $$createType7 = $Create.Map($Create.Any, $$createType6);
-const $$createType8 = Rating.createFrom;
+const $$createType8 = classification$0.Set.createFrom;
 const $$createType9 = $Create.Nullable($$createType8);
-const $$createType10 = Series.createFrom;
-const $$createType11 = $Create.Array($$createType10);
+const $$createType10 = Rating.createFrom;
+const $$createType11 = $Create.Nullable($$createType10);
+const $$createType12 = Series.createFrom;
+const $$createType13 = $Create.Array($$createType12);

@@ -12,6 +12,8 @@ import { readingLabels } from "./readingMedia";
 import BookProfile from "./BookProfile";
 import ReadingHistory from "./ReadingHistory";
 import RatingEditor from "./RatingEditor";
+import ClassificationEditor from "../catalog/ClassificationEditor";
+import type { Input as ClassificationInput } from "../../bindings/github.com/Santiparra/Trove/internal/classification/models";
 
 export default function BookDetails({
   book,
@@ -34,6 +36,7 @@ export default function BookDetails({
   localOnly,
   onReading,
   onReread,
+  onClassification,
 }: {
   book: Book;
   info: Info;
@@ -49,6 +52,7 @@ export default function BookDetails({
   onNotes: (book: Book, notes: string) => Promise<unknown>;
   onReading: (input: ReadingInput) => Promise<boolean>;
   onReread: () => void;
+  onClassification: (input: ClassificationInput) => Promise<boolean>;
   onDirty: (value: boolean) => void;
   onCatalog: () => void;
   onRefresh: () => void;
@@ -58,14 +62,26 @@ export default function BookDetails({
 }) {
   const [notes, setNotes] = useState(book.notes);
   const [readingDirty, setReadingDirty] = useState(false);
+  const [classificationDirty, setClassificationDirty] = useState(false);
   const labels = readingLabels(book.medium);
   useEffect(() => setNotes(book.notes), [book.id, book.notes]);
   useEffect(
-    () => onDirty(notes !== book.notes || readingDirty),
-    [notes, book.notes, readingDirty, onDirty],
+    () => onDirty(notes !== book.notes || readingDirty || classificationDirty),
+    [notes, book, readingDirty, classificationDirty, onDirty],
   );
   return (
     <BookProfile
+      classification={
+        <ClassificationEditor
+          key={book.id}
+          title="Géneros y etiquetas"
+          manual={book.classification}
+          effective={book.effectiveClassification}
+          busy={busy}
+          onSave={onClassification}
+          onDirty={setClassificationDirty}
+        />
+      }
       metadataLast
       beforeBody={
         !!book.edition.catalog?.warnings?.length && (

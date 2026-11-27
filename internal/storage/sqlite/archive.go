@@ -93,7 +93,7 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 	if err := db.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version); err != nil {
 		return doc, err
 	}
-	if version < 1 || version > 7 {
+	if version < 1 || version > 8 {
 		return doc, errors.New("esquema SQLite no compatible con esta versión de Trove")
 	}
 	medium := "'books'"
@@ -129,7 +129,11 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 		favorite = "0"
 		owned = "0"
 	}
-	rows, err = db.QueryContext(ctx, "SELECT id,title,authors_json,notes,added_on,series_id,series_position,"+favorite+","+medium+" FROM books ORDER BY id")
+	classificationColumn := "NULL"
+	if version >= 8 {
+		classificationColumn = "classification_json"
+	}
+	rows, err = db.QueryContext(ctx, "SELECT id,title,authors_json,notes,added_on,series_id,series_position,"+favorite+","+medium+","+classificationColumn+" FROM books ORDER BY id")
 	if err != nil {
 		return doc, err
 	}
@@ -138,7 +142,8 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 		var authors string
 		var series sql.NullString
 		var position sql.NullFloat64
-		if err = rows.Scan(&v.ID, &v.Title, &authors, &v.Notes, &v.AddedOn, &series, &position, &v.Favorite, &v.Medium); err != nil {
+		var rawClassification sql.NullString
+		if err = rows.Scan(&v.ID, &v.Title, &authors, &v.Notes, &v.AddedOn, &series, &position, &v.Favorite, &v.Medium, &rawClassification); err != nil {
 			rows.Close()
 			return doc, err
 		}
@@ -147,6 +152,12 @@ func exportCatalog(ctx context.Context, db *sql.DB, doc backup.Document) (backup
 			return doc, err
 		}
 		v.SeriesID = series.String
+		if rawClassification.Valid {
+			if err = json.Unmarshal([]byte(rawClassification.String), &v.Classification); err != nil {
+				rows.Close()
+				return doc, err
+			}
+		}
 		if position.Valid {
 			v.Position = &position.Float64
 		}
@@ -305,7 +316,15 @@ func (s *Store) Prepare(ctx context.Context, doc backup.Document, path string) e
 		if v.Position != nil {
 			position = *v.Position
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite,medium) VALUES(?,?,?,?,?,?,?,?,?)", v.ID, v.Title, string(authors), v.Notes, v.AddedOn, series, position, v.Favorite, v.Medium); err != nil {
+		var personalClassification any
+		if v.Classification != nil {
+			raw, e := json.Marshal(v.Classification)
+			if e != nil {
+				return e
+			}
+			personalClassification = string(raw)
+		}
+		if _, err = tx.ExecContext(ctx, "INSERT INTO books(id,title,authors_json,notes,added_on,series_id,series_position,favorite,medium,classification_json) VALUES(?,?,?,?,?,?,?,?,?,?)", v.ID, v.Title, string(authors), v.Notes, v.AddedOn, series, position, v.Favorite, v.Medium, personalClassification); err != nil {
 			return err
 		}
 	}

@@ -74,6 +74,7 @@ func readNovels(ctx context.Context, db *sql.DB) ([]novels.Novel, error) {
 	return items, nil
 }
 func writeNovel(ctx context.Context, tx *sql.Tx, n novels.Novel) error {
+	n.EffectiveClassification = nil
 	volumes := n.Volumes
 	n.Volumes = nil
 	data, err := json.Marshal(n)
@@ -87,6 +88,7 @@ func writeNovel(ctx context.Context, tx *sql.Tx, n novels.Novel) error {
 		return err
 	}
 	for _, v := range volumes {
+		v.EffectiveClassification = nil
 		data, err = json.Marshal(v)
 		if err != nil {
 			return err

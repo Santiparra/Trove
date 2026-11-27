@@ -45,6 +45,7 @@ const api = vi.hoisted(() => ({
   SaveReading: vi.fn(),
   SaveRun: vi.fn(),
   SetRating: vi.fn(),
+  SetClassification: vi.fn(),
 }));
 vi.mock(
   "../../bindings/github.com/Santiparra/Trove/internal/desktop/novels",
@@ -141,6 +142,77 @@ beforeEach(() => {
   });
 });
 afterEach(cleanup);
+
+it("edita etiquetas de volumen sin enviarlas a la clasificación de novela", async () => {
+  const n = novel({
+    status: "reading",
+    completed: 0,
+    volumes: [
+      new Volume({
+        ...volume(1),
+        cycle: new Cycle({ id: "cycle-1", status: "reading" }),
+      }),
+    ],
+    effectiveClassification: {
+      genres: [
+        {
+          name: "Fantasy",
+          origins: [{ provider: "ranobedb", id: "7", category: "genre" }],
+        },
+      ],
+      tags: [],
+    },
+  });
+  api.SetClassification.mockResolvedValue(
+    new Novel({
+      ...n,
+      volumes: [
+        new Volume({
+          ...n.volumes[0],
+          classification: { genres: [], tags: ["Cozy"], hidden: [] },
+          effectiveClassification: {
+            genres: [],
+            tags: [
+              {
+                name: "Cozy",
+                origins: [{ provider: "manual", id: "cozy", category: "tag" }],
+              },
+            ],
+          },
+        }),
+      ],
+    }),
+  );
+  await open(n);
+  const editor = screen.getByRole("region", {
+    name: "Clasificación del volumen 1",
+  });
+  fireEvent.click(within(editor).getByText("Editar clasificación"));
+  fireEvent.change(
+    within(editor).getByLabelText("Categoría para Clasificación del volumen 1"),
+    { target: { value: "tag" } },
+  );
+  fireEvent.change(
+    within(editor).getByLabelText(
+      "Nuevo término para Clasificación del volumen 1",
+    ),
+    { target: { value: "Cozy" } },
+  );
+  fireEvent.click(within(editor).getByRole("button", { name: "Agregar" }));
+  await waitFor(() =>
+    expect(api.SetClassification).toHaveBeenCalledExactlyOnceWith(
+      n.id,
+      "volume-1",
+      { genres: [], tags: ["Cozy"], hidden: [] },
+    ),
+  );
+  expect(await within(editor).findByText("Cozy")).toBeTruthy();
+  expect(
+    within(
+      screen.getByRole("region", { name: "Clasificación de novela" }),
+    ).queryByText("Cozy"),
+  ).toBeNull();
+});
 
 it("guarda el modo automático de novela y muestra la media recibida sin cuantizarla", async () => {
   const n = novel({ status: "reading", completed: 0, volumes: [volume(1)] });
